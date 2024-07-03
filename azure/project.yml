@@ -1,0 +1,8 @@
+variables:
+  - group: status-endpoint
+  - name: service_name
+    value: immunisation-batch
+  - name: short_service_name
+    value: ib
+  - name: service_base_path
+    value: immunisation-batch
