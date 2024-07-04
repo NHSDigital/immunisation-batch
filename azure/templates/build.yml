@@ -1,0 +1,6 @@
+steps:
+  - bash: |
+      BUILDKIT_PROGRESS=plain docker build --target test -t imms-lambda-build -f lambda.Dockerfile .
+
+    displayName: Test lambda code
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/backend"

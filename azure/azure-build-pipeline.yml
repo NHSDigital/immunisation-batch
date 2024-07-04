@@ -15,12 +15,20 @@ pr:
   branches:
     include: ['*']
 
+resources:
+  repositories:
+    - repository: common
+      type: github
+      name: NHSDigital/api-management-utils
+      ref: refs/heads/edge
+      endpoint: NHSDigital
+
 variables:
   - template: project.yml
-
-steps:
-  - bash: |
-      BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f batch.Dockerfile .
-
-    displayName: Test batch code
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/batch"
+extends:
+  template: azure/common/apigee-build.yml@common
+  parameters:
+    service_name: ${{ variables.service_name }}
+    short_service_name: ${{ variables.short_service_name }}
+    post_ecs_push:
+        -   template: ./templates/build.yml
