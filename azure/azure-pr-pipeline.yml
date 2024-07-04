@@ -35,9 +35,7 @@ extends:
     apigee_deployments:
       - environment: internal-dev
         post_deploy:
-          - template: ./templates/run-tests.yml
-            parameters:
-              full: true        
+          - template: ./templates/post-deploy.yml       
       # - environment: internal-dev-sandbox
       #   proxy_path: sandbox
       #   post_deploy:
