@@ -32,3 +32,4 @@ jobs:
 
         displayName: Test lambda code
         workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/batch"
+        #trying pipeline runrr
