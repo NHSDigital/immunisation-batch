@@ -119,9 +119,6 @@ jobs:
         inputs:
           versionSpec: "3.8"
 
-      - ${{ each cache_step in parameters.cache_steps }}:
-          - ${{ cache_step }}
-
       - bash: |
           n=0
           until [ "$n" -ge 3 ]
