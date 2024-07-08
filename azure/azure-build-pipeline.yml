@@ -43,3 +43,5 @@ jobs:
         displayName: print aws info
 
       - template: ./templates/aws-clean-config.yml
+
+      - template: ./templates/build.yml
