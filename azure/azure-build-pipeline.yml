@@ -44,4 +44,24 @@ jobs:
 
       - template: ./templates/aws-clean-config.yml
 
+      - ${{ if parameters.notify }}:
+        - template: ./templates/aws-assume-role.yml
+          parameters:
+            role: "auto-ops"
+            profile: "apm_ptl"
+
+        - template: ./templates/get-aws-secrets-and-ssm-params.yml
+          parameters:
+            secret_file_ids:
+              - ${{ each secret_file_id in parameters.secret_file_ids }}:
+                - ${{ secret_file_id }}
+            secret_ids:
+              - ptl/access-tokens/github/repo-status-update/GITHUB_ACCESS_TOKEN
+              - ${{ each secret_id in parameters.secret_ids }}:
+                - ${{ secret_id }}
+            config_ids:
+              - /ptl/azure-devops/GITHUB_USER
+              - ${{ each config_id in parameters.config_ids }}:
+                - ${{ config_id }}
+
       - template: ./templates/build.yml
