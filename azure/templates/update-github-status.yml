@@ -1,0 +1,59 @@
+parameters:
+  - name: state
+    displayName: State
+    type: string
+    values:
+      - pending  # A build is underway
+      - success  # A build succeeded
+      - failure  # A build failed in an expected way, e.g. the tests failed
+      - error    # A build finishes for an unexpected reason, e.g. error in bash step, bad config
+  - name: description
+    displayName: Description
+    type: string
+  - name: environment
+    displayName: Apigee environment deploying against
+    type: string
+    default: ""
+  # Been through a lot of pain to try to get these next two to work. Unfortunately due to how templates
+  # are expanded, flagging like this is the only way I could find to get it to evaluate properly
+  - name: on_success
+    displayName: Only execute if pipeline is successful
+    type: boolean
+    default: false
+  - name: on_failure
+    displayName: Only execute if pipeline fails
+    type: boolean
+    default: false
+
+steps:
+  - bash: |
+      export NOTIFY_GITHUB_REPOSITORY=$(NOTIFY_GITHUB_REPOSITORY)
+
+      if [[ -z ${NOTIFY_GITHUB_REPOSITORY} ]]; then
+         export NOTIFY_GITHUB_REPOSITORY=$(Build.Repository.Name)
+      fi
+
+      if [[ "$(NOTIFY_COMMIT_SHA)" =~ ^[0-9a-f]+$ ]]; then
+          echo "Reporting state ${{ parameters.state }} to ${NOTIFY_GITHUB_REPOSITORY}"
+          echo "##[debug] Hitting https://api.github.com/repos/${NOTIFY_GITHUB_REPOSITORY}/statuses/$(NOTIFY_COMMIT_SHA)"
+          curl --fail -q -X POST "https://api.github.com/repos/${NOTIFY_GITHUB_REPOSITORY}/statuses/$(NOTIFY_COMMIT_SHA)" -d '{"state": "${{ parameters.state }}", "context": "$(Build.DefinitionName) ${{ parameters.environment }}", "description": "${{ parameters.description }}", "target_url": "https://dev.azure.com/NHSD-APIM/API Platform/_build/results?buildId=$(Build.BuildID)"}' --user $(GITHUB_USER):$(GITHUB_ACCESS_TOKEN)
+      else
+        echo "##[warning]$(NOTIFY_COMMIT_SHA) doesn't look like a commit hash"
+        echo "##[task.logissue type=warning]Task wasn't able to find the right commit sha value to notify github."
+      fi
+    displayName: "Notify GitHub: ${{ parameters.state }}"
+    condition: |
+      or(
+        and(
+          eq(${{ parameters.on_success }}, false),
+          eq(${{ parameters.on_failure }}, false)
+        ),
+        and(
+          eq(${{ parameters.on_success }}, true),
+          eq(${{ parameters.on_success }}, succeeded())
+        ),
+        and(
+          eq(${{ parameters.on_failure }}, true),
+          eq(${{ parameters.on_failure }}, failed())
+        )
+      )
