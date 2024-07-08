@@ -15,20 +15,36 @@ pr:
   branches:
     include: ['*']
 
-resources:
-  repositories:
-    - repository: common
-      type: github
-      name: NHSDigital/api-management-utils
-      ref: refs/heads/edge
-      endpoint: NHSDigital
+parameters:
+  - name: service_name
+    value: immunisation-batch
 
-variables:
-  - template: project.yml
-extends:
-  template: azure/common/apigee-build.yml@common
-  parameters:
-    service_name: ${{ variables.service_name }}
-    short_service_name: ${{ variables.short_service_name }}
-    post_ecs_push:
-        - template: ./templates/build.yml
+jobs:
+  - job: build
+    displayName: Build & Test
+    timeoutInMinutes: 30
+    pool:
+      name: 'AWS-ECS'
+    workspace:
+      clean: all
+    variables:
+      ${{ each var in parameters.variables }}:
+        ${{ var.key }}: ${{ var.value }}
+    steps:
+
+      - bash: |
+          if [ ! -z "$(ls -A \"$(Pipeline.Workspace)/s/${{ parameters.service_name }}\" 2>/dev/null)" ]; then
+            echo "workspace directory is not empty!"
+            exit 1
+          fi
+        displayName: "check workspace is clean"
+
+      - bash: |
+          instance_id="$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
+          echo instance-id: "${instance_id}"
+          echo connect to: https://eu-west-2.console.aws.amazon.com/systems-manager/session-manager/${instance_id}
+          echo sudo su - ubuntu
+          or
+          echo ssh ubuntu@${instance_id}
+          echo working directory: $(System.DefaultWorkingDirectory)
+        displayName: print aws info
