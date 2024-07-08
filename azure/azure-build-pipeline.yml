@@ -49,6 +49,13 @@ jobs:
           parameters:
             role: "auto-ops"
             profile: "apm_ptl"
+        
+        - template: ./templates/get-aws-secrets-and-ssm-params.yml
+          parameters:
+            secret_ids:
+              - ptl/access-tokens/github/repo-status-update/GITHUB_ACCESS_TOKEN
+            config_ids:
+              - /ptl/azure-devops/GITHUB_USER              
 
         - bash: |
             echo "Build.SourceBranch: $(Build.SourceBranch)"
