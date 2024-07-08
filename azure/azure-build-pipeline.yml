@@ -26,7 +26,7 @@ jobs:
     steps:
 
       - bash: |
-          if [ ! -z "$(ls -A \"$(Pipeline.Workspace)/s/${{ immunisation-batch }}\" 2>/dev/null)" ]; then
+          if [ ! -z "$(ls -A \"$(Pipeline.Workspace)/s/immunisation-batch/" 2>/dev/null)" ]; then
             echo "workspace directory is not empty!"
             exit 1
           fi
