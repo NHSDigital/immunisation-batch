@@ -42,4 +42,4 @@ jobs:
           echo working directory: $(System.DefaultWorkingDirectory)
         displayName: print aws info
 
-      - template: ../templates/aws-clean-config.yml
+      - template: ./templates/aws-clean-config.yml
