@@ -15,143 +15,21 @@ pr:
   branches:
     include: ['*']
 
-jobs:
-  - job: build
-    displayName: Build & Test
-    timeoutInMinutes: 30
-    pool:
-      name: 'AWS-ECS'
-    workspace:
-      clean: all
-    steps:
+resources:
+  repositories:
+    - repository: common
+      type: github
+      name: NHSDigital/api-management-utils
+      ref: refs/heads/edge
+      endpoint: NHSDigital
 
-      - bash: |
-          if [ ! -z "$(ls -A \"$(Pipeline.Workspace)/s/immunisation-batch\" 2>/dev/null)" ]; then
-            echo "workspace directory is not empty!"
-            exit 1
-          fi
-        displayName: "check workspace is clean"
+variables:
+  - template: project.yml
 
-      - bash: |
-          instance_id="$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
-          echo instance-id: "${instance_id}"
-          echo connect to: https://eu-west-2.console.aws.amazon.com/systems-manager/session-manager/${instance_id}
-          echo sudo su - ubuntu
-          or
-          echo ssh ubuntu@${instance_id}
-          echo working directory: $(System.DefaultWorkingDirectory)
-        displayName: print aws info
-
-      - template: ./templates/aws-clean-config.yml
-
-      - ${{ if true }}:
-        - template: ./templates/aws-assume-role.yml
-          parameters:
-            role: "auto-ops"
-            profile: "apm_ptl"
-        
-        - template: ./templates/get-aws-secrets-and-ssm-params.yml
-          parameters:
-            secret_ids:
-              - ptl/access-tokens/github/repo-status-update/GITHUB_ACCESS_TOKEN
-            config_ids:
-              - /ptl/azure-devops/GITHUB_USER              
-
-        - bash: |
-            echo "Build.SourceBranch: $(Build.SourceBranch)"
-            echo "Build.SourceBranchName: $(Build.SourceBranchName)"
-            echo "Build.SourceVersion: $(Build.SourceVersion)"
-            echo "Build.SourceVersionMessage: $(Build.SourceVersionMessage)"
-
-            if [[ ! -z $(NOTIFY_COMMIT_SHA) ]]; then
-                echo "##[debug]Using already provided NOTIFY_COMMIT_SHA=$(NOTIFY_COMMIT_SHA)"
-            else
-                NOTIFY_COMMIT_SHA=""
-
-                if [[ "$(Build.SourceBranch)" =~ ^refs/tags/.+$ ]]; then
-                    echo "##[debug]Build appears to be a tag build"
-                    echo "##[debug]Using Build.SourceVersion as NOTIFY_COMMIT_SHA"
-                    NOTIFY_COMMIT_SHA="$(Build.SourceVersion)"
-                fi
-
-                if [[ "$(Build.SourceBranch)" =~ ^refs/pull/.+$ ]]; then
-                    echo "##[debug]Build appears to be a pull request build"
-                    echo "##[debug]Extracting NOTIFY_COMMIT_SHA from Build.SourceVersionMessage"
-                    NOTIFY_COMMIT_SHA=`echo "$(Build.SourceVersionMessage)" | cut -d' ' -f2`
-                fi
-
-                if [[ -z $NOTIFY_COMMIT_SHA ]]; then
-                    echo "##[debug]Build does not appear to be pull or tag build"
-                    echo "##[debug]Using Build.SourceVersion as NOTIFY_COMMIT_SHA"
-                    NOTIFY_COMMIT_SHA="$(Build.SourceVersion)"
-                fi
-
-                echo "##vso[task.setvariable variable=NOTIFY_COMMIT_SHA]$NOTIFY_COMMIT_SHA"
-            fi
-          displayName: Set NOTIFY_COMMIT_SHA
-          condition: always()
-
-        - template: './templates/update-github-status.yml'
-          parameters:
-            state: pending
-            description: "Build started"
-      
-      - bash: |
-          if [[ ! -z $(UTILS_PR_NUMBER) ]]; then
-            echo "##[debug]Triggered from utils repository, PR_NUMBER=$(UTILS_PR_NUMBER)"
-            echo "##vso[task.setvariable variable=PR_NUMBER]$(UTILS_PR_NUMBER)"
-          else
-            echo "##[debug]PR_NUMBER=$(System.PullRequest.PullRequestNumber)"
-            echo "##vso[task.setvariable variable=PR_NUMBER]$(System.PullRequest.PullRequestNumber)"
-          fi
-        displayName: Set PR_NUMBER
-
-      - checkout: self
-        path: "s/immunisation-batch"
-        submodules: true
-
-      - template: ./templates/setup-build-name.yml
-        parameters:
-          service_name: "immunisation-batch"
-
-      - task: UsePythonVersion@0
-        displayName: "Use Python 3.8"
-        inputs:
-          versionSpec: "3.8"
-
-      - bash: |
-          n=0
-          until [ "$n" -ge 3 ]
-          do
-            make install && break
-            n=$((n+1))
-          done
-        workingDirectory: "immunisation-batch"
-        displayName: Install project dependencies
-
-      - bash: "make lint"
-        workingDirectory: "immunisation-batch"
-        displayName: Lint
-
-      - bash: "make publish"
-        workingDirectory: "immunisation-batch"
-        displayName: Compile spec
-
-      - bash: "make release"
-        workingDirectory: "immunisation-batch"
-        displayName: Build release package
-
-      - template: ./templates/build.yml
-
-      - ${{ if true }}:
-        - template: './templates/update-github-status.yml'
-          parameters:
-            state: success
-            on_success: true
-            description: "Build succeeded"
-
-        - template: './templates/update-github-status.yml'
-          parameters:
-            state: failure
-            on_failure: true
-            description: "Build failed"
+extends:
+  template: azure/common/apigee-build.yml@common
+  parameters:
+    service_name: ${{ variables.service_name }}
+    short_service_name: ${{ variables.short_service_name }}
+    post_ecs_push:
+        - template: ./templates/build.yml
