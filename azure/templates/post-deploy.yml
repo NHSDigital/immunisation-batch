@@ -35,12 +35,12 @@ steps:
       profile: "apim-dev"
       aws_account: "dev"
 
-  - bash: |
-      pwd
-      ls -la
-      cd terraform
-    displayName: 'Check Directory and Navigate to Terraform'
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
+  #- bash: |
+  #    pwd
+  #    ls -la
+  #    cd terraform
+  #  displayName: 'Check Directory and Navigate to Terraform'
+  #  workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
 
   - bash: |
       set -e
