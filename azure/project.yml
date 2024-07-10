@@ -3,6 +3,6 @@ variables:
   - name: service_name
     value: immunisation-batch
   - name: short_service_name
-    value: ib
+    value: imms-batch
   - name: service_base_path
     value: immunisation-batch
