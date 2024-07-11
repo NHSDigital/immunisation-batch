@@ -7,7 +7,7 @@ import os
 import logging
 from io import BytesIO, StringIO
 
-# Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv 
+# Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 
 
@@ -51,12 +51,12 @@ def initial_file_validation(file_key, bucket_name):
     elif "missing" in file_key:
         return False, ["Missing required fields"]
     else:
-        return True, [] 
+        return True, []
         # Temporary placeholder for validation success
 
 
 def send_to_supplier_queue(supplier, message_body):
-    # Need to confirm supplier queue name format - 
+    # Need to confirm supplier queue name format
     imms_env = get_environment()
     ACCOUNT_ID = os.getenv(f"{imms_env.upper()}_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{ACCOUNT_ID}/{supplier}_queue"
@@ -66,23 +66,23 @@ def send_to_supplier_queue(supplier, message_body):
 
 def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
     #TO DO - Populate acknowledgement file with correct values once known
-    headers = ['MESSAGE_HEADER_ID','HEADER_RESPONSE_CODE','ISSUE_SEVERITY','ISSUE_CODE','RESPONSE_TYPE','RESPONSE_CODE',
-            'RESPONSE_DISPLAY','RECEIVED_TIME','MAILBOX_FROM','LOCAL_ID']
-    
+    headers = ['MESSAGE_HEADER_ID','HEADER_RESPONSE_CODE','ISSUE_SEVERITY','ISSUE_CODE','RESPONSE_TYPE','RESPONSE_CODE', 
+               'RESPONSE_DISPLAY','RECEIVED_TIME','MAILBOX_FROM','LOCAL_ID']
+
     # Placeholder for data rows for success
     if validation_passed:
-        data_rows =  [['Value1', 'Value2', 'Value3', 'Value4', 'Value5',
-        'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
-        ack_filename = f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}_{identify_timestamp(file_key)}.csv"
+        data_rows =  [['Value1', 'Value2', 'Value3', 'Value4', 'Value5', 
+                       'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
+        ack_filename = f"GP_Vaccinations_Processing_Response_v1" 
+        + f"_0_{identify_supplier(file_key)}_{identify_timestamp(file_key)}.csv"
     # Placeholder for data rows for errors
     else:
         data_rows = [
         ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
-        'Value6', 'Value7', 'Value8', 'Value9', 'Value10']
-        ]
-        
-        #construct acknowlegement file
-        ack_filename = f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}_{identify_timestamp(file_key)}.csv"
+         'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
+        # construct acknowlegement file
+        ack_filename = f"GP_Vaccinations_Processing_Response_v1"
+        + f"_0_{identify_supplier(file_key)}_{identify_timestamp(file_key)}.csv"
         print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
@@ -90,13 +90,15 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     csv_writer.writerow(headers)
     csv_writer.writerows(data_rows)
     
-    # Upload the CSV.zip file to S3 
-    #TO DO - Update file name and path of ack, Is it nested in a directory in the S3 bucket?
+    # Upload the CSV.zip file to S3
+    # TO DO - Update file name and path of ack, Is it nested in a directory in the S3 bucket?
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
     print(f"{ack_bucket_name}")
     print(f"{data_rows}")
+    
+    
 def lambda_handler(event, context):
     for record in event['Records']:
         try:
@@ -109,7 +111,7 @@ def lambda_handler(event, context):
             # TO DO- Perform initial file validation
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
             
-            #Determine ack_bucket_name based on environment
+            # Determine ack_bucket_name based on environment
             imms_env = get_environment()
             ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api-{imms_env}-batch-data-destination')
             
