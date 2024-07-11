@@ -1,4 +1,4 @@
-import unittest 
+import unittest
 from unittest.mock import patch, MagicMock
 from router_lambda_function import (
     identify_supplier,

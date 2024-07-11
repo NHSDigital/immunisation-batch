@@ -1,5 +1,5 @@
 
-import json 
+import json
 import boto3
 import re
 import csv
@@ -10,11 +10,13 @@ from io import BytesIO, StringIO
 # Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv 
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 s3_client = boto3.client('s3')
 sqs_client = boto3.client('sqs')
+
 
 def get_environment():
     _env = os.getenv("ENVIRONMENT", "internal-dev")
@@ -26,17 +28,21 @@ def get_environment():
     else:
         return "internal-dev"  # default to internal-dev for pr and user workspaces
 
+
 def identify_supplier(file_key):
     supplier_match = re.search(r'_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$', file_key)
     return supplier_match.group(1) if supplier_match else None
+
 
 def identify_disease_type(file_key):
     disease_match = re.search(r'^(\w+)_Vaccinations_', file_key)
     return disease_match.group(1) if disease_match else None
 
+
 def identify_timestamp(file_key):
     timestamp_match = re.search(r'_(\d+T\d+)\.csv$', file_key)
     return timestamp_match.group(1) if timestamp_match else None
+
 
 def initial_file_validation(file_key, bucket_name):
     # TO DO- Placeholder for initial file validation logic, currently populated with example
@@ -45,7 +51,9 @@ def initial_file_validation(file_key, bucket_name):
     elif "missing" in file_key:
         return False, ["Missing required fields"]
     else:
-        return True, []  # Temporary placeholder for validation success
+        return True, [] 
+        # Temporary placeholder for validation success
+
 
 def send_to_supplier_queue(supplier, message_body):
     # Need to confirm supplier queue name format - 
@@ -54,7 +62,8 @@ def send_to_supplier_queue(supplier, message_body):
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{ACCOUNT_ID}/{supplier}_queue"
     sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
     print(f"{queue_url}")
-    
+
+
 def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
     #TO DO - Populate acknowledgement file with correct values once known
     headers = ['MESSAGE_HEADER_ID','HEADER_RESPONSE_CODE','ISSUE_SEVERITY','ISSUE_CODE','RESPONSE_TYPE','RESPONSE_CODE',
@@ -116,11 +125,11 @@ def lambda_handler(event, context):
                 }
                 send_to_supplier_queue(supplier, message_body)
             
-        # Error handling for file processing  
+        # Error handling for file processing
         except ValueError as ve:
-            logging.error(f"Error in initial_file_validation")
+            logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
             create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(ve)])
-        
+            
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
             create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(e)])
