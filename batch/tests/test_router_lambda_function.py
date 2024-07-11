@@ -16,7 +16,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        cls.ods_code = "EMIS"
+        cls.ods_code = "YGM41"
 
     def test_identify_supplier(self):
         '''tests supplier is correctly matched'''
@@ -24,7 +24,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         print({supplier})
         self.assertEqual(supplier, "EMIS")
 
-    def test_identify_supplier(self):
+    def test_extract_ods_code(self):
         '''tests supplier ODS code is extracted'''
         ods_code = extract_ods_code(self.file_key)
         print({ods_code})

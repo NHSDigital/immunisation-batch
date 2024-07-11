@@ -137,7 +137,7 @@ def lambda_handler(event, context):
                 send_to_supplier_queue(supplier, message_body)
                 logger.info(f"Message sent to SQS queue for supplier {supplier}")
             elif not supplier:
-                #if supplier not found or ods_code does not exist , log error, no sqs message
+                # if supplier not found or ods_code does not exist , log error, no sqs message
                 logging.error(f" Supplier not found for ods code {ods_code}")
 
         # Error handling for file processing
