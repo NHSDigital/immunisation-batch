@@ -9,6 +9,7 @@ import json
 from router_lambda_function import (
     lambda_handler  # Import lambda_handler for end-to-end test
 )
+from ods_patterns import ODS_PATTERNS
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
@@ -47,7 +48,7 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
                             "arn": "arn:aws:s3:::example-bucket"
                         },
                         "object": {
-                            "key": "Flu_Vaccinations_v5_YYY55_20240708T12130100.csv",
+                            "key": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
                             "size": 1024,
                             "eTag": "5",
                             "sequencer": "0A1B2C3D4E5F678901"
@@ -98,13 +99,13 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn(bucket_name, buckets, f"Bucket {bucket_name} not found")
 
         # Upload a test file
-        test_file_key = 'Flu_Vaccinations_v5_YYY78_20240708T12130100.csv'
+        test_file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
         test_file_content = "example content"
         s3_client.put_object(Bucket=bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Set up SQS
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
-        queue_url = sqs_client.create_queue(QueueName='YYY78_queue')['QueueUrl']
+        queue_url = sqs_client.create_queue(QueueName='EMIS_queue')['QueueUrl']
 
         # Prepare the event
         event = {
@@ -125,7 +126,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(response['statusCode'], 200)
 
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YYY78_20240708T12130100.csv"
+        ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(
             Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
         )
@@ -137,5 +138,5 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn('Messages', messages)
         received_message = json.loads(messages['Messages'][0]['Body'])
         self.assertEqual(received_message['disease_type'], 'Flu')
-        self.assertEqual(received_message['supplier'], 'YYY78')
+        self.assertEqual(received_message['supplier'], 'EMIS')
         self.assertEqual(received_message['timestamp'], '20240708T12130100')

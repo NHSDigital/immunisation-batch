@@ -6,6 +6,7 @@ import csv
 import os
 import logging
 from io import BytesIO, StringIO
+from ods_patterns import ODS_PATTERNS
 
 # Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
@@ -29,9 +30,13 @@ def get_environment():
         return "internal-dev"  # default to internal-dev for pr and user workspaces
 
 
-def identify_supplier(file_key):
+def extract_ods_code(file_key):
     supplier_match = re.search(r'_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$', file_key)
     return supplier_match.group(1) if supplier_match else None
+
+
+def identify_supplier(ods_code):
+    return ODS_PATTERNS.get(ods_code, None)
 
 
 def identify_disease_type(file_key):
@@ -73,7 +78,7 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     if validation_passed:
         data_rows = [['Value1', 'Value2', 'Value3', 'Value4', 'Value5',
                      'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
-        ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}"
+        ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{extract_ods_code(file_key)}"
                         f"_{identify_timestamp(file_key)}.csv")
     # Placeholder for data rows for errors
     else:
@@ -81,7 +86,7 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
             ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
              'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
         # construct acknowlegement file
-        ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}"
+        ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{extract_ods_code(file_key)}"
                         f"_{identify_timestamp(file_key)}.csv")
         print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
@@ -104,9 +109,13 @@ def lambda_handler(event, context):
         try:
             bucket_name = record['s3']['bucket']['name']
             file_key = record['s3']['object']['key']
-            supplier = identify_supplier(file_key)
+            ods_code = extract_ods_code(file_key)
             disease_type = identify_disease_type(file_key)
             timestamp = identify_timestamp(file_key)
+            supplier = identify_supplier(ods_code)
+            print(f"{supplier}")
+            if not supplier and ods_code:
+                logging.error(f"Supplier not found for ods code {ods_code}")
 
             # TO DO- Perform initial file validation
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
@@ -119,13 +128,17 @@ def lambda_handler(event, context):
             create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
 
             # if validation passed, send message to SQS queue
-            if validation_passed:
+            if validation_passed and supplier:
                 message_body = {
                     'disease_type': disease_type,
                     'supplier': supplier,
                     'timestamp': timestamp
                 }
                 send_to_supplier_queue(supplier, message_body)
+                logger.info(f"Message sent to SQS queue for supplier {supplier}")
+            elif not supplier:
+                #if supplier not found or ods_code does not exist , log error, no sqs message
+                logging.error(f" Supplier not found for ods code {ods_code}")
 
         # Error handling for file processing
         except ValueError as ve:
@@ -137,5 +150,5 @@ def lambda_handler(event, context):
             create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(e)])
     return {
         'statusCode': 200,
-        'body': json.dumps('File processing completed')
+        'body': json.dumps('File processing for S3 bucket completed')
     }

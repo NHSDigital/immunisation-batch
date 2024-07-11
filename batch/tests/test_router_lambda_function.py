@@ -7,20 +7,27 @@ from router_lambda_function import (
     initial_file_validation,
     send_to_supplier_queue,
     create_ack_file,
+    extract_ods_code,
 )
-
+from ods_patterns import ODS_PATTERNS
 
 class TestRouterLambdaFunctions(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.file_key = "Flu_Vaccinations_v5_YYY55_20240708T12130100.csv"
+        cls.file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
+
+    def test_identify_supplier(self):
+        '''tests supplier is correctly matched'''
+        supplier = identify_supplier(ods_code)
+        print({supplier})
+        self.assertEqual(supplier, "EMIS")
 
     def test_identify_supplier(self):
         '''tests supplier ODS code is extracted'''
-        supplier = identify_supplier(self.file_key)
-        print({supplier})
-        self.assertEqual(supplier, "YYY55")
+        ods_code = extract_ods_code(self.file_key)
+        print({ods_code})
+        self.assertEqual(ods_code, "YGM41")
 
     def test_identify_disease_type(self):
         '''tests disease type is extracted'''
@@ -44,7 +51,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_send_to_supplier_queue(self, mock_sqs_client):
         '''tests if supplier queue is called'''
         mock_send_message = mock_sqs_client.send_message
-        supplier = "YYY55"
+        supplier = "YGM41"
         message_body = {
             'disease_type': 'Flu',
             'supplier': supplier,
