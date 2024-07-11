@@ -14,8 +14,8 @@ from io import BytesIO, StringIO
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-s3_client = boto3.client('s3')
-sqs_client = boto3.client('sqs')
+s3_client = boto3.client('s3', region_name='eu-west-2')
+sqs_client = boto3.client('sqs', region_name='eu-west-2')
 
 
 def get_environment():
