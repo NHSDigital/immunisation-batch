@@ -5,7 +5,7 @@ import boto3
 from moto import mock_s3, mock_sqs
 import os
 import json
-#from io import BytesIO
+# from io import BytesIO
 from router_lambda_function import (
     lambda_handler  # Import lambda_handler for end-to-end test
 )
@@ -125,7 +125,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(response['statusCode'], 200)
 
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = (f"GP_Vaccinations_Processing_Response_v1_0_YYY78_20240708T12130100.csv")
+        ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YYY78_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(
             Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
         )
