@@ -9,17 +9,18 @@ from router_lambda_function import (
     create_ack_file,
     extract_ods_code,
 )
-from ods_patterns import ODS_PATTERNS
+
 
 class TestRouterLambdaFunctions(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         cls.file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
+        cls.ods_code = "EMIS"
 
     def test_identify_supplier(self):
         '''tests supplier is correctly matched'''
-        supplier = identify_supplier(ods_code)
+        supplier = identify_supplier(self.ods_code)
         print({supplier})
         self.assertEqual(supplier, "EMIS")
 

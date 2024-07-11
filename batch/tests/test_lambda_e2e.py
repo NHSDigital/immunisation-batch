@@ -9,7 +9,6 @@ import json
 from router_lambda_function import (
     lambda_handler  # Import lambda_handler for end-to-end test
 )
-from ods_patterns import ODS_PATTERNS
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
