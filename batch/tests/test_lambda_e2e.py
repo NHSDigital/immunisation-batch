@@ -1,11 +1,11 @@
 
-import unittest 
+import unittest
 from unittest.mock import patch, MagicMock
 import boto3
 from moto import mock_s3, mock_sqs
 import os
 import json
-from io import BytesIO
+#from io import BytesIO
 from router_lambda_function import (
     lambda_handler  # Import lambda_handler for end-to-end test
 )
@@ -86,12 +86,12 @@ class TestLambdaHandler(unittest.TestCase):
         s3_client = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
         s3_client.create_bucket(Bucket=bucket_name,
-                                CreateBucketConfiguration ={
+                                CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
                                 })
         print(f"Bucket: {bucket_name}")
         print(f"Region: {s3_client.meta.region_name}")
-        #check if bucket exists = 
+        # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket['Name'] for bucket in response['Buckets']]
         print(f"allBuckets: {buckets}")
@@ -125,7 +125,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(response['statusCode'], 200)
 
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = f"GP_Vaccinations_Processing_Response_v1_0_YYY78_20240708T12130100.csv"
+        ack_file_key = (f"GP_Vaccinations_Processing_Response_v1_0_YYY78_20240708T12130100.csv")
         ack_files = s3_client.list_objects_v2(
             Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
         )
