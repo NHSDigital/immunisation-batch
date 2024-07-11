@@ -65,21 +65,21 @@ def send_to_supplier_queue(supplier, message_body):
 
 
 def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
-    #TO DO - Populate acknowledgement file with correct values once known
-    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY' ,'ISSUE_CODE', 'RESPONSE_TYPE', 'RESPONSE_CODE',
-               'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
+    # TO DO - Populate acknowledgement file with correct values once known
+    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
+               'RESPONSE_CODE','RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
 
     # Placeholder for data rows for success
     if validation_passed:
         data_rows = [['Value1', 'Value2', 'Value3', 'Value4', 'Value5',
-                       'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
+                    'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
         ack_filename = f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}"
         + f"_{identify_timestamp(file_key)}.csv"
     # Placeholder for data rows for errors
     else:
         data_rows = [
-        ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
-         'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
+            ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
+            'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
         # construct acknowlegement file
         ack_filename = f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}"
         + f"_{identify_timestamp(file_key)}.csv"
@@ -98,7 +98,7 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     print(f"{ack_bucket_name}")
     print(f"{data_rows}")
 
-    
+
 def lambda_handler(event, context):
     for record in event['Records']:
         try:
@@ -126,7 +126,7 @@ def lambda_handler(event, context):
                     'timestamp': timestamp
                 }
                 send_to_supplier_queue(supplier, message_body)
-            
+
         # Error handling for file processing
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")

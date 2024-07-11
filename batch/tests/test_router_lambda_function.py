@@ -9,8 +9,8 @@ from router_lambda_function import (
     create_ack_file,
 )
 
-class TestRouterLambdaFunctions(unittest.TestCase):
 
+class TestRouterLambdaFunctions(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
