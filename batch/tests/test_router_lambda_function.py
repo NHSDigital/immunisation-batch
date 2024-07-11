@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from router_lambda_function import (
     identify_supplier,
     identify_disease_type,
@@ -10,6 +10,7 @@ from router_lambda_function import (
 )
 
 class TestRouterLambdaFunctions(unittest.TestCase):
+
 
     @classmethod
     def setUpClass(cls):

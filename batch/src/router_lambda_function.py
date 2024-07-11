@@ -66,30 +66,30 @@ def send_to_supplier_queue(supplier, message_body):
 
 def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
     #TO DO - Populate acknowledgement file with correct values once known
-    headers = ['MESSAGE_HEADER_ID','HEADER_RESPONSE_CODE','ISSUE_SEVERITY','ISSUE_CODE','RESPONSE_TYPE','RESPONSE_CODE', 
-               'RESPONSE_DISPLAY','RECEIVED_TIME','MAILBOX_FROM','LOCAL_ID']
+    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY' ,'ISSUE_CODE', 'RESPONSE_TYPE', 'RESPONSE_CODE',
+               'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
 
     # Placeholder for data rows for success
     if validation_passed:
-        data_rows =  [['Value1', 'Value2', 'Value3', 'Value4', 'Value5', 
+        data_rows = [['Value1', 'Value2', 'Value3', 'Value4', 'Value5',
                        'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
-        ack_filename = f"GP_Vaccinations_Processing_Response_v1" 
-        + f"_0_{identify_supplier(file_key)}_{identify_timestamp(file_key)}.csv"
+        ack_filename = f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}"
+        + f"_{identify_timestamp(file_key)}.csv"
     # Placeholder for data rows for errors
     else:
         data_rows = [
         ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
          'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
         # construct acknowlegement file
-        ack_filename = f"GP_Vaccinations_Processing_Response_v1"
-        + f"_0_{identify_supplier(file_key)}_{identify_timestamp(file_key)}.csv"
+        ack_filename = f"GP_Vaccinations_Processing_Response_v1_0_{identify_supplier(file_key)}"
+        + f"_{identify_timestamp(file_key)}.csv"
         print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
     csv_writer = csv.writer(csv_buffer, delimiter='|')
     csv_writer.writerow(headers)
     csv_writer.writerows(data_rows)
-    
+
     # Upload the CSV.zip file to S3
     # TO DO - Update file name and path of ack, Is it nested in a directory in the S3 bucket?
     csv_buffer.seek(0)
@@ -97,7 +97,7 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
     print(f"{ack_bucket_name}")
     print(f"{data_rows}")
-    
+
     
 def lambda_handler(event, context):
     for record in event['Records']:
@@ -107,17 +107,17 @@ def lambda_handler(event, context):
             supplier = identify_supplier(file_key)
             disease_type = identify_disease_type(file_key)
             timestamp = identify_timestamp(file_key)
-            
+
             # TO DO- Perform initial file validation
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
-            
+
             # Determine ack_bucket_name based on environment
             imms_env = get_environment()
             ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api-{imms_env}-batch-data-destination')
-            
+
             # Create acknowledgment file
             create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
-            
+
             # if validation passed, send message to SQS queue
             if validation_passed:
                 message_body = {
@@ -131,7 +131,7 @@ def lambda_handler(event, context):
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
             create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(ve)])
-            
+
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
             create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(e)])
