@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import patch, MagicMock
 import boto3
@@ -12,12 +11,10 @@ from router_lambda_function import (
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
-
     @patch.dict('os.environ', {'ENVIRONMENT': 'internal-dev'})  # Set environment variable for testing
     @patch('router_lambda_function.s3_client')
     @patch('router_lambda_function.sqs_client')
-    @patch('router_lambda_function.validate_csv_column_count')
-    def test_lambda_handler(self, mock_validate_csv_column_count, mock_sqs_client, mock_s3_client):
+    def test_lambda_handler(self, mock_sqs_client, mock_s3_client):
         # Mock S3 event
         event = {
             "Records": [
@@ -48,7 +45,7 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
                             "arn": "arn:aws:s3:::example-bucket"
                         },
                         "object": {
-                            "key": "FLU_Vaccinations_v5_YGM41_20240708T12130100.csv",
+                            "key": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
                             "size": 1024,
                             "eTag": "5",
                             "sequencer": "0A1B2C3D4E5F678901"
@@ -57,37 +54,24 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
                 }
             ]
         }
-
         # Mock S3 client upload_fileobj
         mock_s3_client.upload_fileobj = MagicMock()
-
         # Mock SQS client send_message
         mock_sqs_client.send_message = MagicMock()
-
-        # Mock validate_csv_column_count to return valid response
-        mock_validate_csv_column_count.return_value = (True, [])
-
-        # Mock initial_file_validation function
-        with patch('router_lambda_function.initial_file_validation', return_value=(True, False)) as mock_validation:
-            # Invoke Lambda function
-            lambda_handler(event, None)
-
-            # Assertions
-            mock_validation.assert_called_once_with(
-                "FLU_Vaccinations_v5_YGM41_20240708T12130100.csv", "test-bucket"
-            )
-            mock_s3_client.upload_fileobj.assert_called_once()
-            mock_sqs_client.send_message.assert_called_once()
+        # Invoke Lambda function
+        lambda_handler(event, None)
+        # Assertions
+        mock_s3_client.upload_fileobj.assert_called_once()
+        mock_sqs_client.send_message.assert_called_once()
 
 
 class TestLambdaHandler(unittest.TestCase):
-
     @mock_s3
     @mock_sqs
     @patch.dict(os.environ, {
         "ENVIRONMENT": "internal-dev",
         "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
-        "INTERNAL_DEV_ACCOUNT_ID": "123456789012",
+        "INTERNAL-DEV_ACCOUNT_ID": "123456789012",
         "AWS_DEFAULT_REGION": "eu-west-2"
     })
     def test_lambda_handler(self):
@@ -100,22 +84,18 @@ class TestLambdaHandler(unittest.TestCase):
                                 })
         print(f"Bucket: {bucket_name}")
         print(f"Region: {s3_client.meta.region_name}")
-
-        # Check if bucket exists
+        # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket['Name'] for bucket in response['Buckets']]
         print(f"allBuckets: {buckets}")
         self.assertIn(bucket_name, buckets, f"Bucket {bucket_name} not found")
-
         # Upload a test file
         test_file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
         test_file_content = "example content"
         s3_client.put_object(Bucket=bucket_name, Key=test_file_key, Body=test_file_content)
-
         # Set up SQS
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         queue_url = sqs_client.create_queue(QueueName='EMIS_queue')['QueueUrl']
-
         # Prepare the event
         event = {
             'Records': [
@@ -127,15 +107,10 @@ class TestLambdaHandler(unittest.TestCase):
                 }
             ]
         }
-
-        # Mock the validate_csv_column_count function
-        with patch('router_lambda_function.validate_csv_column_count', return_value=(True, [])):
-            # Call the lambda_handler function
-            response = lambda_handler(event, None)
-
+        # Call the lambda_handler function
+        response = lambda_handler(event, None)
         # Assertions
         self.assertEqual(response['statusCode'], 200)
-
         # Check if the acknowledgment file is created in the S3 bucket
         ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(
@@ -143,7 +118,6 @@ class TestLambdaHandler(unittest.TestCase):
         )
         ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
         self.assertIn(ack_file_key, ack_file_keys)
-
         # Check if the message was sent to the SQS queue
         messages = sqs_client.receive_message(QueueUrl=queue_url)
         self.assertIn('Messages', messages)
