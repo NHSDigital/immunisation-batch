@@ -52,7 +52,7 @@ def send_to_supplier_queue(supplier, message_body):
     # TO DO - will not send as no queue exists, only logs the error for now
     account_id = os.getenv("ACCOUNT_ID", "790083933819")
     default_account_id = os.getenv("internal-dev-account-id")
-    
+
     if not account_id:
         account_id = default_account_id
 
