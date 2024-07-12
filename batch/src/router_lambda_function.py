@@ -212,6 +212,9 @@ def is_valid_datetime(timestamp):
     valid_datetime_string = f"{date_part}T{time_part[:6]}"
     datetime_obj = datetime.strptime(valid_datetime_string, '%Y%m%dT%H%M%S')
 
+    if not datetime_obj:
+        return False
+
     return True
 
 

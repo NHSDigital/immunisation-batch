@@ -68,16 +68,17 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
         mock_validate_csv_column_count.return_value = (True, [])
 
         # Mock initial_file_validation function
-        with patch('router_lambda_function.initial_file_validation', return_value=(True, False)) as mock_initial_file_validation:
+        with patch('router_lambda_function.initial_file_validation', return_value=(True, False)) as mock_validation:
             # Invoke Lambda function
             lambda_handler(event, None)
 
             # Assertions
-            mock_initial_file_validation.assert_called_once_with(
+            mock_validation.assert_called_once_with(
                 "FLU_Vaccinations_v5_YGM41_20240708T12130100.csv", "test-bucket"
             )
             mock_s3_client.upload_fileobj.assert_called_once()
             mock_sqs_client.send_message.assert_called_once()
+
 
 class TestLambdaHandler(unittest.TestCase):
 

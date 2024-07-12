@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from router_lambda_function import (
     identify_supplier,
     identify_disease_type,
@@ -7,8 +7,7 @@ from router_lambda_function import (
     initial_file_validation,
     send_to_supplier_queue,
     create_ack_file,
-    extract_ods_code,
-    validate_csv_column_count
+    extract_ods_code
 )
 
 
