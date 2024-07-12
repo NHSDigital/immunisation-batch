@@ -140,7 +140,6 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(received_message['supplier'], 'EMIS')
         self.assertEqual(received_message['timestamp'], '20240708T12130100')
 
-
     @mock_s3
     @mock_sqs
     @patch.dict(os.environ, {
@@ -153,7 +152,7 @@ class TestLambdaHandler(unittest.TestCase):
     @patch('router_lambda_function.send_to_supplier_queue')
     def test_lambda_invalid(self, mock_send_to_supplier_queue, mock_initial_file_validation):
         '''tests SQS queue is not called when file validation failed'''
-        
+
         # Set up S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
@@ -183,10 +182,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Call the lambda_handler function
         lambda_handler(event, None)
-        
-        #check no message was sent
+        # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
-        
         # Check if the acknowledgment file is created in the S3 bucket
         ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(

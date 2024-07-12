@@ -50,16 +50,15 @@ def initial_file_validation(file_key, bucket_name):
 
 def send_to_supplier_queue(supplier, message_body):
     # TO DO - will not send as no queue exists, only logs the error for now
-    imms_env = get_environment().upper()
     account_id = os.getenv("ACCOUNT_ID", "790083933819")
     default_account_id = os.getenv("internal-dev-account-id")
     
     if not account_id:
         account_id = default_account_id
-    
+
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{supplier}_queue"
     print(queue_url)
-    
+
     try:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
         logger.info(f"Message sent to SQS queue for supplier {supplier}")
@@ -67,6 +66,7 @@ def send_to_supplier_queue(supplier, message_body):
         logger.error(f"queue {queue_url} does not exist")
         return False
     return True
+
 
 def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
     # TO DO - Populate acknowledgement file with correct values once known
@@ -116,7 +116,6 @@ def lambda_handler(event, context):
             # TO DO- Perform initial file validation
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
             # Determine ack_bucket_name based on environment
-            imms_env = get_environment()
             ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api'
                                         f'-{get_environment()}-batch-data-destination')
             # Create acknowledgment file
@@ -128,7 +127,7 @@ def lambda_handler(event, context):
                     'supplier': supplier,
                     'timestamp': timestamp
                 }
-                try: 
+                try:
                     send_to_supplier_queue(supplier, message_body)
                 except Exception:
                     logger.error(f"failed to send message to {supplier}_queue")
