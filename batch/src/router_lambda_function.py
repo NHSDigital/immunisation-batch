@@ -190,7 +190,7 @@ def lambda_handler(event, context):
 
 
 def is_valid_datetime(timestamp):
-   
+
     # Extract date and time components
     date_part = timestamp[:8]
     time_part = timestamp[9:]
@@ -213,6 +213,7 @@ def is_valid_datetime(timestamp):
     datetime_obj = datetime.strptime(valid_datetime_string, '%Y%m%dT%H%M%S')
 
     return True
+
 
 def validate_csv_column_count(bucket_name, file_key):
     expected_columns = [
