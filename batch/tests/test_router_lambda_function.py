@@ -20,25 +20,21 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_identify_supplier(self):
         '''tests supplier is correctly matched'''
         supplier = identify_supplier(self.ods_code)
-        print({supplier})
         self.assertEqual(supplier, "EMIS")
 
     def test_extract_ods_code(self):
         '''tests supplier ODS code is extracted'''
         ods_code = extract_ods_code(self.file_key)
-        print({ods_code})
         self.assertEqual(ods_code, "YGM41")
 
     def test_identify_disease_type(self):
         '''tests disease type is extracted'''
         disease_type = identify_disease_type(self.file_key)
-        print({disease_type})
         self.assertEqual(disease_type, "Flu")
 
     def test_identify_timestamp(self):
         '''tests timestamp is extracted'''
         timestamp = identify_timestamp(self.file_key)
-        print({timestamp})
         self.assertEqual(timestamp, '20240708T12130100')
 
     def test_initial_file_validation_valid(self):
@@ -51,7 +47,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_send_to_supplier_queue(self, mock_sqs_client):
         '''tests if supplier queue is called'''
         mock_send_message = mock_sqs_client.send_message
-        supplier = "YGM41"
+        supplier = "EMIS"
         message_body = {
             'disease_type': 'Flu',
             'supplier': supplier,

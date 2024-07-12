@@ -15,14 +15,7 @@ sqs_client = boto3.client('sqs', region_name='eu-west-2')
 
 
 def get_environment():
-    _env = os.getenv("ENVIRONMENT", "internal-dev")
-    non_prod = ["internal-dev", "int", "ref", "sandbox"]
-    if _env in non_prod:
-        return _env
-    elif _env == "prod":
-        return "prod"
-    else:
-        return "internal-dev"  # default to internal-dev for pr and user workspaces
+    return os.getenv("ENVIRONMENT", "internal-dev")
 
 
 def extract_ods_code(file_key):
@@ -56,13 +49,24 @@ def initial_file_validation(file_key, bucket_name):
 
 
 def send_to_supplier_queue(supplier, message_body):
-    # Need to confirm supplier queue name format
-    imms_env = get_environment()
-    ACCOUNT_ID = os.getenv(f"{imms_env.upper()}_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{ACCOUNT_ID}/{supplier}_queue"
-    sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
-    print(f"{queue_url}")
-
+    # TO DO - will not send as no queue exists, only logs the error for now
+    imms_env = get_environment().upper()
+    account_id = os.getenv("ACCOUNT_ID", "790083933819")
+    default_account_id = os.getenv("internal-dev-account-id")
+    
+    if not account_id:
+        account_id = default_account_id
+    
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{supplier}_queue"
+    print(queue_url)
+    
+    try:
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
+        logger.info(f"Message sent to SQS queue for supplier {supplier}")
+    except sqs_client.exceptions.QueueDoesNotExist:
+        logger.error(f"queue {queue_url} does not exist")
+        return False
+    return True
 
 def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
     # TO DO - Populate acknowledgement file with correct values once known
@@ -113,21 +117,21 @@ def lambda_handler(event, context):
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
             # Determine ack_bucket_name based on environment
             imms_env = get_environment()
-            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api-{imms_env}-batch-data-destination')
+            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api'
+                                        f'-{get_environment()}-batch-data-destination')
             # Create acknowledgment file
             create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
             # if validation passed, send message to SQS queue
-            if validation_passed and supplier:
+            if validation_passed:
                 message_body = {
                     'disease_type': disease_type,
                     'supplier': supplier,
                     'timestamp': timestamp
                 }
-                send_to_supplier_queue(supplier, message_body)
-                logger.info(f"Message sent to SQS queue for supplier {supplier}")
-            elif not supplier:
-                # if supplier not found or ods_code does not exist , log error, no sqs message
-                logging.error(f" Supplier not found for ods code {ods_code}")
+                try: 
+                    send_to_supplier_queue(supplier, message_body)
+                except Exception:
+                    logger.error(f"failed to send message to {supplier}_queue")
 
         # Error handling for file processing
         except ValueError as ve:

@@ -1,3 +1,4 @@
+
 import unittest
 from unittest.mock import patch, MagicMock
 import boto3
@@ -11,6 +12,7 @@ from router_lambda_function import (
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
+
     @patch.dict('os.environ', {'ENVIRONMENT': 'internal-dev'})  # Set environment variable for testing
     @patch('router_lambda_function.s3_client')
     @patch('router_lambda_function.sqs_client')
@@ -54,18 +56,23 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
                 }
             ]
         }
+
         # Mock S3 client upload_fileobj
         mock_s3_client.upload_fileobj = MagicMock()
+
         # Mock SQS client send_message
         mock_sqs_client.send_message = MagicMock()
+
         # Invoke Lambda function
         lambda_handler(event, None)
+
         # Assertions
         mock_s3_client.upload_fileobj.assert_called_once()
         mock_sqs_client.send_message.assert_called_once()
 
 
 class TestLambdaHandler(unittest.TestCase):
+
     @mock_s3
     @mock_sqs
     @patch.dict(os.environ, {
@@ -89,13 +96,16 @@ class TestLambdaHandler(unittest.TestCase):
         buckets = [bucket['Name'] for bucket in response['Buckets']]
         print(f"allBuckets: {buckets}")
         self.assertIn(bucket_name, buckets, f"Bucket {bucket_name} not found")
+
         # Upload a test file
         test_file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
         test_file_content = "example content"
         s3_client.put_object(Bucket=bucket_name, Key=test_file_key, Body=test_file_content)
+
         # Set up SQS
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         queue_url = sqs_client.create_queue(QueueName='EMIS_queue')['QueueUrl']
+
         # Prepare the event
         event = {
             'Records': [
@@ -107,10 +117,13 @@ class TestLambdaHandler(unittest.TestCase):
                 }
             ]
         }
+
         # Call the lambda_handler function
         response = lambda_handler(event, None)
+
         # Assertions
         self.assertEqual(response['statusCode'], 200)
+
         # Check if the acknowledgment file is created in the S3 bucket
         ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(
@@ -118,6 +131,7 @@ class TestLambdaHandler(unittest.TestCase):
         )
         ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
         self.assertIn(ack_file_key, ack_file_keys)
+
         # Check if the message was sent to the SQS queue
         messages = sqs_client.receive_message(QueueUrl=queue_url)
         self.assertIn('Messages', messages)
@@ -125,3 +139,58 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(received_message['disease_type'], 'Flu')
         self.assertEqual(received_message['supplier'], 'EMIS')
         self.assertEqual(received_message['timestamp'], '20240708T12130100')
+
+
+    @mock_s3
+    @mock_sqs
+    @patch.dict(os.environ, {
+        "ENVIRONMENT": "internal-dev",
+        "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
+        "INTERNAL-DEV_ACCOUNT_ID": "123456789012",
+        "AWS_DEFAULT_REGION": "eu-west-2"
+    })
+    @patch('router_lambda_function.initial_file_validation', return_value=(False, ["Invalid content"]))
+    @patch('router_lambda_function.send_to_supplier_queue')
+    def test_lambda_invalid(self, mock_send_to_supplier_queue, mock_initial_file_validation):
+        '''tests SQS queue is not called when file validation failed'''
+        
+        # Set up S3
+        s3_client = boto3.client('s3', region_name='eu-west-2')
+        bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        print(f"Bucket: {bucket_name}")
+        print(f"Region: {s3_client.meta.region_name}")
+
+        # Upload a test file
+        test_file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+        test_file_content = "example content"
+        s3_client.put_object(Bucket=bucket_name, Key=test_file_key, Body=test_file_content)
+
+        # Prepare the event
+        event = {
+            'Records': [
+                {
+                    's3': {
+                        'bucket': {'name': bucket_name},
+                        'object': {'key': test_file_key}
+                    }
+                }
+            ]
+        }
+
+        # Call the lambda_handler function
+        lambda_handler(event, None)
+        
+        #check no message was sent
+        mock_send_to_supplier_queue.assert_not_called()
+        
+        # Check if the acknowledgment file is created in the S3 bucket
+        ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
+        ack_files = s3_client.list_objects_v2(
+            Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
+        )
+        ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
+        self.assertIn(ack_file_key, ack_file_keys)
