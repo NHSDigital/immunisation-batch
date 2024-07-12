@@ -7,6 +7,7 @@ import os
 import logging
 from io import BytesIO, StringIO
 from ods_patterns import ODS_PATTERNS
+from datetime import datetime
 
 # Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
@@ -50,14 +51,47 @@ def identify_timestamp(file_key):
 
 
 def initial_file_validation(file_key, bucket_name):
-    # TO DO- Placeholder for initial file validation logic, currently populated with example
-    if "invalid" in file_key:
-        return False, ["Invalid content detected"]
-    elif "missing" in file_key:
-        return False, ["Missing required fields"]
-    else:
-        return True, []
-        # Temporary placeholder for validation success
+    # Define valid values
+    valid_disease_types = ["FLU", "COVID19", "MMR", "Flu", "Covid19", "Mmr", "flu", "covid19", "mmr"]
+    valid_versions = ["v5"]
+    valid_ods_codes = ["YGM41", "8J1100001", "8HK48", "YGA", "0DE", "0DF", "8HA94", "X26"]
+
+    # Check if the file name ends with .csv
+    if not file_key.endswith('.csv'):
+        return False, True
+
+    # Check the structure of the file name
+    parts = file_key.split('_')
+    if len(parts) != 5:
+        return False, True
+
+    # Validate each part of the file name
+    disease_type = parts[0]
+    vaccination = parts[1]
+    version = parts[2]
+    ods_code = parts[3]
+    timestamp = parts[4].split('.')[0]
+
+    if disease_type not in valid_disease_types:
+        return False, True
+
+    if vaccination != "Vaccinations":
+        return False, True
+
+    if version not in valid_versions:
+        return False, True
+
+    if not any(re.match(pattern, ods_code) for pattern in valid_ods_codes):
+        return False, True
+
+    if not re.match(r'\d{8}T\d{6}', timestamp) or not is_valid_datetime(timestamp):
+        return False, True
+
+    column_count_valid, column_count_errors = validate_csv_column_count(bucket_name, file_key)
+    if not column_count_valid:
+        return False, True
+
+    return True, False
 
 
 def send_to_supplier_queue(supplier, message_body):
@@ -69,7 +103,7 @@ def send_to_supplier_queue(supplier, message_body):
     print(f"{queue_url}")
 
 
-def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors):
+def create_ack_file(file_key, ack_bucket_name, validation_passed):
     # TO DO - Populate acknowledgement file with correct values once known
     headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
                'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
@@ -83,8 +117,8 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     # Placeholder for data rows for errors
     else:
         data_rows = [
-            ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
-             'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
+            ['TBC', 'fatal-error', 'error', 'error', 'business',
+             '20005', 'Unsupported file type received as an attachment', identify_timestamp(file_key), 'N/A', 'DPS']]
         # construct acknowlegement file
         ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{extract_ods_code(file_key)}"
                         f"_{identify_timestamp(file_key)}.csv")
@@ -125,10 +159,11 @@ def lambda_handler(event, context):
             ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api-{imms_env}-batch-data-destination')
 
             # Create acknowledgment file
-            create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
+            # create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
 
             # if validation passed, send message to SQS queue
             if validation_passed and supplier:
+                create_ack_file(file_key, ack_bucket_name, True)
                 message_body = {
                     'disease_type': disease_type,
                     'supplier': supplier,
@@ -147,8 +182,58 @@ def lambda_handler(event, context):
 
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
-            create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(e)])
+            create_ack_file(bucket_name, file_key, ack_bucket_name, False)
     return {
         'statusCode': 200,
         'body': json.dumps('File processing for S3 bucket completed')
     }
+
+
+def is_valid_datetime(timestamp):
+   
+    # Extract date and time components
+    date_part = timestamp[:8]
+    time_part = timestamp[9:]
+
+    # Validate date part
+    # date_obj = datetime.strptime(date_part, '%Y%m%d')
+
+    # Validate time part
+    if len(time_part) != 8 or not time_part.isdigit():
+        False
+    hours = int(time_part[:2])
+    minutes = int(time_part[2:4])
+    seconds = int(time_part[4:6])
+
+    # Check if time is valid
+    if not (0 <= hours < 24 and 0 <= minutes < 60 and 0 <= seconds < 60):
+        return False
+    # Construct the valid datetime string
+    valid_datetime_string = f"{date_part}T{time_part[:6]}"
+    datetime_obj = datetime.strptime(valid_datetime_string, '%Y%m%dT%H%M%S')
+
+    return True
+
+def validate_csv_column_count(bucket_name, file_key):
+    expected_columns = [
+        'NHS_NUMBER', 'PERSON_FORENAME', 'PERSON_SURNAME', 'PERSON_DOB', 'PERSON_GENDER_CODE', 'PERSON_POSTCODE',
+        'DATE_AND_TIME', 'SITE_CODE', 'SITE_CODE_TYPE_URI', 'UNIQUE_ID', 'UNIQUE_ID_URI', 'ACTION_FLAG',
+        'PERFORMING_PROFESSIONAL_FORENAME', 'PERFORMING_PROFESSIONAL_SURNAME', 'RECORDED_DATE', 'PRIMARY_SOURCE',
+        'VACCINATION_PROCEDURE_CODE', 'VACCINATION_PROCEDURE_TERM', 'DOSE_SEQUENCE', 'VACCINE_PRODUCT_CODE',
+        'VACCINE_PRODUCT_TERM', 'VACCINE_MANUFACTURER', 'BATCH_NUMBER', 'EXPIRY_DATE', 'SITE_OF_VACCINATION_CODE',
+        'SITE_OF_VACCINATION_TERM', 'ROUTE_OF_VACCINATION_CODE', 'ROUTE_OF_VACCINATION_TERM', 'DOSE_AMOUNT',
+        'DOSE_UNIT_CODE', 'DOSE_UNIT_TERM', 'INDICATION_CODE', 'LOCATION_CODE', 'LOCATION_CODE_TYPE_URI'
+    ]
+
+    csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+    body = csv_obj['Body'].read().decode('utf-8')
+    csv_reader = csv.reader(StringIO(body))
+    header = next(csv_reader)
+
+    if len(header) != 34:
+        return False, True
+
+    if header != expected_columns:
+        return False, True
+
+    return True, False

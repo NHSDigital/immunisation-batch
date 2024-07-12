@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from router_lambda_function import (
     identify_supplier,
     identify_disease_type,
@@ -8,6 +8,7 @@ from router_lambda_function import (
     send_to_supplier_queue,
     create_ack_file,
     extract_ods_code,
+    validate_csv_column_count
 )
 
 
@@ -42,11 +43,79 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         print({timestamp})
         self.assertEqual(timestamp, '20240708T12130100')
 
-    def test_initial_file_validation_valid(self):
-        '''test whether validation is passed'''
-        validation_passed, validation_errors = initial_file_validation(self.file_key, "test_bucket")
-        self.assertTrue(validation_passed)
-        self.assertEqual(validation_errors, [])
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_valid_file(self, mock_validate_csv):
+        mock_validate_csv.return_value = (True, [])
+        file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertTrue(valid)
+        self.assertFalse(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_extension(self, mock_validate_csv):
+        file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.txt'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertTrue(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_file_structure(self, mock_validate_csv):
+        file_key = 'Flu_Vaccinations_v5_YGM41.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertTrue(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_disease_type(self, mock_validate_csv):
+        file_key = 'Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertTrue(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_version(self, mock_validate_csv):
+        file_key = 'Flu_Vaccinations_v3_YGM41_20240708T12130100.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertTrue(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_ods_code(self, mock_validate_csv):
+        file_key = 'Flu_Vaccinations_v5_INVALID_20240708T12130100.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertTrue(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_timestamp(self, mock_validate_csv):
+        file_key = 'Flu_Vaccinations_v5_YGM41_20240708Ta99999999.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertTrue(errors)
+
+    @patch('router_lambda_function.validate_csv_column_count')
+    def test_invalid_column_count(self, mock_validate_csv):
+        mock_validate_csv.return_value = (False, True)
+        file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+        bucket_name = 'test-bucket'
+
+        valid, errors = initial_file_validation(file_key, bucket_name)
+        self.assertFalse(valid)
+        self.assertEqual(errors, True)
 
     @patch('router_lambda_function.sqs_client')
     def test_send_to_supplier_queue(self, mock_sqs_client):
@@ -64,9 +133,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     @patch('router_lambda_function.s3_client')
     def test_create_ack_file(self, mock_s3_client):
         '''tests whether ack file is created'''
-        bucket_name = "test_bucket"
         ack_bucket_name = "immunisation-fhir-api-internal-dev-batch-data-destination"
         validation_passed = True
-        validation_errors = []
-        create_ack_file(bucket_name, self.file_key, ack_bucket_name, validation_passed, validation_errors)
+        create_ack_file(self.file_key, ack_bucket_name, validation_passed)
         mock_s3_client.upload_fileobj.assert_called_once()
