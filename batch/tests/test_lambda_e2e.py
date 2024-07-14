@@ -151,3 +151,53 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(received_message['disease_type'], 'Flu')
         self.assertEqual(received_message['supplier'], 'EMIS')
         self.assertEqual(received_message['timestamp'], '20240708T12130100')
+
+    @mock_s3
+    @mock_sqs
+    @patch.dict(os.environ, {
+        "ENVIRONMENT": "internal-dev",
+        "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
+        "INTERNAL_DEV_ACCOUNT_ID": "123456789012",
+        "AWS_DEFAULT_REGION": "eu-west-2"
+    })
+    def test_lambda_handler_failed(self):
+        # Set up S3
+        s3_client = boto3.client('s3', region_name='eu-west-2')
+        bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        print(f"Bucket: {bucket_name}")
+        print(f"Region: {s3_client.meta.region_name}")
+
+        # Check if bucket exists
+        response = s3_client.list_buckets()
+        buckets = [bucket['Name'] for bucket in response['Buckets']]
+        print(f"allBuckets: {buckets}")
+        self.assertIn(bucket_name, buckets, f"Bucket {bucket_name} not found")
+
+        # Upload a test file
+        test_file_key = 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+        test_file_content = "example content"
+        s3_client.put_object(Bucket=bucket_name, Key=test_file_key, Body=test_file_content)
+
+        # Prepare the event
+        event = {
+            'Records': [
+                {
+                    's3': {
+                        'bucket': {'name': bucket_name},
+                        'object': {'key': test_file_key}
+                    }
+                }
+            ]
+        }
+
+        # Mock the validate_csv_column_count function
+        with patch('router_lambda_function.validate_csv_column_count', return_value=(False, True)):
+            # Call the lambda_handler function
+            response = lambda_handler(event, None)
+
+        # Assertions
+        self.assertEqual(response['statusCode'], 200)
