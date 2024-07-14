@@ -174,6 +174,9 @@ def lambda_handler(event, context):
             elif not supplier:
                 # if supplier not found or ods_code does not exist , log error, no sqs message
                 logging.error(f" Supplier not found for ods code {ods_code}")
+            else:
+                logging.error("Error in initial_file_validation")
+                create_ack_file(file_key, ack_bucket_name, False)
 
         # Error handling for file processing
         except ValueError as ve:
