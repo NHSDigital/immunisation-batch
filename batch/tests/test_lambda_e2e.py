@@ -77,14 +77,14 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch.dict(os.environ, {
         "ENVIRONMENT": "internal-dev",
-        "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
+        "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-batch-data-destination",
         "INTERNAL-DEV_ACCOUNT_ID": "123456789012",
         "AWS_DEFAULT_REGION": "eu-west-2"
     })
     def test_lambda_handler(self):
         # Set up S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
+        bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
         s3_client.create_bucket(Bucket=bucket_name,
                                 CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
@@ -127,7 +127,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Check if the acknowledgment file is created in the S3 bucket
         ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(
-            Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
+            Bucket="immunisation-batch-internal-dev-batch-data-destination"
         )
         ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
         self.assertIn(ack_file_key, ack_file_keys)
@@ -144,7 +144,7 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch.dict(os.environ, {
         "ENVIRONMENT": "internal-dev",
-        "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
+        "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-batch-data-destination",
         "INTERNAL-DEV_ACCOUNT_ID": "123456789012",
         "AWS_DEFAULT_REGION": "eu-west-2"
     })
@@ -155,7 +155,7 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
+        bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
         s3_client.create_bucket(Bucket=bucket_name,
                                 CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
@@ -187,7 +187,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Check if the acknowledgment file is created in the S3 bucket
         ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
         ack_files = s3_client.list_objects_v2(
-            Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
+            Bucket="immunisation-batch-internal-dev-batch-data-destination"
         )
         ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
         self.assertIn(ack_file_key, ack_file_keys)

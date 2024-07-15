@@ -79,7 +79,7 @@ locals {
     Service     = var.service
   }
 
-  ack_bucket_name = "immunisation-fhir-api-${local.environment}-batch-data-destination"
+  ack_bucket_name = "immunisation-batch-${local.environment}-batch-data-destination"
 
   account_ids = {
     "int"           = var.int_account_id

@@ -60,7 +60,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_create_ack_file(self, mock_s3_client):
         '''tests whether ack file is created'''
         bucket_name = "test_bucket"
-        ack_bucket_name = "immunisation-fhir-api-internal-dev-batch-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-batch-data-destination"
         validation_passed = True
         validation_errors = []
         create_ack_file(bucket_name, self.file_key, ack_bucket_name, validation_passed, validation_errors)

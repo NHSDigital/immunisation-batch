@@ -64,12 +64,12 @@ resource "aws_lambda_permission" "s3_invoke_permission" {
   function_name = aws_lambda_function.file_processor_lambda.function_name
   principal     = "s3.amazonaws.com"
 
-  source_arn = "arn:aws:s3:::${var.environment == "internal-dev" ? "immunisation-fhir-api-internal-dev-batch-data-source" : "immunisation-fhir-api-${var.environment}-batch-data-source"}"
+  source_arn = "arn:aws:s3:::${var.environment == "internal-dev" ? "immunisation-batch-internal-dev-batch-data-source" : "immunisation-batch-${var.environment}-batch-data-source"}"
 }
 
 # S3 Bucket notification to trigger lambda function
 resource "aws_s3_bucket_notification" "lambda_notification" {
-  bucket = var.environment == "internal-dev" ? "immunisation-fhir-api-internal-dev-batch-data-source" : "immunisation-fhir-api-${var.environment}-batch-data-source"
+  bucket = var.environment == "internal-dev" ? "immunisation-batch-internal-dev-batch-data-source" : "immunisation-batch-${var.environment}-batch-data-source"
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.file_processor_lambda.arn

@@ -116,7 +116,7 @@ def lambda_handler(event, context):
             # TO DO- Perform initial file validation
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
             # Determine ack_bucket_name based on environment
-            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api'
+            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch'
                                         f'-{get_environment()}-batch-data-destination')
             # Create acknowledgment file
             create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
