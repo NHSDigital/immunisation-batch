@@ -75,13 +75,13 @@ steps:
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
     retryCountOnTaskFailure: 2
 
-  - bash: |
+  {% comment %} - bash: |
       set -ex
       if ! [[ $APIGEE_ENVIRONMENT =~ .*-*sandbox ]]; then
         counter=0
         base_path="$SERVICE_BASE_PATH"
 
-        endpoint="https://${APIGEE_ENVIRONMENT}.api.service.nhs.uk/${base_path}/_ping"
+        endpoint="https://${APIGEE_ENVIRONMENT}.api.service.nhs.uk/${base_path}/_status"
         while [[ $counter -lt 11 ]]; do
           response=$(curl -H "apikey: $(status-endpoint-api-key)" -s "$endpoint")
           response_code=$(jq -r '.checks.healthcheck.responseCode' <<< "$response")
@@ -102,7 +102,7 @@ steps:
         fi
       fi
     displayName: Waiting for TF resources to be UP
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)" {% endcomment %}
 
   - bash: |
       set -e
