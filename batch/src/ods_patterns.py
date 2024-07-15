@@ -5,4 +5,5 @@ ODS_PATTERNS = {'YGM41': 'EMIS',
                 '0DE': 'AGEM-NIVS',
                 '0DF': 'NIMS',
                 '8HA94': 'EVA',
-                'X26': 'RAVS'}
+                'X26': 'RAVS',
+                'X55': 'TR'}
