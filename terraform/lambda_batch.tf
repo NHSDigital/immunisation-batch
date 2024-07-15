@@ -1,7 +1,3 @@
-provider "aws" { 
-  region = "eu-west-2"
-}
-
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
   name = "lambda-execution-role"

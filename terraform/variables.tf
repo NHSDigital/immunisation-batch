@@ -9,36 +9,6 @@ variable "project_short_name" {
 variable "service" {
     default = "batch"
 }
-data "aws_vpc" "default" {
-    default = true
-}
-data "aws_subnets" "default" {
-    filter {
-        name   = "vpc-id"
-        values = [data.aws_vpc.default.id]
-    }
-}
-
-locals {
-    root_domain = "dev.api.platform.nhs.uk"
-}
-
-locals {
-    project_domain_name = data.aws_route53_zone.project_zone.name
-}
-
-locals {
-    environment         = terraform.workspace
-    prefix              = "${var.project_name}-${var.service}-${local.environment}"
-    short_prefix        = "${var.project_short_name}-${local.environment}"
-    service_domain_name = "${local.environment}.${local.project_domain_name}"
-
-    tags = {
-        Project     = var.project_name
-        Environment = local.environment
-        Service     = var.service
-    }
-}
 
 variable "region" {
     default = "eu-west-2"
@@ -66,32 +36,39 @@ variable "sandbox_account_id" {
 variable "prod_account_id" {
   default = "790033819"
 }
+data "aws_vpc" "default" {
+    default = true
+}
+data "aws_subnets" "default" {
+    filter {
+        name   = "vpc-id"
+        values = [data.aws_vpc.default.id]
+    }
+}
 
 locals {
-  environment         = terraform.workspace
-  prefix              = "${var.project_name}-${var.service}-${local.environment}"
-  short_prefix        = "${var.project_short_name}-${local.environment}"
-  service_domain_name = "${local.environment}.${local.project_domain_name}"
+    root_domain = "dev.api.platform.nhs.uk"
+}
 
-  tags = {
-    Project     = var.project_name
-    Environment = local.environment
-    Service     = var.service
-  }
+locals {
+    project_domain_name = data.aws_route53_zone.project_zone.name
+}
 
-  ack_bucket_name = "immunisation-batch-${local.environment}-batch-data-destination"
+locals {
+    environment         = terraform.workspace
+    prefix              = "${var.project_name}-${var.service}-${local.environment}"
+    short_prefix        = "${var.project_short_name}-${local.environment}"
+    service_domain_name = "${local.environment}.${local.project_domain_name}"
 
-  account_ids = {
+    ack_bucket_name = "immunisation-batch-${local.environment}-batch-data-destination"
+
+    account_ids = {
     "int"           = var.int_account_id
     "ref"           = var.ref_account_id
     "internal-dev"  = var.internal_dev_account_id
     "sandbox"       =var.sandbox_account_id
     "prod"          = var.prod_account_id
+   }
+
+    account_id = lookup(local.account_ids, local.environment, var.internal_dev_account_id)
   }
-
-  account_id = lookup(local.account_ids, local.environment, var.internal_dev_account_id)
-}
-
-provider "aws" {
-  region = "eu-west-2"
-}
