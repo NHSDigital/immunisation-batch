@@ -1,13 +1,13 @@
-SHELL=/bin/bash -euo pipefail
+SHELL=/usr/bin/env bash -euo pipefail
 
 #Installs dependencies using poetry.
 install-python:
+	poetry lock --no-update
 	poetry install
 
 #Installs dependencies using npm.
 install-node:
 	npm install --legacy-peer-deps
-	cd sandbox && npm install --legacy-peer-deps
 
 #Configures Git Hooks, which are scripts that run given a specified event.
 .git/hooks/pre-commit:
@@ -19,7 +19,7 @@ install: install-node install-python .git/hooks/pre-commit
 #Run the npm linting script (specified in package.json). Used to check the syntax and formatting of files.
 lint:
 	npm run lint
-	find . -name '*.py' -not -path '**/.venv/*' | xargs poetry run flake8
+	find . -name '*.py' -not -path '**/.venv/*' -not -path '**/.terraform/*'| xargs poetry run flake8
 
 #Removes build/ + dist/ directories
 clean:
@@ -30,13 +30,16 @@ clean:
 publish: clean
 	mkdir -p build
 	npm run publish 2> /dev/null
+	cp build/immunisation-batch.json sandbox/
+	cp -r specification sandbox/specification
 
 #Runs build proxy script
 build-proxy:
 	scripts/build_proxy.sh
 
 #Files to loop over in release
-_dist_include="pytest.ini poetry.lock poetry.toml pyproject.toml Makefile build/. tests"
+_dist_include="pytest.ini poetry.lock poetry.toml pyproject.toml Makefile build/. specification sandbox terraform scripts batch"
+
 
 #Create /dist/ sub-directory and copy files into directory
 release: clean publish build-proxy
@@ -59,7 +62,6 @@ TEST_CMD := @APIGEE_ACCESS_TOKEN=$(APIGEE_ACCESS_TOKEN) \
 
 PROD_TEST_CMD := $(TEST_CMD) \
 		--apigee-app-id=$(APIGEE_APP_ID) \
-		--apigee-organization=nhsd-prod \
 		--status-endpoint-api-key=$(STATUS_ENDPOINT_API_KEY)
 
 #Command to run end-to-end smoketests post-deployment to verify the environment is working
@@ -80,3 +82,6 @@ smoketest-prod:
 test-prod:
 	$(PROD_CMD) \
 	--junitxml=test-report.xml \
+
+setup-python-envs:
+	scripts/setup-python-envs.sh
