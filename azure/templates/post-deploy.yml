@@ -75,35 +75,6 @@ steps:
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
     retryCountOnTaskFailure: 2
 
-  {% comment %} - bash: |
-      set -ex
-      if ! [[ $APIGEE_ENVIRONMENT =~ .*-*sandbox ]]; then
-        counter=0
-        base_path="$SERVICE_BASE_PATH"
-
-        endpoint="https://${APIGEE_ENVIRONMENT}.api.service.nhs.uk/${base_path}/_status"
-        while [[ $counter -lt 11 ]]; do
-          response=$(curl -H "apikey: $(status-endpoint-api-key)" -s "$endpoint")
-          response_code=$(jq -r '.checks.healthcheck.responseCode' <<< "$response")
-          response_body=$(jq -r '.checks.healthcheck.outcome' <<< "$response")
-          if [ "$response_code" -eq 200 ] && [ "$response_body" == "OK" ]; then
-              echo "Status test successful"
-              break
-          else
-              echo "Waiting for $endpoint to return a 200 response with 'OK' body..."
-              ((counter=counter+1)) # Increment counter by 1
-              echo "Attempt $counter"
-              sleep 30
-          fi
-        done
-        if [ $counter -eq 11 ]; then
-            echo "Status test failed: Maximum number of attempts reached"
-            exit 1
-        fi
-      fi
-    displayName: Waiting for TF resources to be UP
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)" {% endcomment %}
-
   - bash: |
       set -e
       export RELEASE_RELEASEID=$(Build.BuildId)
