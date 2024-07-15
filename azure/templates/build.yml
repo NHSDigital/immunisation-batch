@@ -3,4 +3,13 @@ steps:
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f batch.Dockerfile .
 
     displayName: Test lambda code
-    workingDirectory: "$(Pipeline.Workspace)/s/immunisation-batch/batch"
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/batch"
+  - bash: |
+      mkdir -p build
+      npm run publish 2> /dev/null
+      cp build/immunisation-batch.json sandbox/
+
+        cd sandbox
+      docker build -t sandbox .
+    displayName: Build sandbox image
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)"
