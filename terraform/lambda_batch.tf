@@ -54,8 +54,8 @@ resource "aws_lambda_function" "file_processor_lambda" {
   environment {
     variables = {
       ACK_BUCKET_NAME = local.ack_bucket_name
-      ENVIRONMENT     = local.environment
-      ACCOUNT_ID      = lookup(local.account_ids, local.environment, var.internal_dev_account_id)
+      ENVIRONMENT     = var.environment
+      ACCOUNT_ID      = lookup(local.account_ids, var.environment, var.internal_dev_account_id)
     }
   }
 }

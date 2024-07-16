@@ -17,6 +17,12 @@ variable "region" {
 variable "root_domain_name" {
     default = "dev.api.platform.nhs.uk"
 }
+variable "environment" {
+  description = "The environment for deployment (e.g. dev, sandbox etc)"
+  type = string
+  default = "internal-dev"
+}
+
 variable "int_account_id" {
   default = "790083933819"
 }
@@ -56,11 +62,11 @@ locals {
 
 locals {
     environment         = terraform.workspace
-    prefix              = "${var.project_name}-${var.service}-${local.environment}"
-    short_prefix        = "${var.project_short_name}-${local.environment}"
-    service_domain_name = "${local.environment}.${local.project_domain_name}"
+    prefix              = "${var.project_name}-${var.service}-${var.environment}"
+    short_prefix        = "${var.project_short_name}-${var.environment}"
+    service_domain_name = "${var.environment}.${local.project_domain_name}"
 
-    ack_bucket_name = "immunisation-batch-${local.environment}-batch-data-destination"
+    ack_bucket_name = "immunisation-batch-${var.environment}-batch-data-destination"
 
     account_ids = {
     "int"           = var.int_account_id
@@ -70,5 +76,5 @@ locals {
     "prod"          = var.prod_account_id
    }
 
-    account_id = lookup(local.account_ids, local.environment, var.internal_dev_account_id)
+    account_id = lookup(local.account_ids, var.environment, var.internal_dev_account_id)
   }
