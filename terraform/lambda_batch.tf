@@ -1,3 +1,10 @@
+# zip python lambda file_processor_lambda
+data "archive_file" "lambda_zip" {  
+  type = "zip"  
+  source_dir = "${path.module}/../batch/src" 
+  output_path = "${path.module}/router_lambda_function.zip"
+}
+
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
   name = "lambda-execution-role"
@@ -37,8 +44,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
 # Lambda Function
 resource "aws_lambda_function" "file_processor_lambda" {
   function_name    = "file_processor_lambda"
-  filename         = "file_processor_lambda.zip"
-  source_code_hash = filebase64sha256("file_processor_lambda.zip")
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   role             = aws_iam_role.lambda_role.arn
   handler          = "router_lambda_function.lambda_handler"
   runtime          = "python3.8"
