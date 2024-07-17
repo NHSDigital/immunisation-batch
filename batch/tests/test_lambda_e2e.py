@@ -3,7 +3,6 @@ import unittest
 from unittest.mock import patch, MagicMock
 import boto3
 from moto import mock_s3, mock_sqs
-import os
 import json
 # from io import BytesIO
 from router_lambda_function import (
@@ -13,7 +12,6 @@ from router_lambda_function import (
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
 
-    @patch.dict('os.environ', {'ENVIRONMENT': 'internal-dev'})  # Set environment variable for testing
     @patch('router_lambda_function.s3_client')
     @patch('router_lambda_function.sqs_client')
     @patch('router_lambda_function.validate_csv_column_count')
@@ -84,17 +82,11 @@ class TestLambdaHandler(unittest.TestCase):
 
     @mock_s3
     @mock_sqs
-    @patch.dict(os.environ, {
-        "ENVIRONMENT": "internal-dev",
-        "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
-        "INTERNAL_DEV_ACCOUNT_ID": "123456789012",
-        "AWS_DEFAULT_REGION": "eu-west-2"
-    })
     def test_lambda_handler(self):
         # Set up S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-source'
-        destination_bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
+        destination_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
 
         # Create source and destination buckets
         s3_client.create_bucket(Bucket=source_bucket_name,
@@ -164,20 +156,14 @@ class TestLambdaHandler(unittest.TestCase):
 
     @mock_s3
     @mock_sqs
-    @patch.dict(os.environ, {
-        "ENVIRONMENT": "internal-dev",
-        "ACK_BUCKET_NAME": "immunisation-fhir-api-internal-dev-batch-data-destination",
-        "INTERNAL-DEV_ACCOUNT_ID": "123456789012",
-        "AWS_DEFAULT_REGION": "eu-west-2"
-    })
     @patch('router_lambda_function.send_to_supplier_queue')
     def test_lambda_invalid(self, mock_send_to_supplier_queue):
         '''tests SQS queue is not called when file validation failed'''
 
         # Set up S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-source'
-        destination_bucket_name = 'immunisation-fhir-api-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
+        destination_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
 
         # Create source and destination buckets
         s3_client.create_bucket(Bucket=source_bucket_name,
