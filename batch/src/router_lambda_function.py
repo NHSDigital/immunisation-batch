@@ -179,11 +179,11 @@ def lambda_handler(event, context):
         # Error handling for file processing
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
-            create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(ve)])
+            create_ack_file(file_key, ack_bucket_name, False, [str(ve)])
 
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
-            create_ack_file(bucket_name, file_key, ack_bucket_name, False)
+            create_ack_file(file_key, ack_bucket_name, False)
     return {
         'statusCode': 200,
         'body': json.dumps('File processing for S3 bucket completed')
