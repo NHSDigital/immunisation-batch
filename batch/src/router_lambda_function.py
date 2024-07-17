@@ -52,7 +52,7 @@ def identify_timestamp(file_key):
 
 def initial_file_validation(file_key, bucket_name):
     # Define valid values
-    valid_disease_types = ["FLU", "COVID19", "MMR", "Flu", "Covid19", "Mmr", "flu", "covid19", "mmr"]
+    valid_disease_types = ["flu", "covid19", "mmr"]
     valid_versions = ["v5"]
     valid_ods_codes = ["YGM41", "8J1100001", "8HK48", "YGA", "0DE", "0DF", "8HA94", "X26"]
 
@@ -66,16 +66,16 @@ def initial_file_validation(file_key, bucket_name):
         return False, True
 
     # Validate each part of the file name
-    disease_type = parts[0]
-    vaccination = parts[1]
-    version = parts[2]
+    disease_type = parts[0].lower()
+    vaccination = parts[1].lower()
+    version = parts[2].lower()
     ods_code = parts[3]
     timestamp = parts[4].split('.')[0]
 
     if disease_type not in valid_disease_types:
         return False, True
 
-    if vaccination != "Vaccinations":
+    if vaccination != "vaccinations":
         return False, True
 
     if version not in valid_versions:
@@ -107,21 +107,19 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed):
     # TO DO - Populate acknowledgement file with correct values once known
     headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
                'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
-
+    parts = file_key.split('.')
     # Placeholder for data rows for success
     if validation_passed:
-        data_rows = [['Value1', 'Value2', 'Value3', 'Value4', 'Value5',
-                     'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
-        ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{extract_ods_code(file_key)}"
-                        f"_{identify_timestamp(file_key)}.csv")
+        data_rows = [['TBC', 'ok', 'information', 'informational', 'business',
+                     '20013', 'Success', identify_timestamp(file_key),  'N/A', 'DPS']]
+        ack_filename = (f"ack/{parts[0]}_response.csv")
     # Placeholder for data rows for errors
     else:
         data_rows = [
             ['TBC', 'fatal-error', 'error', 'error', 'business',
              '20005', 'Unsupported file type received as an attachment', identify_timestamp(file_key), 'N/A', 'DPS']]
         # construct acknowlegement file
-        ack_filename = (f"GP_Vaccinations_Processing_Response_v1_0_{extract_ods_code(file_key)}"
-                        f"_{identify_timestamp(file_key)}.csv")
+        ack_filename = (f"ack/{parts[0]}_response.csv")
         print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
@@ -156,7 +154,7 @@ def lambda_handler(event, context):
 
             # Determine ack_bucket_name based on environment
             imms_env = get_environment()
-            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api-{imms_env}-batch-data-destination')
+            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-fhir-api-{imms_env}-ack-data-destination')
 
             # Create acknowledgment file
             # create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)

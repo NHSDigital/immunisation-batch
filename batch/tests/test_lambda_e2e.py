@@ -137,7 +137,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(response['statusCode'], 200)
 
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = "GP_Vaccinations_Processing_Response_v1_0_YGM41_20240708T12130100.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(
             Bucket="immunisation-fhir-api-internal-dev-batch-data-destination"
         )
