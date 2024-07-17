@@ -76,14 +76,16 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     if validation_passed:
         data_rows = [['Value1', 'Value2', 'Value3', 'Value4', 'Value5',
                      'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
-        ack_filename = (f"{file_key}_response.csv")
+        parts = file_key.split('.')
+        ack_filename = (f"{parts[0]}_response.csv")
     # Placeholder for data rows for errors
     else:
         data_rows = [
             ['Value1', 'Error2', 'Value3', 'Error4', 'Value5',
              'Value6', 'Value7', 'Value8', 'Value9', 'Value10']]
         # construct acknowledgement file
-        ack_filename = (f"{file_key}_response.csv")
+        parts = file_key.split('.')
+        ack_filename = (f"{parts[0]}_response.csv")
         print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()

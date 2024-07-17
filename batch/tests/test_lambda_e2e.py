@@ -125,7 +125,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(response['statusCode'], 200)
 
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv_response.csv"
+        ack_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(
             Bucket="immunisation-batch-internal-dev-batch-data-destination"
         )
@@ -185,7 +185,7 @@ class TestLambdaHandler(unittest.TestCase):
         # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv_response.csv"
+        ack_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(
             Bucket="immunisation-batch-internal-dev-batch-data-destination"
         )
