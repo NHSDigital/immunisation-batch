@@ -6,12 +6,13 @@ data "archive_file" "lambda_zip" {
 }
 
 # IAM Role for Lambda
-resource "aws_iam_role" "lambda_role" {
-  name = "lambda-execution-role"
+resource "aws_iam_role" "lambda_exec_role" {
+  name = "${local.prefix}-lambda-exec-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
+      sid = "",
       Principal = {
         Service = "lambda.amazonaws.com"
       },
@@ -21,8 +22,8 @@ resource "aws_iam_role" "lambda_role" {
 }
 
 # Policy for Lambda execution role
-resource "aws_iam_role_policy" "lambda_policy" {
-  name   = "lambda-execution-policy"
+resource "aws_iam_role_policy" "lambda_exec_policy" {
+  name   = "${local.prefix}-lambda-exec-policy"
   role   = aws_iam_role.lambda_role.id
   policy = jsonencode({
     Version = "2012-10-17",
@@ -41,9 +42,14 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
+resource "aws_iam_role_policy_attachment""lambda_exec_policy_attachment" {
+  role = aws_iam_role.lambda_exec_role.name
+  policy_arn = aws_iam_role_policy.lambda_exec_policy.arn
+}
+
 # Lambda Function
 resource "aws_lambda_function" "file_processor_lambda" {
-  function_name    = "file_processor_lambda"
+  function_name    = "${local.prefix}-file_processor_lambda"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   role             = aws_iam_role.lambda_role.arn
@@ -53,9 +59,9 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   environment {
     variables = {
-      ACK_BUCKET_NAME = local.ack_bucket_name
-      ENVIRONMENT     = var.environment
-      ACCOUNT_ID      = lookup(local.account_ids, var.environment, var.internal_dev_account_id)
+      ACK_BUCKET_NAME = "${local.prefix}-batch-data-destination"
+      ENVIRONMENT     = local.environment
+      ACCOUNT_ID      = local.account_id
     }
   }
 }
@@ -67,12 +73,12 @@ resource "aws_lambda_permission" "s3_invoke_permission" {
   function_name = aws_lambda_function.file_processor_lambda.function_name
   principal     = "s3.amazonaws.com"
 
-  source_arn = "arn:aws:s3:::${var.environment == "internal-dev" ? "immunisation-batch-internal-dev-batch-data-source" : "immunisation-batch-${var.environment}-batch-data-source"}"
+  source_arn = aws_s3_bucket.batch_data_source_bucket.arn
 }
 
 # S3 Bucket notification to trigger lambda function
 resource "aws_s3_bucket_notification" "lambda_notification" {
-  bucket = var.environment == "internal-dev" ? "immunisation-batch-internal-dev-batch-data-source" : "immunisation-batch-${var.environment}-batch-data-source"
+  bucket = aws_s3_bucket.batch_data_source_bucket.bucket
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.file_processor_lambda.arn

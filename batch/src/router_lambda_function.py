@@ -15,7 +15,7 @@ sqs_client = boto3.client('sqs', region_name='eu-west-2')
 
 
 def get_environment():
-    return os.getenv("ENVIRONMENT", "internal-dev")
+    return os.getenv("ENVIRONMENT")
 
 
 def extract_ods_code(file_key):
@@ -50,13 +50,9 @@ def initial_file_validation(file_key, bucket_name):
 
 def send_to_supplier_queue(supplier, message_body):
     # TO DO - will not send as no queue exists, only logs the error for now
-    account_id = os.getenv("ACCOUNT_ID", "790083933819")
-    default_account_id = os.getenv("internal-dev-account-id")
+    account_id = os.getenv("ACCOUNT_ID")
 
-    if not account_id:
-        account_id = default_account_id
-
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{supplier}_queue"
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{supplier}_metadata_queue"
     print(queue_url)
 
     try:
@@ -116,8 +112,7 @@ def lambda_handler(event, context):
             # TO DO- Perform initial file validation
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
             # Determine ack_bucket_name based on environment
-            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch'
-                                        f'-{get_environment()}-batch-data-destination')
+            ack_bucket_name = os.getenv("ACK_BUCKET_NAME")
             # Create acknowledgment file
             create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, validation_errors)
             # if validation passed, send message to SQS queue

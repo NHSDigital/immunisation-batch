@@ -104,7 +104,7 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up SQS
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
-        queue_url = sqs_client.create_queue(QueueName='EMIS_queue')['QueueUrl']
+        queue_url = sqs_client.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
 
         # Prepare the event
         event = {
