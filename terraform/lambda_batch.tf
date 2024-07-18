@@ -12,7 +12,7 @@ resource "aws_iam_role" "lambda_exec_role" {
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      sid = "",
+      Sid = "",
       Principal = {
         Service = "lambda.amazonaws.com"
       },
@@ -22,9 +22,8 @@ resource "aws_iam_role" "lambda_exec_role" {
 }
 
 # Policy for Lambda execution role
-resource "aws_iam_role_policy" "lambda_exec_policy" {
+resource "aws_iam_policy" "lambda_exec_policy" {
   name   = "${local.prefix}-lambda-exec-policy"
-  role   = aws_iam_role.lambda_role.id
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -44,7 +43,7 @@ resource "aws_iam_role_policy" "lambda_exec_policy" {
 
 resource "aws_iam_role_policy_attachment""lambda_exec_policy_attachment" {
   role = aws_iam_role.lambda_exec_role.name
-  policy_arn = aws_iam_role_policy.lambda_exec_policy.arn
+  policy_arn = aws_iam_policy.lambda_exec_policy.arn
 }
 
 # Lambda Function
@@ -52,7 +51,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
   function_name    = "${local.prefix}-file_processor_lambda"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  role             = aws_iam_role.lambda_role.arn
+  role             = aws_iam_role.lambda_exec_role.arn
   handler          = "router_lambda_function.lambda_handler"
   runtime          = "python3.8"
   timeout          = 60
