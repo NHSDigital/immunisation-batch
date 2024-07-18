@@ -42,3 +42,8 @@ locals {
     short_prefix        = "${var.project_short_name}-${var.environment}"
     service_domain_name = "${var.environment}.${local.project_domain_name}"
   }
+      tags = {
+        Project     = var.project_name
+        Environment = local.environment
+        Service     = var.service
+    }
