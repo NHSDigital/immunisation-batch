@@ -9,15 +9,6 @@ variable "project_short_name" {
 variable "service" {
     default = "batch"
 }
-
-variable "region" {
-    default = "eu-west-2"
-}
-
-variable "root_domain_name" {
-    default = "dev.api.platform.nhs.uk"
-}
-
 data "aws_vpc" "default" {
     default = true
 }
@@ -38,12 +29,21 @@ locals {
 
 locals {
     environment         = terraform.workspace
-    prefix              = "${var.project_name}-${var.service}-${var.environment}"
-    short_prefix        = "${var.project_short_name}-${var.environment}"
-    service_domain_name = "${var.environment}.${local.project_domain_name}"
-  }
-      tags = {
+    prefix              = "${var.project_name}-${var.service}-${local.environment}"
+    short_prefix        = "${var.project_short_name}-${local.environment}"
+    service_domain_name = "${local.environment}.${local.project_domain_name}"
+
+    tags = {
         Project     = var.project_name
         Environment = local.environment
         Service     = var.service
     }
+}
+
+variable "region" {
+    default = "eu-west-2"
+}
+
+variable "root_domain_name" {
+    default = "dev.api.platform.nhs.uk"
+}
