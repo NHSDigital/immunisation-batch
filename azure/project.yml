@@ -6,3 +6,5 @@ variables:
     value: imms-batch
   - name: service_base_path
     value: immunisation-batch
+  - name: pr_number
+    value: ${{ split(variables['Build.SourceBranch'], '/')[2] }}
