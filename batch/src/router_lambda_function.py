@@ -99,7 +99,7 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
 
 def lambda_handler(event, context):
     error_files = []
-    
+
     for record in event['Records']:
         try:
             bucket_name = record['s3']['bucket']['name']
@@ -128,7 +128,7 @@ def lambda_handler(event, context):
                     send_to_supplier_queue(supplier, message_body)
                 except Exception:
                     logger.error(f"failed to send message to {supplier}_queue")
-            
+
             logger.info(f"File Metadata processed successfully for - {file_key}")
 
         # Error handling for file processing
@@ -142,9 +142,9 @@ def lambda_handler(event, context):
 
     if error_files:
         logger.error(f"Processing errors occurred for the following files: {', '.join(error_files)}")
-            
+
     logger.info("Completed processing all file metadata in current batch")
     return {
-        'statusCode': 200 ,
+        'statusCode': 200,
         'body': json.dumps('File processing for S3 bucket completed')
     }
