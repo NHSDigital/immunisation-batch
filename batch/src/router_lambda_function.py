@@ -141,7 +141,7 @@ def lambda_handler(event, context):
             error_files.append(file_key)
 
     if error_files:
-        logger.error(F"Processing errors occurred for the following files: {', '.join(error_files)}")
+        logger.error(f"Processing errors occurred for the following files: {', '.join(error_files)}")
             
     logger.info("Completed processing all file metadata in current batch")
     return {
