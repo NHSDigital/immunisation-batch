@@ -60,7 +60,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
     variables = {
       ACK_BUCKET_NAME = "${local.prefix}-batch-data-destination"
       ENVIRONMENT     = local.environment
-      ACCOUNT_ID      = local.account_id
+      ACCOUNT_ID      = local.local_account_id
     }
   }
 }

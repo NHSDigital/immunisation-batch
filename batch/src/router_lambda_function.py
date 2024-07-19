@@ -89,15 +89,17 @@ def create_ack_file(bucket_name, file_key, ack_bucket_name, validation_passed, v
     csv_writer.writerow(headers)
     csv_writer.writerows(data_rows)
     # Upload the CSV.zip file to S3
-    # TO DO - Update file name and path of ack, Is it nested in a directory in the S3 bucket?
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
     print(f"{ack_bucket_name}")
     print(f"{data_rows}")
+    logger.info(f"Uploaded acknowledgement file to {ack_bucket_name}")
 
 
 def lambda_handler(event, context):
+    error_files = []
+    
     for record in event['Records']:
         try:
             bucket_name = record['s3']['bucket']['name']
@@ -126,6 +128,8 @@ def lambda_handler(event, context):
                     send_to_supplier_queue(supplier, message_body)
                 except Exception:
                     logger.error(f"failed to send message to {supplier}_queue")
+            
+            logger.info(f"File Metadata processed successfully for - {file_key}")
 
         # Error handling for file processing
         except ValueError as ve:
@@ -134,7 +138,13 @@ def lambda_handler(event, context):
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
             create_ack_file(bucket_name, file_key, ack_bucket_name, False, [str(e)])
+            error_files.append(file_key)
+
+    if error_files:
+        logger.error(F"Processing errors occurred for the following files: {', '.join(error_files)}")
+            
+    logger.info("Completed processing all file metadata in current batch")
     return {
-        'statusCode': 200,
+        'statusCode': 200 ,
         'body': json.dumps('File processing for S3 bucket completed')
     }
