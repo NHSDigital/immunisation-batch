@@ -7,7 +7,7 @@ import logging
 from io import BytesIO, StringIO
 from ods_patterns import ODS_PATTERNS
 from datetime import datetime
-from constants import constant
+from constants import Constant
 # Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 logger = logging.getLogger()
@@ -64,16 +64,16 @@ def initial_file_validation(file_key, bucket_name):
     ods_code = parts[3]
     timestamp = parts[4].split('.')[0]
 
-    if disease_type not in constant.valid_vaccine_type:
+    if disease_type not in Constant.valid_vaccine_type:
         return False, True
 
     if vaccination != "vaccinations":
         return False, True
 
-    if version not in constant.valid_versions:
+    if version not in Constant.valid_versions:
         return False, True
 
-    if not any(re.match(pattern, ods_code) for pattern in constant.valid_ods_codes):
+    if not any(re.match(pattern, ods_code) for pattern in Constant.valid_ods_codes):
         return False, True
 
     if not re.match(r'\d{8}T\d{6}', timestamp) or not is_valid_datetime(timestamp):
@@ -221,25 +221,15 @@ def is_valid_datetime(timestamp):
 
 
 def validate_csv_column_count(bucket_name, file_key):
-    expected_columns = [
-        'NHS_NUMBER', 'PERSON_FORENAME', 'PERSON_SURNAME', 'PERSON_DOB', 'PERSON_GENDER_CODE', 'PERSON_POSTCODE',
-        'DATE_AND_TIME', 'SITE_CODE', 'SITE_CODE_TYPE_URI', 'UNIQUE_ID', 'UNIQUE_ID_URI', 'ACTION_FLAG',
-        'PERFORMING_PROFESSIONAL_FORENAME', 'PERFORMING_PROFESSIONAL_SURNAME', 'RECORDED_DATE', 'PRIMARY_SOURCE',
-        'VACCINATION_PROCEDURE_CODE', 'VACCINATION_PROCEDURE_TERM', 'DOSE_SEQUENCE', 'VACCINE_PRODUCT_CODE',
-        'VACCINE_PRODUCT_TERM', 'VACCINE_MANUFACTURER', 'BATCH_NUMBER', 'EXPIRY_DATE', 'SITE_OF_VACCINATION_CODE',
-        'SITE_OF_VACCINATION_TERM', 'ROUTE_OF_VACCINATION_CODE', 'ROUTE_OF_VACCINATION_TERM', 'DOSE_AMOUNT',
-        'DOSE_UNIT_CODE', 'DOSE_UNIT_TERM', 'INDICATION_CODE', 'LOCATION_CODE', 'LOCATION_CODE_TYPE_URI'
-    ]
-
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     body = csv_obj['Body'].read().decode('utf-8')
     csv_reader = csv.reader(StringIO(body))
-    header = next(csv_reader)
+    header = next(csv_reader)[0].split('|')
 
     if len(header) != 34:
         return False, True
 
-    if header != expected_columns:
+    if header != Constant.expected_csv_content:
         return False, True
 
     return True, False
