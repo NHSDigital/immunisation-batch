@@ -102,7 +102,7 @@ def send_to_supplier_queue(supplier, message_body):
     return True
 
 
-def create_ack_file(file_key, ack_bucket_name, validation_passed):
+def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_formatted):
     # TO DO - Populate acknowledgement file with correct values once known
     headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
                'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
@@ -110,13 +110,13 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed):
     # Placeholder for data rows for success
     if validation_passed:
         data_rows = [['TBC', 'ok', 'information', 'informational', 'business',
-                     '20013', 'Success', identify_timestamp(file_key), 'TBC', 'DPS']]
+                     '20013', 'Success', created_at_formatted, 'TBC', 'DPS']]
         ack_filename = (f"ack/{parts[0]}_response.csv")
     # Placeholder for data rows for errors
     else:
         data_rows = [
             ['TBC', 'fatal-error', 'error', 'error', 'business',
-             '20005', 'Unsupported file type received as an attachment', identify_timestamp(file_key), 'TBC', 'DPS']]
+             '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']]
         # construct acknowlegement file
         ack_filename = (f"ack/{parts[0]}_response.csv")
         print(f"{data_rows}")
@@ -155,11 +155,15 @@ def lambda_handler(event, context):
             ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
 
             # TO DO- Perform initial file validation
+            response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
+            created_at = response['LastModified']
+            created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
+
             validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
 
             # if validation passed, send message to SQS queue
             if validation_passed and supplier:
-                create_ack_file(file_key, ack_bucket_name, True)
+                create_ack_file(file_key, ack_bucket_name, True, created_at_formatted)
                 message_body = {
                     'disease_type': disease_type,
                     'supplier': supplier,
@@ -173,15 +177,15 @@ def lambda_handler(event, context):
 
             else:
                 logging.error("Error in initial_file_validation")
-                create_ack_file(file_key, ack_bucket_name, False)
+                create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
 
         # Error handling for file processing
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
-            create_ack_file(file_key, ack_bucket_name, False)
+            create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
-            create_ack_file(file_key, ack_bucket_name, False)
+            create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
             error_files.append(file_key)
     if error_files:
         logger.error(f"Processing errors occurred for the following files: {', '.join(error_files)}")

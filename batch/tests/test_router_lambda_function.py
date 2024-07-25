@@ -129,5 +129,6 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         '''tests whether ack file is created'''
         ack_bucket_name = "immunisation-batch-internal-dev-batch-data-destination"
         validation_passed = True
-        create_ack_file(self.file_key, ack_bucket_name, validation_passed)
+        created_at_formatted = '20240725T12510700'
+        create_ack_file(self.file_key, ack_bucket_name, validation_passed, created_at_formatted)
         mock_s3_client.upload_fileobj.assert_called_once()
