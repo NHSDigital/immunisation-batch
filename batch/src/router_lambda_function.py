@@ -7,6 +7,7 @@ import logging
 from io import BytesIO, StringIO
 from ods_patterns import ODS_PATTERNS
 from datetime import datetime
+from constants import constant
 # Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 logger = logging.getLogger()
@@ -46,10 +47,6 @@ def identify_timestamp(file_key):
 
 
 def initial_file_validation(file_key, bucket_name):
-    # Define valid values
-    valid_disease_types = ["flu", "covid19", "mmr"]
-    valid_versions = ["v5"]
-    valid_ods_codes = ["YGM41", "8J1100001", "8HK48", "YGA", "0DE", "0DF", "8HA94", "X26"]
 
     # Check if the file name ends with .csv
     if not file_key.endswith('.csv'):
@@ -67,16 +64,16 @@ def initial_file_validation(file_key, bucket_name):
     ods_code = parts[3]
     timestamp = parts[4].split('.')[0]
 
-    if disease_type not in valid_disease_types:
+    if disease_type not in constant.valid_vaccine_type:
         return False, True
 
     if vaccination != "vaccinations":
         return False, True
 
-    if version not in valid_versions:
+    if version not in constant.valid_versions:
         return False, True
 
-    if not any(re.match(pattern, ods_code) for pattern in valid_ods_codes):
+    if not any(re.match(pattern, ods_code) for pattern in constant.valid_ods_codes):
         return False, True
 
     if not re.match(r'\d{8}T\d{6}', timestamp) or not is_valid_datetime(timestamp):
@@ -152,11 +149,13 @@ def lambda_handler(event, context):
             print(f"{supplier}")
             if not supplier and ods_code:
                 logging.error(f"Supplier not found for ods code {ods_code}")
-            # TO DO- Perform initial file validation
-            validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
+
             # Determine ack_bucket_name based on environment
             imms_env = get_environment()
             ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
+
+            # TO DO- Perform initial file validation
+            validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
 
             # if validation passed, send message to SQS queue
             if validation_passed and supplier:
@@ -179,7 +178,7 @@ def lambda_handler(event, context):
         # Error handling for file processing
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
-            create_ack_file(file_key, ack_bucket_name, False, [str(ve)])
+            create_ack_file(file_key, ack_bucket_name, False)
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
             create_ack_file(file_key, ack_bucket_name, False)
@@ -200,9 +199,6 @@ def is_valid_datetime(timestamp):
     date_part = timestamp[:8]
     time_part = timestamp[9:]
 
-    # Validate date part
-    # date_obj = datetime.strptime(date_part, '%Y%m%d')
-
     # Validate time part
     if len(time_part) != 8 or not time_part.isdigit():
         False
@@ -215,6 +211,7 @@ def is_valid_datetime(timestamp):
         return False
     # Construct the valid datetime string
     valid_datetime_string = f"{date_part}T{time_part[:6]}"
+
     datetime_obj = datetime.strptime(valid_datetime_string, '%Y%m%dT%H%M%S')
 
     if not datetime_obj:
