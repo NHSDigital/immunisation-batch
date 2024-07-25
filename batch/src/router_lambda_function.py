@@ -16,7 +16,7 @@ sqs_client = boto3.client('sqs', region_name='eu-west-2')
 
 
 def get_environment():
-    _env = os.getenv("ENVIRONMENT", "internal-dev")
+    _env = os.getenv("ENVIRONMENT")
     non_prod = ["internal-dev", "int", "ref", "sandbox"]
     if _env in non_prod:
         return _env
