@@ -110,13 +110,13 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed):
     # Placeholder for data rows for success
     if validation_passed:
         data_rows = [['TBC', 'ok', 'information', 'informational', 'business',
-                     '20013', 'Success', identify_timestamp(file_key),  'N/A', 'DPS']]
+                     '20013', 'Success', identify_timestamp(file_key), 'TBC', 'DPS']]
         ack_filename = (f"ack/{parts[0]}_response.csv")
     # Placeholder for data rows for errors
     else:
         data_rows = [
             ['TBC', 'fatal-error', 'error', 'error', 'business',
-             '20005', 'Unsupported file type received as an attachment', identify_timestamp(file_key), 'N/A', 'DPS']]
+             '20005', 'Unsupported file type received as an attachment', identify_timestamp(file_key), 'TBC', 'DPS']]
         # construct acknowlegement file
         ack_filename = (f"ack/{parts[0]}_response.csv")
         print(f"{data_rows}")
