@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 from router_lambda_function import (
     identify_supplier,
-    identify_disease_type,
+    identify_vaccine_type,
     identify_timestamp,
     initial_file_validation,
     send_to_supplier_queue,
@@ -27,10 +27,10 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         ods_code = extract_ods_code(self.file_key)
         self.assertEqual(ods_code, "YGM41")
 
-    def test_identify_disease_type(self):
-        '''tests disease type is extracted'''
-        disease_type = identify_disease_type(self.file_key)
-        self.assertEqual(disease_type, "Flu")
+    def test_identify_vaccine_type(self):
+        '''tests vaccine type is extracted'''
+        vaccine_type = identify_vaccine_type(self.file_key)
+        self.assertEqual(vaccine_type, "Flu")
 
     def test_identify_timestamp(self):
         '''tests timestamp is extracted'''
@@ -66,7 +66,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         self.assertTrue(errors)
 
     @patch('router_lambda_function.validate_csv_column_count')
-    def test_invalid_disease_type(self, mock_validate_csv):
+    def test_invalid_vaccine_type(self, mock_validate_csv):
         file_key = 'Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv'
         bucket_name = 'test-bucket'
 
@@ -117,7 +117,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         mock_send_message = mock_sqs_client.send_message
         supplier = "EMIS"
         message_body = {
-            'disease_type': 'Flu',
+            'vaccine_type': 'Flu',
             'supplier': supplier,
             'timestamp': '20240708T12130100'
         }
