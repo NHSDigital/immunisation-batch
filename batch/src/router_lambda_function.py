@@ -199,7 +199,7 @@ def lambda_handler(event, context):
 
 def is_valid_datetime(timestamp):
 
-    # Extract date and time components
+    # Extract date and time component
     date_part = timestamp[:8]
     time_part = timestamp[9:]
 
