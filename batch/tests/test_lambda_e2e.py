@@ -79,6 +79,7 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
 
 class TestLambdaHandler(unittest.TestCase):
 
+
     # @mock_s3
     # @mock_sqs
     # def test_lambda_handler(self):
@@ -165,9 +166,10 @@ class TestLambdaHandler(unittest.TestCase):
     #     self.assertIn("Messages", messages)
     #     received_message = json.loads(messages["Messages"][0]["Body"])
     #     print(f"R2D2:{received_message}")
-    #     self.assertEqual(received_message["disease_type"], "Flu")
+    #     self.assertEqual(received_message["vaccine_type"], "Flu")
     #     self.assertEqual(received_message["supplier"], "EMIS")
     #     self.assertEqual(received_message["timestamp"], "20240708T12130100")
+ 
 
     @mock_s3
     @mock_sqs
@@ -374,7 +376,7 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     @mock_sqs
     @patch("router_lambda_function.send_to_supplier_queue")
-    def test_lambda_invalid_disease_type(self, mock_send_to_supplier_queue):
+    def test_lambda_invalid_vaccine_type(self, mock_send_to_supplier_queue):
         """tests SQS queue is not called when file validation failed"""
 
         # Set up S3

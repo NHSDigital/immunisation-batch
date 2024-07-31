@@ -10,7 +10,7 @@ from ods_patterns import ODS_PATTERNS
 from datetime import datetime
 from constants import Constant
 
-# Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
+# Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -38,9 +38,9 @@ def identify_supplier(ods_code):
     return ODS_PATTERNS.get(ods_code, None)
 
 
-def identify_disease_type(file_key):
-    disease_match = re.search(r"^(\w+)_Vaccinations_", file_key)
-    return disease_match.group(1) if disease_match else None
+def identify_vaccine_type(file_key):
+    vaccine_match = re.search(r'^(\w+)_Vaccinations_', file_key)
+    return vaccine_match.group(1) if vaccine_match else None
 
 
 def identify_timestamp(file_key):
@@ -60,13 +60,13 @@ def initial_file_validation(file_key, bucket_name):
         return False, True
 
     # Validate each part of the file name
-    disease_type = parts[0].lower()
+    vaccine_type = parts[0].lower()
     vaccination = parts[1].lower()
     version = parts[2].lower()
     ods_code = parts[3]
     timestamp = parts[4].split(".")[0]
 
-    if disease_type not in Constant.valid_vaccine_type:
+    if vaccine_type not in Constant.valid_vaccine_type:
         return False, True
 
     if vaccination != "vaccinations":
@@ -185,7 +185,7 @@ def lambda_handler(event, context):
             bucket_name = record["s3"]["bucket"]["name"]
             file_key = record["s3"]["object"]["key"]
             ods_code = extract_ods_code(file_key)
-            disease_type = identify_disease_type(file_key)
+            vaccine_type = identify_vaccine_type(file_key)
             timestamp = identify_timestamp(file_key)
             supplier = identify_supplier(ods_code)
             print(f"{supplier}")
@@ -212,9 +212,9 @@ def lambda_handler(event, context):
             if validation_passed and supplier:
                 create_ack_file(file_key, ack_bucket_name, True, created_at_formatted)
                 message_body = {
-                    "disease_type": disease_type,
-                    "supplier": supplier,
-                    "timestamp": timestamp,
+                    'vaccine_type': vaccine_type,
+                    'supplier': supplier,
+                    'timestamp': timestamp
                 }
                 try:
                     send_to_supplier_queue(supplier, message_body)
@@ -248,7 +248,7 @@ def lambda_handler(event, context):
 
 def is_valid_datetime(timestamp):
 
-    # Extract date and time components
+    # Extract date and time component
     date_part = timestamp[:8]
     time_part = timestamp[9:]
 

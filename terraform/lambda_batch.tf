@@ -34,7 +34,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         "logs:PutLogEvents",
         "s3:GetObject",
         "s3:PutObject",
-        "sqs:SendMessage"
+        "sqs:SendMessage",
+        "kms:Decrypt"
       ],
       Resource = "*"
     }]
