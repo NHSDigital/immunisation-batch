@@ -5,10 +5,12 @@ import boto3
 from moto import mock_s3, mock_sqs
 import json
 from src.constants import Constant
+from datetime import datetime
 # from io import BytesIO
 from router_lambda_function import (
     lambda_handler  # Import lambda_handler for end-to-end test
 )
+from processing_lambda import (process_lambda_handler)
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
@@ -640,3 +642,112 @@ class TestLambdaHandler(unittest.TestCase):
         )
         ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
         self.assertIn(ack_file_key, ack_file_keys)
+
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.sqs_client')
+    @patch('processing_lambda.send_to_sqs')
+    def test_e2e_successful_conversion(self, mock_send_to_sqs_message, mock_delete_message):
+        # Mock S3 and SQS setup
+
+        s3 = boto3.client('s3', region_name='eu-west-2')
+        bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
+        s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
+            'LocationConstraint': 'eu-west-2'
+        })
+        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        s3.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+            'LocationConstraint': 'eu-west-2'
+        })
+
+        # Define the mock response for the head_object method
+        mock_head_object_response = {
+            'LastModified': datetime(2024, 7, 30, 15, 22, 17)
+        }
+
+        vaccine_types = Constant.valid_vaccine_type
+        for vaccine_type in vaccine_types:
+            # Mock the fetch_file_from_s3 function
+            with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content), \
+                    patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response):
+                # Mock SQS and send a test message
+                sqs = boto3.client('sqs', region_name='eu-west-2')
+                queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
+                message_body = {
+                    'vaccine_type': vaccine_type,
+                    'supplier': 'Pfizer',
+                    'timestamp': '20210730T12000000'
+                }
+                sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
+
+                # Mock environment variables
+                with patch.dict('os.environ', {
+                    'ENVIRONMENT': 'internal-dev',
+                    'INTERNAL_DEV_ACCOUNT_ID': '123456',
+                    'ACK_BUCKET_NAME': ack_bucket_name
+                }):
+                    # Run the lambda_handler function
+                    process_lambda_handler({}, {})
+
+                    # Verify that the acknowledgment file has been created in the destination bucket
+                    ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
+                    ack_file = s3.get_object(Bucket=ack_bucket_name, Key=ack_key)['Body'].read().decode('utf-8')
+                    self.assertIn('Success', ack_file)
+                    mock_send_to_sqs_message.assert_called()
+                    mock_delete_message.delete_message(QueueUrl=queue_url, ReceiptHandle=any)
+
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.sqs_client')
+    @patch('processing_lambda.send_to_sqs')
+    def test_e2e_processing_invalid_data(self, mock_send_to_sqs_message, mock_delete_message):
+        # Set up the S3 environment
+        s3 = boto3.client('s3', region_name='eu-west-2')
+        bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
+        s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
+            'LocationConstraint': 'eu-west-2'
+        })
+        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        s3.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+            'LocationConstraint': 'eu-west-2'
+        })
+        # Define the mock response for the head_object method
+        mock_head_object_response = {
+                'LastModified': datetime(2024, 7, 30, 15, 22, 17)
+            }
+        vaccine_types = Constant.valid_vaccine_type
+        for vaccine_type in vaccine_types:
+            # Mock the fetch_file_from_s3 function
+            with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.invalid_file_content), \
+                    patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response):
+                # Mock SQS and send a test message
+                sqs = boto3.client('sqs', region_name='eu-west-2')
+                queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
+                message_body = {
+                    'vaccine_type': vaccine_type,
+                    'supplier': 'Pfizer',
+                    'timestamp': '20210730T12000000'
+                }
+                sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
+
+                # Mock environment variables
+                with patch.dict('os.environ', {
+                    'ENVIRONMENT': 'internal-dev',
+                    'INTERNAL_DEV_ACCOUNT_ID': '123456',
+                    'ACK_BUCKET_NAME': ack_bucket_name
+                }):
+                    # Run the lambda_handler function
+                    process_lambda_handler({}, {})
+
+                # Verify that the acknowledgment file has been created in S3
+                ack_bucket = 'immunisation-batch-internal-dev-batch-data-destination'
+                ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
+                ack_file = s3.get_object(Bucket=ack_bucket, Key=ack_key)['Body'].read().decode('utf-8')
+                self.assertIn('fatal-error', ack_file)
+                self.assertIn('Unsupported file type received as an attachment', ack_file)
+                mock_send_to_sqs_message.assert_not_called()
+                mock_delete_message.delete_message(QueueUrl=queue_url, ReceiptHandle=any)
+
+
+if __name__ == '__main__':
+    unittest.main()
