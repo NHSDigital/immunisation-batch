@@ -47,3 +47,15 @@ variable "region" {
 variable "root_domain_name" {
     default = "dev.api.platform.nhs.uk"
 }
+
+variable "suppliers" {
+    description = "List of supplier names"
+    type        = list(string)
+    default = [
+        "EMIS", "PINNACLE", "SONAR", "TPP",
+    "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
+    "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
+    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK"
+    ]
+
+}

@@ -4,16 +4,18 @@ import re
 import csv
 import os
 import logging
+import uuid
 from io import BytesIO, StringIO
 from ods_patterns import ODS_PATTERNS
 from datetime import datetime
 from constants import Constant
+
 # Incoming file format DISEASETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-s3_client = boto3.client('s3', region_name='eu-west-2')
-sqs_client = boto3.client('sqs', region_name='eu-west-2')
+s3_client = boto3.client("s3", region_name="eu-west-2")
+sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
 
 def get_environment():
@@ -28,8 +30,8 @@ def get_environment():
 
 
 def extract_ods_code(file_key):
-    supplier_match = re.search(r'_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$', file_key)
-    return supplier_match.group(1) if supplier_match else None
+    supplier_match = re.search(r"_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$", file_key)
+    return supplier_match.group(1).upper() if supplier_match else None
 
 
 def identify_supplier(ods_code):
@@ -37,23 +39,23 @@ def identify_supplier(ods_code):
 
 
 def identify_disease_type(file_key):
-    disease_match = re.search(r'^(\w+)_Vaccinations_', file_key)
+    disease_match = re.search(r"^(\w+)_Vaccinations_", file_key)
     return disease_match.group(1) if disease_match else None
 
 
 def identify_timestamp(file_key):
-    timestamp_match = re.search(r'_(\d+T\d+)\.csv$', file_key)
+    timestamp_match = re.search(r"_(\d+T\d+)\.csv$", file_key)
     return timestamp_match.group(1) if timestamp_match else None
 
 
 def initial_file_validation(file_key, bucket_name):
 
     # Check if the file name ends with .csv
-    if not file_key.endswith('.csv'):
+    if not file_key.endswith(".csv"):
         return False, True
 
     # Check the structure of the file name
-    parts = file_key.split('_')
+    parts = file_key.split("_")
     if len(parts) != 5:
         return False, True
 
@@ -62,7 +64,7 @@ def initial_file_validation(file_key, bucket_name):
     vaccination = parts[1].lower()
     version = parts[2].lower()
     ods_code = parts[3]
-    timestamp = parts[4].split('.')[0]
+    timestamp = parts[4].split(".")[0]
 
     if disease_type not in Constant.valid_vaccine_type:
         return False, True
@@ -76,10 +78,12 @@ def initial_file_validation(file_key, bucket_name):
     if not any(re.match(pattern, ods_code) for pattern in Constant.valid_ods_codes):
         return False, True
 
-    if not re.match(r'\d{8}T\d{6}', timestamp) or not is_valid_datetime(timestamp):
+    if not re.match(r"\d{8}T\d{6}", timestamp) or not is_valid_datetime(timestamp):
         return False, True
 
-    column_count_valid, column_count_errors = validate_csv_column_count(bucket_name, file_key)
+    column_count_valid, column_count_errors = validate_csv_column_count(
+        bucket_name, file_key
+    )
     if not column_count_valid:
         return False, True
 
@@ -89,12 +93,19 @@ def initial_file_validation(file_key, bucket_name):
 def send_to_supplier_queue(supplier, message_body):
     # TO DO - will not send as no queue exists, only logs the error for now
     imms_env = get_environment()
-    account_id = os.getenv(f"{imms_env.upper()}_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{supplier}_metadata_queue"
-    print(queue_url)
+    account_id = os.getenv("LOCAL_ACCOUNT_ID")
+    # local_prefix = os.getenv("LOCAL.PREFIX")
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{supplier}-metadata-queue.fifo"
+    message_deduplication_id = str(uuid.uuid4())
+    print(f"hey {queue_url}")
 
     try:
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
+        sqs_client.send_message(
+            QueueUrl=queue_url,
+            MessageBody=json.dumps(message_body),
+            MessageGroupID="default",
+            MessageDeduplicationId=message_deduplication_id,
+        )
         logger.info(f"Message sent to SQS queue for supplier {supplier}")
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error(f"queue {queue_url} does not exist")
@@ -104,44 +115,75 @@ def send_to_supplier_queue(supplier, message_body):
 
 def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_formatted):
     # TO DO - Populate acknowledgement file with correct values once known
-    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
-               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
-    parts = file_key.split('.')
+    headers = [
+        "MESSAGE_HEADER_ID",
+        "HEADER_RESPONSE_CODE",
+        "ISSUE_SEVERITY",
+        "ISSUE_CODE",
+        "RESPONSE_TYPE",
+        "RESPONSE_CODE",
+        "RESPONSE_DISPLAY",
+        "RECEIVED_TIME",
+        "MAILBOX_FROM",
+        "LOCAL_ID",
+    ]
+    parts = file_key.split(".")
     # Placeholder for data rows for success
     if validation_passed:
-        data_rows = [['TBC', 'ok', 'information', 'informational', 'business',
-                     '20013', 'Success', created_at_formatted, 'TBC', 'DPS']]
-        ack_filename = (f"ack/{parts[0]}_response.csv")
+        data_rows = [
+            [
+                "TBC",
+                "ok",
+                "information",
+                "informational",
+                "business",
+                "20013",
+                "Success",
+                created_at_formatted,
+                "TBC",
+                "DPS",
+            ]
+        ]
+        ack_filename = f"ack/{parts[0]}_response.csv"
     # Placeholder for data rows for errors
     else:
         data_rows = [
-            ['TBC', 'fatal-error', 'error', 'error', 'business',
-             '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']]
+            [
+                "TBC",
+                "fatal-error",
+                "error",
+                "error",
+                "business",
+                "20005",
+                "Unsupported file type received as an attachment",
+                created_at_formatted,
+                "TBC",
+                "DPS",
+            ]
+        ]
         # construct acknowlegement file
-        ack_filename = (f"ack/{parts[0]}_response.csv")
-        print(f"{data_rows}")
+        ack_filename = f"ack/{parts[0]}_response.csv"
+        # print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
-    csv_writer = csv.writer(csv_buffer, delimiter='|')
+    csv_writer = csv.writer(csv_buffer, delimiter="|")
     csv_writer.writerow(headers)
     csv_writer.writerows(data_rows)
 
     # Upload the CSV.zip file to S3
     # TO DO - Update file name and path of ack, Is it nested in a directory in the S3 bucket?
     csv_buffer.seek(0)
-    csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
+    csv_bytes = BytesIO(csv_buffer.getvalue().encode("utf-8"))
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
-    print(f"{ack_bucket_name}")
-    print(f"{data_rows}")
 
 
 def lambda_handler(event, context):
     error_files = []
 
-    for record in event['Records']:
+    for record in event["Records"]:
         try:
-            bucket_name = record['s3']['bucket']['name']
-            file_key = record['s3']['object']['key']
+            bucket_name = record["s3"]["bucket"]["name"]
+            file_key = record["s3"]["object"]["key"]
             ods_code = extract_ods_code(file_key)
             disease_type = identify_disease_type(file_key)
             timestamp = identify_timestamp(file_key)
@@ -152,22 +194,27 @@ def lambda_handler(event, context):
 
             # Determine ack_bucket_name based on environment
             imms_env = get_environment()
-            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
+            ack_bucket_name = os.getenv(
+                "ACK_BUCKET_NAME",
+                f"immunisation-batch-{imms_env}-batch-data-destination",
+            )
 
             # TO DO- Perform initial file validation
             response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-            created_at = response['LastModified']
+            created_at = response["LastModified"]
             created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
 
-            validation_passed, validation_errors = initial_file_validation(file_key, bucket_name)
+            validation_passed, validation_errors = initial_file_validation(
+                file_key, bucket_name
+            )
 
             # if validation passed, send message to SQS queue
             if validation_passed and supplier:
                 create_ack_file(file_key, ack_bucket_name, True, created_at_formatted)
                 message_body = {
-                    'disease_type': disease_type,
-                    'supplier': supplier,
-                    'timestamp': timestamp
+                    "disease_type": disease_type,
+                    "supplier": supplier,
+                    "timestamp": timestamp,
                 }
                 try:
                     send_to_supplier_queue(supplier, message_body)
@@ -188,12 +235,14 @@ def lambda_handler(event, context):
             create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
             error_files.append(file_key)
     if error_files:
-        logger.error(f"Processing errors occurred for the following files: {', '.join(error_files)}")
+        logger.error(
+            f"Processing errors occurred for the following files: {', '.join(error_files)}"
+        )
 
     logger.info("Completed processing all file metadata in current batch")
     return {
-        'statusCode': 200,
-        'body': json.dumps('File processing for S3 bucket completed')
+        "statusCode": 200,
+        "body": json.dumps("File processing for S3 bucket completed"),
     }
 
 
@@ -216,7 +265,7 @@ def is_valid_datetime(timestamp):
     # Construct the valid datetime string
     valid_datetime_string = f"{date_part}T{time_part[:6]}"
 
-    datetime_obj = datetime.strptime(valid_datetime_string, '%Y%m%dT%H%M%S')
+    datetime_obj = datetime.strptime(valid_datetime_string, "%Y%m%dT%H%M%S")
 
     if not datetime_obj:
         return False
@@ -226,9 +275,9 @@ def is_valid_datetime(timestamp):
 
 def validate_csv_column_count(bucket_name, file_key):
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    body = csv_obj['Body'].read().decode('utf-8')
+    body = csv_obj["Body"].read().decode("utf-8")
     csv_reader = csv.reader(StringIO(body))
-    header = next(csv_reader)[0].split('|')
+    header = next(csv_reader)[0].split("|")
 
     if len(header) != 34:
         return False, True
