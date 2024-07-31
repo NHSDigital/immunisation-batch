@@ -1,4 +1,4 @@
-"""Dictionary mapping supplier ODS CODEs to the supplier name, this is used for identifying 
+"""Dictionary mapping supplier ODS CODEs to the supplier name, this is used for identifying
 supplier queue"""
 
 ODS_PATTERNS = {
