@@ -18,3 +18,22 @@ ODS_PATTERNS = {
     "N2N9I": "COVID19_VACCINE_RESOLUTION_SERVICEDESK",
     "YGJ": "EMIS",
 }
+
+
+# Mapping of long supplier names to shorter ones to meet 80 character SQS queue limit
+SUPPLIER_SQSQUEUE_MAPPINGS = {
+    "EMIS": "EMIS",
+    "PINNACLE": "PINN",
+    "SONAR": "SONAR",
+    "TPP": "TPP",
+    "AGEM-NIVS": "AGEM-NIVS",
+    "NIMS": "NIMS",
+    "EVA": "EVA",
+    "RAVS": "RAVS",
+    "MEDICAL_DIRECTOR": "MD",
+    "WELSH_DA_1": "WELSHDA1",
+    "WELSH_DA_2": "WELSHDA2",
+    "NORTHERN_IRELAND_DA": "NIREDA",
+    "SCOTLAND_DA": "SCOTDA",
+    "COV19_VACC_RESOL_SRVCEDSK": "C19VAX_SRVCEDSK",
+}

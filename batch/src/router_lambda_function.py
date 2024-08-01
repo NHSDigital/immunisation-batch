@@ -1,13 +1,13 @@
 import json
-import boto3
+from datetime import datetime
 import re
 import csv
 import os
 import logging
 import uuid
 from io import BytesIO, StringIO
-from ods_patterns import ODS_PATTERNS
-from datetime import datetime
+import boto3
+from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
@@ -39,7 +39,7 @@ def identify_supplier(ods_code):
 
 
 def identify_vaccine_type(file_key):
-    vaccine_match = re.search(r'^(\w+)_Vaccinations_', file_key)
+    vaccine_match = re.search(r"^(\w+)_Vaccinations_", file_key)
     return vaccine_match.group(1) if vaccine_match else None
 
 
@@ -92,10 +92,11 @@ def initial_file_validation(file_key, bucket_name):
 
 def send_to_supplier_queue(supplier, message_body):
     # TO DO - will not send as no queue exists, only logs the error for now
-    imms_env = get_environment()
+    imms_env = os.getenv("SHORT_QUEUE_PREFIX")
+    SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("LOCAL_ACCOUNT_ID")
     # local_prefix = os.getenv("LOCAL.PREFIX")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{supplier}-metadata-queue.fifo"
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-metadata-queue.fifo"
     message_deduplication_id = str(uuid.uuid4())
     print(f"hey {queue_url}")
 
@@ -106,7 +107,7 @@ def send_to_supplier_queue(supplier, message_body):
             MessageGroupID="default",
             MessageDeduplicationId=message_deduplication_id,
         )
-        logger.info(f"Message sent to SQS queue for supplier {supplier}")
+        logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error(f"queue {queue_url} does not exist")
         return False
@@ -212,9 +213,9 @@ def lambda_handler(event, context):
             if validation_passed and supplier:
                 create_ack_file(file_key, ack_bucket_name, True, created_at_formatted)
                 message_body = {
-                    'vaccine_type': vaccine_type,
-                    'supplier': supplier,
-                    'timestamp': timestamp
+                    "vaccine_type": vaccine_type,
+                    "supplier": supplier,
+                    "timestamp": timestamp,
                 }
                 try:
                     send_to_supplier_queue(supplier, message_body)
