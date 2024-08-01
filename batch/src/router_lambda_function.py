@@ -95,10 +95,9 @@ def send_to_supplier_queue(supplier, message_body):
     imms_env = os.getenv("SHORT_QUEUE_PREFIX")
     SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    # local_prefix = os.getenv("LOCAL.PREFIX")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-metadata-queue.fifo"
     message_deduplication_id = str(uuid.uuid4())
-    print(f"hey {queue_url}")
+    print(f"queueURL {queue_url}")
 
     try:
         sqs_client.send_message(

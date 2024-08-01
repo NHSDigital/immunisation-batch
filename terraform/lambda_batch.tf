@@ -34,7 +34,6 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         "logs:PutLogEvents",
         "s3:GetObject",
         "s3:PutObject",
-        "sqs:SendMessage",
         "kms:Decrypt"
       ],
       Resource = "*"
@@ -42,9 +41,29 @@ resource "aws_iam_policy" "lambda_exec_policy" {
   })
 }
 
+resource "aws_iam_policy" "lambda_sqs_policy" {
+  name = "${local.prefix}-lambda-sqs-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Action = "sqs:SendMessage",
+      Resource = [
+        for queue in aws_sqs_queue.fifo_queues : queue.arn
+      ]
+    }]
+  })
+}
+
 resource "aws_iam_role_policy_attachment""lambda_exec_policy_attachment" {
   role = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.lambda_exec_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }
 
 # Lambda Function
@@ -61,7 +80,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
     variables = {
       ACK_BUCKET_NAME = "${local.prefix}-batch-data-destination"
       ENVIRONMENT     = local.environment
-      ACCOUNT_ID      = local.local_account_id
+      LOCAL_ACCOUNT_ID      = local.local_account_id
     }
   }
 }
