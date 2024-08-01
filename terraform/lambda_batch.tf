@@ -48,7 +48,9 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      Action = "sqs:SendMessage",
+      Action = ["sqs:SendMessage",
+      "kms: Decrypt"
+      ]
       Resource = [
         for queue in aws_sqs_queue.fifo_queues : queue.arn
       ]
@@ -81,6 +83,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
       ACK_BUCKET_NAME = "${local.prefix}-batch-data-destination"
       ENVIRONMENT     = local.environment
       LOCAL_ACCOUNT_ID      = local.local_account_id
+      SHORT_QUEUE_PREFIX  = local.short_queue_prefix
     }
   }
 }

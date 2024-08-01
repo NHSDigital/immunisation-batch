@@ -103,7 +103,7 @@ def send_to_supplier_queue(supplier, message_body):
         sqs_client.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message_body),
-            MessageGroupID="default",
+            MessageGroupId="default",
             MessageDeduplicationId=message_deduplication_id,
         )
         logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
@@ -219,8 +219,10 @@ def lambda_handler(event, context):
                 try:
                     send_to_supplier_queue(supplier, message_body)
                     logger.info(f"Message sent to SQS queue for supplier {supplier}")
-                except Exception:
-                    logger.error(f"failed to send message to {supplier}_queue")
+                except Exception as E:
+                    logger.error(
+                        f"failed to send message to {supplier}_queue: {str(E)}"
+                    )
 
             else:
                 logging.error("Error in initial_file_validation")
