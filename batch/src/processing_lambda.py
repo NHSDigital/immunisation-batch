@@ -96,13 +96,16 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                             'action_flag': action_flag,
                         }
                     if action_flag in ("delete", "update"):
+                        body = json.loads(response["body"])
+                        imms_id = body["id"]
+                        version = body["Version"]
                         message_body = {
                             'fhir_json': fhir_json,
                             'action_flag': action_flag,
-                            # TO DO IMMSID:
-                            'imms_id': response["body"]["id"],
-                            "version": response["body"]["Version"]
+                            'imms_id': imms_id,
+                            "version": version
                         }
+
                     send_to_sqs(sqs_queue_url, message_body)
                 else:
                     print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value}")

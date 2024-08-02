@@ -97,7 +97,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         vaccine_types = ['covid19', 'flu', 'mmr']
         for vaccine_type in vaccine_types:
             with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 200, "body": {"id":"1234","Version":1}}):
+                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
 
                 process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
 

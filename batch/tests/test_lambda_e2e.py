@@ -670,8 +670,9 @@ class TestLambdaHandler(unittest.TestCase):
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content), \
                  patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 200, "body": {"id":"1234","Version":1}}):
+                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
                 # Mock SQS and send a test message
+                {'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c"}'}
                 sqs = boto3.client('sqs', region_name='eu-west-2')
                 queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
                 message_body = {
