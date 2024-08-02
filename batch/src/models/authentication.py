@@ -6,8 +6,8 @@ import time
 import uuid
 from enum import Enum
 
-from models.cache import Cache
-from models.utils import UnhandledResponseError
+from cache import Cache
+from utils import UnhandledResponseError
 
 
 class Service(Enum):

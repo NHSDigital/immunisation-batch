@@ -1,7 +1,7 @@
 import requests
 import uuid
 
-from src.models.authentication import AppRestrictedAuth
+from models.authentication import AppRestrictedAuth
 
 
 class ImmunizationApi:
