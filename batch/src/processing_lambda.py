@@ -80,7 +80,6 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                 action_flag = row.get('ACTION_FLAG')
                 identifier_value = row.get('UNIQUE_ID')
                 print(f"Successfully converted row to FHIR: {fhir_json}")
-                # TO DO: immsId
                 flag = True
                 if action_flag in ("delete", "update"):
                     flag = False
