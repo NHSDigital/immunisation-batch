@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 import re
-import json
 
 
 class EmptyFieldException(Exception):

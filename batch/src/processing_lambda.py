@@ -4,6 +4,7 @@ import json
 from io import StringIO, BytesIO
 import os
 from convert_fhir_json import convert_to_fhir_json
+from get_imms_id import ImmunizationApi
 
 s3_client = boto3.client('s3')
 sqs_client = boto3.client('sqs')
@@ -79,16 +80,33 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                 action_flag = row.get('ACTION_FLAG')
                 identifier_value = row.get('UNIQUE_ID')
                 print(f"Successfully converted row to FHIR: {fhir_json}")
-                results.append({'valid': True, 'message': 'Success'})
-
-                # Send the valid FHIR JSON and action flag to SQS
-                message_body = {
-                    'fhir_json': fhir_json,
-                    'action_flag': action_flag,
-                    'identifier_system': identifier_system,
-                    'identifier_value': identifier_value
-                }
-                send_to_sqs(sqs_queue_url, message_body)
+                # TO DO: immsId
+                flag = True
+                if action_flag in ("delete", "update"):
+                    flag = False
+                    response = ImmunizationApi.get_immunization_id(identifier_system, identifier_value)
+                    if response["statusCode"] == 200:
+                        flag = True
+                if flag:
+                    results.append({'valid': True, 'message': 'Success'})
+                    # Send the valid FHIR JSON and action flag to SQS
+                    if action_flag == "new":
+                        message_body = {
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                        }
+                    if action_flag in ("delete", "update"):
+                        message_body = {
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            # TO DO IMMSID:
+                            'imms_id': response["body"]["id"],
+                            "version": response["body"]["Version"]
+                        }
+                    send_to_sqs(sqs_queue_url, message_body)
+                else:
+                    print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value}")
+                    results.append({'valid': False, 'message': 'Unsupported file type received as an attachment'})
             else:
                 print(f"Invalid FHIR conversion for row: {row}")
                 results.append({'valid': False, 'message': 'Unsupported file type received as an attachment'})

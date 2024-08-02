@@ -19,7 +19,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         sqs = boto3.client('sqs', region_name='eu-west-2')
         queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
         message_body = {
-            'vaccine_type': 'COVID',
+            'vaccine_type': 'COVID19',
             'supplier': 'Pfizer',
             'timestamp': '20210730T12000000'
         }
@@ -96,7 +96,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
         # Patch the convert_to_fhir_json function
         vaccine_types = ['covid19', 'flu', 'mmr']
         for vaccine_type in vaccine_types:
-            with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)):
+            with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
+                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 200, "body": {"id":"1234","Version":1}}):
+
                 process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
 
             # Check if the ack file was created
@@ -105,6 +107,41 @@ class TestProcessLambdaFunction(unittest.TestCase):
             content = response['Body'].read().decode('utf-8')
             self.assertIn('Success', content)
             mock_send_to_sqs_message.assert_called()
+
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.send_to_sqs')
+    def test_process_csv_to_fhir_failed(self, mock_send_to_sqs_message):
+        # Setup mock S3
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket_name = 'test-bucket'
+        file_key = 'test-file.csv'
+        ack_bucket_name = 'ack-bucket'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_imms_id_missing)
+        sqs_client = boto3.client('sqs', region_name='eu-west-2')
+        sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
+
+        # Patch the convert_to_fhir_json function
+        vaccine_types = ['covid19', 'flu', 'mmr']
+        for vaccine_type in vaccine_types:
+            with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
+                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": {"diagnostics": "The requested resource was not found."}}):
+
+                process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
+
+            # Check if the ack file was created
+            ack_filename = 'processedFile/test-file_response.csv'
+            response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+            content = response['Body'].read().decode('utf-8')
+            self.assertIn('fatal-error', content)
+            mock_send_to_sqs_message.assert_not_called()
 
     def test_convert_to_fhir_json_valid(self):
         vaccine_types = ['covid19', 'flu', 'mmr']
