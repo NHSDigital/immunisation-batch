@@ -91,8 +91,8 @@ def initial_file_validation(file_key, bucket_name):
 
 
 def send_to_supplier_queue(supplier, message_body):
-    # TO DO - will not send as no queue exists, only logs the error for now
-    imms_env = os.getenv("SHORT_QUEUE_PREFIX")
+    # Send a message to the supplier queue
+    imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
     SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-metadata-queue.fifo"
@@ -163,15 +163,14 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_for
         ]
         # construct acknowlegement file
         ack_filename = f"ack/{parts[0]}_response.csv"
-        # print(f"{data_rows}")
+        print(f"{data_rows}")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
     csv_writer = csv.writer(csv_buffer, delimiter="|")
     csv_writer.writerow(headers)
     csv_writer.writerows(data_rows)
 
-    # Upload the CSV.zip file to S3
-    # TO DO - Update file name and path of ack, Is it nested in a directory in the S3 bucket?
+    # Upload the CSV file to S3
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode("utf-8"))
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
@@ -199,7 +198,7 @@ def lambda_handler(event, context):
                 f"immunisation-batch-{imms_env}-batch-data-destination",
             )
 
-            # TO DO- Perform initial file validation
+            # Initial file validation
             response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
             created_at = response["LastModified"]
             created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
