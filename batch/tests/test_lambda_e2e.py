@@ -1,12 +1,11 @@
 import unittest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, MagicMock
 import boto3
 from moto import mock_s3, mock_sqs
 
 import json
 from src.constants import Constant
 
-from io import BytesIO
 from router_lambda_function import (
     lambda_handler,  # Import lambda_handler for end-to-end test
 )

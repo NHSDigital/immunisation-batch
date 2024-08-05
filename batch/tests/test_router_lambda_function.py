@@ -12,7 +12,6 @@ from router_lambda_function import (
     send_to_supplier_queue,
     create_ack_file,
     extract_ods_code,
-    lambda_handler,
 )
 
 
@@ -152,10 +151,8 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_send_to_supplier_queue(self, mock_sqs_client):
         """tests SQS queue is sent a message for valid files"""
         # Define the mock SQS queue URL
-        mock_queue_url = "https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-EMIS-metadata-queue.fifo"
-        mock_sqs_client.get_queue_url = MagicMock(
-            return_value={"QueueUrl": mock_queue_url}
-        )
+        mock_url = "https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-EMIS-metadata-queue.fifo"
+        mock_sqs_client.get_queue_url = MagicMock(return_value={"QueueUrl": mock_url})
 
         mock_send_message = MagicMock()
         mock_sqs_client.send_message = mock_send_message
@@ -175,7 +172,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
 
         args, kwargs = mock_send_message.call_args
 
-        self.assertEqual(kwargs["QueueUrl"], mock_queue_url)
+        self.assertEqual(kwargs["QueueUrl"], mock_url)
 
         self.assertIn("MessageBody", kwargs)
         actual_message_body = json.loads(kwargs["MessageBody"])
