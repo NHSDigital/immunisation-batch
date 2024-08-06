@@ -170,6 +170,10 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(received_message["vaccine_type"], "Flu")
         self.assertEqual(received_message["supplier"], "EMIS")
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
+        self.assertEqual(
+            received_message["filename"],
+            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
+        )
 
     @mock_s3
     @mock_sqs

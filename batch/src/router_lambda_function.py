@@ -217,13 +217,14 @@ def lambda_handler(event, context):
                     "vaccine_type": vaccine_type,
                     "supplier": supplier,
                     "timestamp": timestamp,
+                    "filename": file_key,
                 }
                 try:
                     send_to_supplier_queue(supplier, message_body)
                     logger.info(f"Message sent to SQS queue for supplier {supplier}")
-                except Exception as E:
+                except Exception as e:
                     logger.error(
-                        f"failed to send message to {supplier}_queue: {str(E)}"
+                        f"failed to send message to {supplier}_queue: {str(e)}"
                     )
 
             else:

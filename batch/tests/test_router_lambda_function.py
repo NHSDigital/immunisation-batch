@@ -124,6 +124,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "vaccine_type": "Flu",
             "supplier": supplier,
             "timestamp": "20240708T12130100",
+            "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
         send_to_supplier_queue(supplier, message_body)
         mock_send_message.assert_called_once()
@@ -163,6 +164,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "vaccine_type": "flu",
             "supplier": supplier,
             "timestamp": "20240709T121304",
+            "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
 
         # Call the send_to_supplier_queue function
@@ -180,6 +182,10 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         self.assertEqual(actual_message_body["vaccine_type"], "flu")
         self.assertEqual(actual_message_body["supplier"], "EMIS")
         self.assertEqual(actual_message_body["timestamp"], "20240709T121304")
+        self.assertEqual(
+            actual_message_body["filename"],
+            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
+        )
 
     @mock_sqs
     @patch("router_lambda_function.os.getenv")
@@ -208,6 +214,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "vaccine_type": "Flu",
             "supplier": supplier,
             "timestamp": "20240708T12130100",
+            "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
 
         # Call the send_to_supplier_queue function
@@ -221,6 +228,10 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         self.assertEqual(message_body_received["vaccine_type"], "Flu")
         self.assertEqual(message_body_received["supplier"], supplier)
         self.assertEqual(message_body_received["timestamp"], "20240708T12130100")
+        self.assertEqual(
+            message_body_received["filename"],
+            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
+        )
 
     @mock_sqs
     @patch("router_lambda_function.os.getenv")
@@ -241,6 +252,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "vaccine_type": "Flu",
             "supplier": supplier,
             "timestamp": "20240708T12130100",
+            "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
 
         success = send_to_supplier_queue(supplier, message_body)
