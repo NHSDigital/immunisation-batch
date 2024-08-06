@@ -94,7 +94,10 @@ def send_to_supplier_queue(supplier, message_body):
     # Send a message to the supplier queue
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
     SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
-    account_id = os.getenv("LOCAL_ACCOUNT_ID")
+    if "prod" in imms_env or "production" in imms_env:
+        account_id = os.getenv("PROD_ACCOUNT_ID")
+    else:
+        account_id = os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-metadata-queue.fifo"
     message_deduplication_id = str(uuid.uuid4())
     print(f"queueURL {queue_url}")

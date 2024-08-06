@@ -50,13 +50,14 @@ variable "root_domain_name" {
 }
 
 variable "suppliers" {
-    description = "List of supplier names"
+    description = "List of supplier names. 5 extra pipelines"
     type        = list(string)
     default = [
         "EMIS", "PINNACLE", "SONAR", "TPP",
     "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
     "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
-    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK"
+    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "PLACEHOLDERQUEUE1",
+    "PLACEHOLDERQUEUE2", "PLACEHOLDERQUEUE3", "PLACEHOLDERQUEUE4", "PLACEHOLDERQUEUE5"
     ]
 
 }
@@ -79,6 +80,11 @@ variable "supplier_name_map" {
     "NORTHERN_IRELAND_DA"   = "NIREDA"
     "SCOTLAND_DA"           = "SCOTDA"
     "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
+    "PLACEHOLDERQUEUE1"     = "PHQ1"
+    "PLACEHOLDERQUEUE2"     = "PHQ2"
+    "PLACEHOLDERQUEUE3"     = "PHQ3"
+    "PLACEHOLDERQUEUE4"     = "PHQ4"
+    "PLACEHOLDERQUEUE5"     = "PHQ5"
   }
 }
 

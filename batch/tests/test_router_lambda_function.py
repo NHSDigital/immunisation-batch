@@ -145,6 +145,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "ENVIRONMENT": "internal-dev",
             "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
             "LOCAL_ACCOUNT_ID": "123456789012",
+            "PROD_ACCOUNT_ID": "3456789109",
         },
     )
     @patch("router_lambda_function.sqs_client")  # Mock the SQS client
@@ -192,6 +193,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         mock_getenv.side_effect = lambda key, default=None: {
             "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
             "LOCAL_ACCOUNT_ID": "123456789012",
+            "PROD_ACCOUNT_ID": "3456789109",
         }.get(key, default)
 
         # Create a mock SQS queue
@@ -231,6 +233,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         mock_getenv.side_effect = lambda key, default=None: {
             "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
             "LOCAL_ACCOUNT_ID": "123456789012",
+            "PROD_ACCOUNT_ID": "3456789109",
         }.get(key, default)
 
         supplier = "STAR"
