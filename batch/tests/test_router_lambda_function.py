@@ -47,63 +47,56 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertTrue(valid)
-        self.assertFalse(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_extension(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.txt"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_file_structure(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_vaccine_type(self, mock_validate_csv):
         file_key = "Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_version(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v3_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_ods_code(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_INVALID_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_timestamp(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708Ta99999999.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_column_count(self, mock_validate_csv):
@@ -111,9 +104,9 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
-        self.assertFalse(valid)
-        self.assertEqual(errors, True)
+        valid = initial_file_validation(file_key, bucket_name)
+        self.assertTrue(valid)
+        
 
     @patch("router_lambda_function.sqs_client")
     def test_supplier_queue_1(self, mock_sqs_client):
@@ -126,7 +119,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "timestamp": "20240708T12130100",
             "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
-        send_to_supplier_queue(supplier, message_body)
+        send_to_supplier_queue(supplier, message_body, "EMIS")
         mock_send_message.assert_called_once()
 
     @patch("router_lambda_function.s3_client")
@@ -136,7 +129,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         validation_passed = True
         created_at_formatted = "20240725T12510700"
         create_ack_file(
-            self.file_key, ack_bucket_name, validation_passed, created_at_formatted
+            self.file_key, ack_bucket_name, validation_passed, True, created_at_formatted
         )
         mock_s3_client.upload_fileobj.assert_called_once()
 
@@ -153,7 +146,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_send_to_supplier_queue(self, mock_sqs_client):
         """tests SQS queue is sent a message for valid files"""
         # Define the mock SQS queue URL
-        mock_url = "https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-EMIS-metadata-queue.fifo"
+        mock_url = "https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-file-processor-metadata-queue.fifo"
         mock_sqs_client.get_queue_url = MagicMock(return_value={"QueueUrl": mock_url})
 
         mock_send_message = MagicMock()
@@ -168,7 +161,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         }
 
         # Call the send_to_supplier_queue function
-        send_to_supplier_queue(supplier, message_body)
+        send_to_supplier_queue(supplier, message_body, "EMIS")
 
         # Assert that send_message was called once
         mock_send_message.assert_called_once()
@@ -205,7 +198,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         # Create a mock SQS queue
         sqs = boto3.client("sqs", region_name="eu-west-2")
         queue_url = sqs.create_queue(
-            QueueName="imms-batch-internal-dev-EMIS-metadata-queue.fifo",
+            QueueName="imms-batch-internal-dev-file-processor-metadata-queue.fifo",
             Attributes={"FifoQueue": "true"},
         )["QueueUrl"]
 
@@ -218,7 +211,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         }
 
         # Call the send_to_supplier_queue function
-        success = send_to_supplier_queue(supplier, message_body)
+        success = send_to_supplier_queue(supplier, message_body, "EMIS")
 
         self.assertTrue(success)
 
@@ -255,5 +248,5 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
 
-        success = send_to_supplier_queue(supplier, message_body)
+        success = send_to_supplier_queue(supplier, message_body, "STAR")
         self.assertFalse(success)

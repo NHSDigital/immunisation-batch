@@ -126,7 +126,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up SQS
         sqs_client = boto3.client("sqs", region_name="eu-west-2")
         queue_url = sqs_client.create_queue(
-            QueueName="imms-batch-internal-dev-EMIS-metadata-queue.fifo",
+            QueueName="imms-batch-internal-dev-file-processor-metadata-queue.fifo",
             Attributes={"FIFOQueue": "true", "ContentBasedDeduplication": "true"},
         )["QueueUrl"]
 
