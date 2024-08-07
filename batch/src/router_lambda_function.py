@@ -7,7 +7,7 @@ import logging
 import uuid
 from io import BytesIO, StringIO
 import boto3
-from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
+from ods_patterns import ODS_PATTERNS, SUPPLIER_MESSAGE_GROUP_ID_MAPPINGS
 from constants import Constant
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
@@ -38,6 +38,10 @@ def identify_supplier(ods_code):
     return ODS_PATTERNS.get(ods_code, None)
 
 
+def fetch_supplier_group(supplier):
+    return SUPPLIER_MESSAGE_GROUP_ID_MAPPINGS.get(supplier, None)
+
+
 def identify_vaccine_type(file_key):
     vaccine_match = re.search(r"^(\w+)_Vaccinations_", file_key)
     return vaccine_match.group(1) if vaccine_match else None
@@ -52,12 +56,12 @@ def initial_file_validation(file_key, bucket_name):
 
     # Check if the file name ends with .csv
     if not file_key.endswith(".csv"):
-        return False, True
+        return False
 
     # Check the structure of the file name
     parts = file_key.split("_")
     if len(parts) != 5:
-        return False, True
+        return False
 
     # Validate each part of the file name
     vaccine_type = parts[0].lower()
@@ -67,33 +71,31 @@ def initial_file_validation(file_key, bucket_name):
     timestamp = parts[4].split(".")[0]
 
     if vaccine_type not in Constant.valid_vaccine_type:
-        return False, True
+        return False
 
     if vaccination != "vaccinations":
-        return False, True
+        return False
 
     if version not in Constant.valid_versions:
-        return False, True
+        return False
 
     if not any(re.match(pattern, ods_code) for pattern in Constant.valid_ods_codes):
-        return False, True
+        return False
 
     if not re.match(r"\d{8}T\d{6}", timestamp) or not is_valid_datetime(timestamp):
-        return False, True
+        return False
 
-    column_count_valid, column_count_errors = validate_csv_column_count(
-        bucket_name, file_key
-    )
+    column_count_valid = validate_csv_column_count(bucket_name, file_key)
     if not column_count_valid:
-        return False, True
+        return False
 
-    return True, False
+    return True
 
 
-def send_to_supplier_queue(supplier, message_body):
+def send_to_supplier_queue(supplier, message_body, message_group_id):
     # Send a message to the supplier queue
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
+    SQS_name = "file-processor"
     if "prod" in imms_env or "production" in imms_env:
         account_id = os.getenv("PROD_ACCOUNT_ID")
     else:
@@ -106,7 +108,7 @@ def send_to_supplier_queue(supplier, message_body):
         sqs_client.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message_body),
-            MessageGroupId="default",
+            MessageGroupId=message_group_id,
             MessageDeduplicationId=message_deduplication_id,
         )
         logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
@@ -116,7 +118,7 @@ def send_to_supplier_queue(supplier, message_body):
     return True
 
 
-def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_formatted):
+def create_ack_file(file_key, ack_bucket_name, validation_passed, message_delivery, created_at_formatted):
     # TO DO - Populate acknowledgement file with correct values once known
     headers = [
         "MESSAGE_HEADER_ID",
@@ -129,6 +131,7 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_for
         "RECEIVED_TIME",
         "MAILBOX_FROM",
         "LOCAL_ID",
+        "MESSAGE_DELIVERY",
     ]
     parts = file_key.split(".")
     # Placeholder for data rows for success
@@ -145,6 +148,7 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_for
                 created_at_formatted,
                 "TBC",
                 "DPS",
+                message_delivery,
             ]
         ]
         ack_filename = f"ack/{parts[0]}_response.csv"
@@ -162,6 +166,7 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_for
                 created_at_formatted,
                 "TBC",
                 "DPS",
+                message_delivery,
             ]
         ]
         # construct acknowlegement file
@@ -181,63 +186,57 @@ def create_ack_file(file_key, ack_bucket_name, validation_passed, created_at_for
 
 def lambda_handler(event, context):
     error_files = []
-
+    # Determine ack_bucket_name based on environment
+    imms_env = get_environment()
+    ack_bucket_name = os.getenv(
+        "ACK_BUCKET_NAME",
+        f"immunisation-batch-{imms_env}-batch-data-destination",
+    )
     for record in event["Records"]:
         try:
             bucket_name = record["s3"]["bucket"]["name"]
             file_key = record["s3"]["object"]["key"]
-            ods_code = extract_ods_code(file_key)
-            vaccine_type = identify_vaccine_type(file_key)
-            timestamp = identify_timestamp(file_key)
-            supplier = identify_supplier(ods_code)
-            print(f"{supplier}")
-            if not supplier and ods_code:
-                logging.error(f"Supplier not found for ods code {ods_code}")
-
-            # Determine ack_bucket_name based on environment
-            imms_env = get_environment()
-            ack_bucket_name = os.getenv(
-                "ACK_BUCKET_NAME",
-                f"immunisation-batch-{imms_env}-batch-data-destination",
-            )
-
             # Initial file validation
             response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
             created_at = response["LastModified"]
             created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
 
-            validation_passed, validation_errors = initial_file_validation(
-                file_key, bucket_name
-            )
+            validation_passed = initial_file_validation(file_key, bucket_name)
 
+            if not validation_passed:
+                logging.error("Error in initial_file_validation")
+                create_ack_file(file_key, ack_bucket_name, False, False, created_at_formatted)
+
+            ods_code = extract_ods_code(file_key)
+            vaccine_type = identify_vaccine_type(file_key)
+            timestamp = identify_timestamp(file_key)
+            supplier = identify_supplier(ods_code)
+            message_group_id = fetch_supplier_group(supplier)
             # if validation passed, send message to SQS queue
             if validation_passed and supplier:
-                create_ack_file(file_key, ack_bucket_name, True, created_at_formatted)
                 message_body = {
                     "vaccine_type": vaccine_type,
                     "supplier": supplier,
                     "timestamp": timestamp,
                     "filename": file_key,
                 }
-                try:
-                    send_to_supplier_queue(supplier, message_body)
-                    logger.info(f"Message sent to SQS queue for supplier {supplier}")
-                except Exception as e:
-                    logger.error(
-                        f"failed to send message to {supplier}_queue: {str(e)}"
-                    )
-
-            else:
-                logging.error("Error in initial_file_validation")
-                create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
+                status = send_to_supplier_queue(
+                    supplier, message_body, message_group_id
+                )
+                if status:
+                    logger.info(f"File added to SQS queue for {supplier} pipeline")
+                    create_ack_file(file_key, ack_bucket_name, True, True, created_at_formatted)
+                else:
+                    logger.error(f"Failed to send file to {supplier} pipeline: {str(e)}")
+                    create_ack_file(file_key, ack_bucket_name, True, False, created_at_formatted)
 
         # Error handling for file processing
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
-            create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
+            create_ack_file(file_key, ack_bucket_name, False, False, created_at_formatted)
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
-            create_ack_file(file_key, ack_bucket_name, False, created_at_formatted)
+            create_ack_file(file_key, ack_bucket_name, False, False, created_at_formatted)
             error_files.append(file_key)
     if error_files:
         logger.error(
@@ -285,9 +284,9 @@ def validate_csv_column_count(bucket_name, file_key):
     header = next(csv_reader)[0].split("|")
 
     if len(header) != 34:
-        return False, True
+        return False
 
     if header != Constant.expected_csv_content:
-        return False, True
+        return False
 
-    return True, False
+    return True
