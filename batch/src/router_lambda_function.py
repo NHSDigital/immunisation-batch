@@ -227,7 +227,7 @@ def lambda_handler(event, context):
                     logger.info(f"File added to SQS queue for {supplier} pipeline")
                     create_ack_file(file_key, ack_bucket_name, True, True, created_at_formatted)
                 else:
-                    logger.error(f"Failed to send file to {supplier} pipeline: {str(e)}")
+                    logger.error(f"Failed to send file to {supplier} pipeline")
                     create_ack_file(file_key, ack_bucket_name, True, False, created_at_formatted)
 
         # Error handling for file processing
