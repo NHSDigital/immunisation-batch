@@ -47,63 +47,56 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertTrue(valid)
-        self.assertFalse(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_extension(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.txt"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_file_structure(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_vaccine_type(self, mock_validate_csv):
         file_key = "Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_version(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v3_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_ods_code(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_INVALID_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_timestamp(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708Ta99999999.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
+        valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
-        self.assertTrue(errors)
 
     @patch("router_lambda_function.validate_csv_column_count")
     def test_invalid_column_count(self, mock_validate_csv):
@@ -111,9 +104,8 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
 
-        valid, errors = initial_file_validation(file_key, bucket_name)
-        self.assertFalse(valid)
-        self.assertEqual(errors, True)
+        valid = initial_file_validation(file_key, bucket_name)
+        self.assertTrue(valid)
 
     @patch("router_lambda_function.sqs_client")
     def test_supplier_queue_1(self, mock_sqs_client):
@@ -136,7 +128,11 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         validation_passed = True
         created_at_formatted = "20240725T12510700"
         create_ack_file(
-            self.file_key, ack_bucket_name, validation_passed, created_at_formatted
+            self.file_key,
+            ack_bucket_name,
+            validation_passed,
+            True,
+            created_at_formatted,
         )
         mock_s3_client.upload_fileobj.assert_called_once()
 

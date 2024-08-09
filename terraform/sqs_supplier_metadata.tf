@@ -6,8 +6,8 @@ resource "aws_sqs_queue" "fifo_queues" {
     fifo_queue                = true
     visibility_timeout_seconds = 30
     
-    # Disable content-based deduplication - will process any records sent to queue
-    content_based_deduplication  = false
+    # TO DO - enable content-based deduplication - will not record duplicate body sent to queue
+    content_based_deduplication  = true
 
 tags = {
     supplier = each.key
