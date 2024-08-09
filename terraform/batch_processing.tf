@@ -89,11 +89,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "s3_batch_encrypti
   }
 }
 
-resource "aws_s3_bucket_notification" "source_bucket_notification" {
-    bucket      = aws_s3_bucket.batch_data_source_bucket.bucket
-    eventbridge = true
-}
-
 resource "aws_s3_bucket" "batch_data_destination_bucket" {
     bucket        = "${local.prefix}-batch-data-destination"
     force_destroy = local.is_temp

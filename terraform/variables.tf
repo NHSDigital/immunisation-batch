@@ -31,6 +31,7 @@ locals {
     environment         = terraform.workspace
     prefix              = "${var.project_name}-${var.service}-${local.environment}"
     short_prefix        = "${var.project_short_name}-${local.environment}"
+    short_queue_prefix  = "${var.project_short_name}-${var.service}-${local.environment}"
     service_domain_name = "${local.environment}.${local.project_domain_name}"
 
     tags = {
@@ -47,3 +48,45 @@ variable "region" {
 variable "root_domain_name" {
     default = "dev.api.platform.nhs.uk"
 }
+
+variable "suppliers" {
+    description = "List of supplier names. 5 extra pipelines"
+    type        = list(string)
+    default = [
+        "EMIS", "PINNACLE", "SONAR", "TPP",
+    "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
+    "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
+    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "PLACEHOLDERQUEUE1",
+    "PLACEHOLDERQUEUE2", "PLACEHOLDERQUEUE3", "PLACEHOLDERQUEUE4", "PLACEHOLDERQUEUE5"
+    ]
+
+}
+
+variable "supplier_name_map" { 
+  description = "Mapping of long supplier names to shorter names"
+  type = map(string)
+  default = {
+    "EMIS"                  = "EMIS"
+    "PINNACLE"              = "PINN"
+    "SONAR"                 = "SONAR"
+    "TPP"                   = "TPP"
+    "AGEM-NIVS"             = "AGEM-NIVS"
+    "NIMS"                  = "NIMS"
+    "EVA"                   = "EVA"
+    "RAVS"                  = "RAVS"
+    "MEDICAL_DIRECTOR"      = "MD"
+    "WELSH_DA_1"            = "WELSHDA1"
+    "WELSH_DA_2"            = "WELSHDA2"
+    "NORTHERN_IRELAND_DA"   = "NIREDA"
+    "SCOTLAND_DA"           = "SCOTDA"
+    "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
+    "PLACEHOLDERQUEUE1"     = "PHQ1"
+    "PLACEHOLDERQUEUE2"     = "PHQ2"
+    "PLACEHOLDERQUEUE3"     = "PHQ3"
+    "PLACEHOLDERQUEUE4"     = "PHQ4"
+    "PLACEHOLDERQUEUE5"     = "PHQ5"
+  }
+}
+
+
+
