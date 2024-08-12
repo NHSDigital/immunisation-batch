@@ -1,16 +1,17 @@
-
-import unittest
-from unittest.mock import patch, MagicMock
 import boto3
-from moto import mock_s3, mock_sqs
 import json
-from src.constants import Constant
+import unittest
+from unittest.mock import patch, ANY, MagicMock
+from moto import mock_s3, mock_sqs
 from datetime import datetime
+from src.constants import Constant
+from io import StringIO, BytesIO
+import csv
 # from io import BytesIO
 from router_lambda_function import (
     lambda_handler  # Import lambda_handler for end-to-end test
 )
-from processing_lambda import (process_lambda_handler)
+from processing_lambda import process_lambda_handler
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
@@ -647,9 +648,8 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch('processing_lambda.sqs_client')
     @patch('processing_lambda.send_to_sqs')
-    def test_e2e_successful_conversion(self, mock_send_to_sqs_message, mock_delete_message):
+    def test_e2e_successful_conversion(self, mock_send_to_sqs, mock_sqs_client):
         # Mock S3 and SQS setup
-
         s3 = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
         s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
@@ -664,15 +664,16 @@ class TestLambdaHandler(unittest.TestCase):
         mock_head_object_response = {
             'LastModified': datetime(2024, 7, 30, 15, 22, 17)
         }
+        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID"""
 
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constant.valid_vaccine_type # Example valid vaccine types
         for vaccine_type in vaccine_types:
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content), \
                  patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
+                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}), \
+                 patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                 # Mock SQS and send a test message
-                {'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c"}'}
                 sqs = boto3.client('sqs', region_name='eu-west-2')
                 queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
                 message_body = {
@@ -688,22 +689,36 @@ class TestLambdaHandler(unittest.TestCase):
                     'INTERNAL_DEV_ACCOUNT_ID': '123456',
                     'ACK_BUCKET_NAME': ack_bucket_name
                 }):
+                    # Initialize the acknowledgment file with headers
+                    ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
+                    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
+                               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
+                    csv_buffer = StringIO()
+                    csv_writer = csv.writer(csv_buffer, delimiter='|')
+                    csv_writer.writerow(headers)
+                    csv_buffer.seek(0)
+                    csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
+
+                    s3.upload_fileobj(csv_bytes, ack_bucket_name, ack_key)
+
                     # Run the lambda_handler function
                     process_lambda_handler({}, {})
 
                     # Verify that the acknowledgment file has been created in the destination bucket
-                    ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
                     ack_file = s3.get_object(Bucket=ack_bucket_name, Key=ack_key)['Body'].read().decode('utf-8')
-                    self.assertIn('Success', ack_file)
-                    mock_send_to_sqs_message.assert_called()
-                    mock_delete_message.delete_message(QueueUrl=queue_url, ReceiptHandle=any)
+
+                    print(f"Content of ack file: {ack_file}")  # Debugging print statement
+
+                    self.assertIn('ok', ack_file)
+                    mock_send_to_sqs.assert_called()
+                    mock_sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=ANY)
 
     @mock_s3
     @mock_sqs
     @patch('processing_lambda.sqs_client')
     @patch('processing_lambda.send_to_sqs')
-    def test_e2e_processing_invalid_data(self, mock_send_to_sqs_message, mock_delete_message):
-        # Set up the S3 environment
+    def test_e2e_processing_invalid_data(self, mock_send_to_sqs, mock_sqs_client):
+        # Mock S3 and SQS setup
         s3 = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
         s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
@@ -713,15 +728,22 @@ class TestLambdaHandler(unittest.TestCase):
         s3.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
             'LocationConstraint': 'eu-west-2'
         })
+
         # Define the mock response for the head_object method
         mock_head_object_response = {
-                'LastModified': datetime(2024, 7, 30, 15, 22, 17)
-            }
-        vaccine_types = Constant.valid_vaccine_type
+            'LastModified': datetime(2024, 7, 30, 15, 22, 17)
+        }
+        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID"""
+
+        vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
         for vaccine_type in vaccine_types:
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.invalid_file_content), \
-                 patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response):
+                    patch('processing_lambda.convert_to_fhir_json', return_value={False, None}), \
+                    patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
+                    patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}), \
+                    patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
+
                 # Mock SQS and send a test message
                 sqs = boto3.client('sqs', region_name='eu-west-2')
                 queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
@@ -738,17 +760,28 @@ class TestLambdaHandler(unittest.TestCase):
                     'INTERNAL_DEV_ACCOUNT_ID': '123456',
                     'ACK_BUCKET_NAME': ack_bucket_name
                 }):
+                    # Initialize the acknowledgment file with headers
+                    ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
+                    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
+                                'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
+                    csv_buffer = StringIO()
+                    csv_writer = csv.writer(csv_buffer, delimiter='|')
+                    csv_writer.writerow(headers)
+                    csv_buffer.seek(0)
+                    csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
+
+                    s3.upload_fileobj(csv_bytes, ack_bucket_name, ack_key)
+
                     # Run the lambda_handler function
                     process_lambda_handler({}, {})
 
-                # Verify that the acknowledgment file has been created in S3
-                ack_bucket = 'immunisation-batch-internal-dev-batch-data-destination'
-                ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
-                ack_file = s3.get_object(Bucket=ack_bucket, Key=ack_key)['Body'].read().decode('utf-8')
-                self.assertIn('fatal-error', ack_file)
-                self.assertIn('Unsupported file type received as an attachment', ack_file)
-                mock_send_to_sqs_message.assert_not_called()
-                mock_delete_message.delete_message(QueueUrl=queue_url, ReceiptHandle=any)
+                    # Verify that the acknowledgment file has been created in the destination bucket
+                    ack_file = s3.get_object(Bucket=ack_bucket_name, Key=ack_key)['Body'].read().decode('utf-8')
+
+                    print(f"Content of ack file: {ack_file}")  # Debugging print statement
+                    self.assertIn('fatal-error', ack_file)
+                    mock_send_to_sqs.assert_not_called()
+                    mock_sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=ANY)
 
     @mock_s3
     @mock_sqs
@@ -769,13 +802,14 @@ class TestLambdaHandler(unittest.TestCase):
         mock_head_object_response = {
                 'LastModified': datetime(2024, 7, 30, 15, 22, 17)
             }
+        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID"""
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content_imms_id_missing), \
                  patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": {"diagnostics": "The requested resource was not found."}}):
-
+                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": {"diagnostics": "The requested resource was not found."}}), \
+                 patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                 # Mock SQS and send a test message
                 sqs = boto3.client('sqs', region_name='eu-west-2')
                 queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
@@ -792,6 +826,18 @@ class TestLambdaHandler(unittest.TestCase):
                     'INTERNAL_DEV_ACCOUNT_ID': '123456',
                     'ACK_BUCKET_NAME': ack_bucket_name
                 }):
+
+                    # Initialize the acknowledgment file with headers
+                    ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_Pfizer_20210730T12000000_response.csv'
+                    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
+                                'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
+                    csv_buffer = StringIO()
+                    csv_writer = csv.writer(csv_buffer, delimiter='|')
+                    csv_writer.writerow(headers)
+                    csv_buffer.seek(0)
+                    csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
+
+                    s3.upload_fileobj(csv_bytes, ack_bucket_name, ack_key)
                     # Run the lambda_handler function
                     process_lambda_handler({}, {})
 

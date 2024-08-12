@@ -35,32 +35,19 @@ def fetch_file_from_s3(bucket_name, file_key):
     return response['Body'].read().decode('utf-8')
 
 
-def create_ack_file(file_key, ack_bucket_name, results, created_at_formatted):
-    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
-               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
-    parts = file_key.split('.')
-    ack_filename = f"processedFile/{parts[0]}_response.csv"
-
-    data_rows = []
-    for result in results:
-        if result['valid']:
-            data_row = ['TBC', 'ok', 'information', 'informational', 'business',
-                        '20013', 'Success', created_at_formatted, 'TBC', 'DPS']
-        else:
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                        '20005', result['message'], created_at_formatted, 'TBC', 'DPS']
-        data_rows.append(data_row)
-
-    csv_buffer = StringIO()
+def write_to_ack_file(ack_bucket_name, ack_filename, data_row):
+    csv_buffer = BytesIO()
+    s3_client.download_fileobj(ack_bucket_name, ack_filename, csv_buffer)
+    csv_buffer.seek(0)
+    existing_data = csv_buffer.read().decode('utf-8')
+    csv_buffer = StringIO(existing_data)
     csv_writer = csv.writer(csv_buffer, delimiter='|')
-    csv_writer.writerow(headers)
-    csv_writer.writerows(data_rows)
+    csv_writer.writerow(data_row)
 
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
-    print(csv_bytes)
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
-    print(f"Ack file uploaded to {ack_bucket_name}: {ack_filename}")
+    print(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
 
 
 def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name):
@@ -70,10 +57,24 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
     created_at = response['LastModified']
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
 
-    results = []
-    for row in csv_reader:
+    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
+               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
+    parts = file_key.split('.')
+    ack_filename = f"processedFile/{parts[0]}_response.csv"
 
-        if row.get('ACTION_FLAG') and row.get('ACTION_FLAG') in ("new", "update", "delete") and row.get('UNIQUE_ID_URI') and row.get('UNIQUE_ID'):  # Check if 'ACTION_FLAG' is not empty
+    # Create the initial ack file with headers
+    csv_buffer = StringIO()
+    csv_writer = csv.writer(csv_buffer, delimiter='|')
+    csv_writer.writerow(headers)
+    csv_buffer.seek(0)
+    csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
+    s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
+
+    row_count = 0  # Initialize a counter for rows
+
+    for row in csv_reader:
+        row_count += 1  # Increment the counter for each row
+        if row.get('ACTION_FLAG') and row.get('ACTION_FLAG') in ("new", "update", "delete") and row.get('UNIQUE_ID_URI') and row.get('UNIQUE_ID'):
             fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
             if valid:
                 identifier_system = row.get('UNIQUE_ID_URI')
@@ -87,35 +88,48 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                     if response["statusCode"] == 200:
                         flag = True
                 if flag:
-                    results.append({'valid': True, 'message': 'Success'})
-                    # Send the valid FHIR JSON and action flag to SQS
-                    if action_flag == "new":
-                        message_body = {
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                        }
-                    if action_flag in ("delete", "update"):
-                        body = json.loads(response["body"])
-                        imms_id = body["id"]
-                        version = body["Version"]
-                        message_body = {
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                            'imms_id': imms_id,
-                            "version": version
-                        }
+                    try:
+                        # Prepare the message for SQS
+                        if action_flag == "new":
+                            message_body = {
+                                'fhir_json': fhir_json,
+                                'action_flag': action_flag,
+                            }
+                        if action_flag in ("delete", "update"):
+                            body = json.loads(response["body"])
+                            imms_id = body["id"]
+                            version = body["Version"]
+                            message_body = {
+                                'fhir_json': fhir_json,
+                                'action_flag': action_flag,
+                                'imms_id': imms_id,
+                                "version": version
+                            }
 
-                    send_to_sqs(sqs_queue_url, message_body)
+                        send_to_sqs(sqs_queue_url, message_body)
+                        data_row = ['TBC', 'ok', 'information', 'informational', 'business',
+                                    '20013', 'Success', created_at_formatted, 'TBC', 'DPS']
+                    except Exception as e:
+                        print(f"Error sending to SQS: {e}")
+                        data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
+                                    '20005', f'Error sending to SQS: {e}', created_at_formatted, 'TBC', 'DPS']
                 else:
                     print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value}")
-                    results.append({'valid': False, 'message': 'Unsupported file type received as an attachment'})
+                    data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
+                                '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
             else:
                 print(f"Invalid FHIR conversion for row: {row}")
-                results.append({'valid': False, 'message': 'Unsupported file type received as an attachment'})
+                data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
+                            '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
         else:
             print(f"Invalid FHIR conversion for row: {row}")
-            results.append({'valid': False, 'message': 'Unsupported file type received as an attachment'})
-    create_ack_file(file_key, ack_bucket_name, results, created_at_formatted)
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
+                        '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
+
+        # Write the data row to the ack file
+        write_to_ack_file(ack_bucket_name, ack_filename, data_row)
+
+    print(f"Total rows processed: {row_count}")  # Print the total number of rows processed
 
 
 def process_lambda_handler(event, context):
@@ -130,6 +144,8 @@ def process_lambda_handler(event, context):
         QueueUrl=queue_url,
         MaxNumberOfMessages=1
     )
+    bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-source')
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
 
     for message in response.get('Messages', []):
         try:
@@ -140,8 +156,6 @@ def process_lambda_handler(event, context):
             receipt_handle = message['ReceiptHandle']
 
             file_key = f"{vaccine_type}_Vaccinations_v5_{supplier}_{timestamp}.csv"
-            bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-source')
-            ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
             process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
 
             sqs_client.delete_message(

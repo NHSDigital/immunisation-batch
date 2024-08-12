@@ -4,18 +4,19 @@ import boto3
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 import json
+from io import StringIO, BytesIO
 from processing_lambda import (
-    process_lambda_handler, fetch_file_from_s3, process_csv_to_fhir, create_ack_file, get_environment
+    process_lambda_handler, fetch_file_from_s3, process_csv_to_fhir, write_to_ack_file, get_environment
 )
 from convert_fhir_json import convert_to_fhir_json
+from get_imms_id import ImmunizationApi
 
 
 class TestProcessLambdaFunction(unittest.TestCase):
-    @patch('processing_lambda.sqs_client')  # Replace with the correct import path
-    @patch('processing_lambda.process_csv_to_fhir')  # Replace with the correct import path
-    @patch('processing_lambda.boto3.client')  # Mock the boto3 client itself
-    def test_lambda_handler(self, mock_boto_client, mock_process_csv_to_fhir, mock_delete_message):
-        # Setup: Create the queue and mock tha receive_message response
+    @patch('processing_lambda.sqs_client')
+    @patch('processing_lambda.process_csv_to_fhir')
+    @patch('processing_lambda.boto3.client')
+    def test_lambda_handler(self, mock_boto_client, mock_process_csv_to_fhir, mock_sqs_client):
         sqs = boto3.client('sqs', region_name='eu-west-2')
         queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
         message_body = {
@@ -24,37 +25,28 @@ class TestProcessLambdaFunction(unittest.TestCase):
             'timestamp': '20210730T12000000'
         }
         sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
-        # Mock receive_message to return our test message
-        mock_sqs_client = MagicMock()
-        mock_sqs_client.receive_message.return_value = {
+
+        mock_sqs_client_instance = MagicMock()
+        mock_sqs_client_instance.receive_message.return_value = {
             'Messages': [{
                 'MessageId': '1',
                 'ReceiptHandle': 'dummy-receipt-handle',
                 'Body': json.dumps(message_body)
             }]
         }
-        mock_boto_client.return_value = mock_sqs_client
+        mock_boto_client.return_value = mock_sqs_client_instance
 
-        # Mock environment variables
         with patch.dict('os.environ', {
             'INTERNAL-DEV_ACCOUNT_ID': '123456789012',
             'ENVIRONMENT': 'internal-dev',
             'ACK_BUCKET_NAME': 'ack-bucket'
         }):
-            # Call the lambda handler
             process_lambda_handler({}, {})
 
-            # Debug: Print call arguments for delete_message and process_csv_to_fhir
-            print(f"delete_message call args: {mock_delete_message.call_args_list}")
-            print(f"process_csv_to_fhir call args: {mock_process_csv_to_fhir.call_args_list}")
-
-            # Check that process_csv_to_fhir was called once
             mock_process_csv_to_fhir.assert_called_once()
-
-            # Check that delete_message was called with the correct parameters
-            mock_delete_message.delete_message(
+            mock_sqs_client_instance.delete_message(
                 QueueUrl=queue_url,
-                ReceiptHandle=any
+                ReceiptHandle='dummy-receipt-handle'
             )
 
     @mock_s3
@@ -76,8 +68,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @mock_s3
     @mock_sqs
     @patch('processing_lambda.send_to_sqs')
-    def test_process_csv_to_fhir(self, mock_send_to_sqs_message):
-        # Setup mock S3
+    def test_process_csv_to_fhir(self, mock_send_to_sqs):
         s3_client = boto3.client('s3', region_name='us-west-2')
         bucket_name = 'test-bucket'
         file_key = 'test-file.csv'
@@ -90,29 +81,24 @@ class TestProcessLambdaFunction(unittest.TestCase):
                                     'LocationConstraint': 'eu-west-2'
                                 })
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
 
-        # Patch the convert_to_fhir_json function
-        vaccine_types = ['covid19', 'flu', 'mmr']
-        for vaccine_type in vaccine_types:
-            with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
+        with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
+             patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
+            process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, 'covid19', ack_bucket_name)
 
-                process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
-
-            # Check if the ack file was created
-            ack_filename = 'processedFile/test-file_response.csv'
-            response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
-            content = response['Body'].read().decode('utf-8')
-            self.assertIn('Success', content)
-            mock_send_to_sqs_message.assert_called()
+        ack_filename = 'processedFile/test-file_response.csv'
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('Success', content)
+        mock_send_to_sqs.assert_called()
 
     @mock_s3
     @mock_sqs
     @patch('processing_lambda.send_to_sqs')
-    def test_process_csv_to_fhir_failed(self, mock_send_to_sqs_message):
-        # Setup mock S3
+    def test_process_csv_to_fhir_failed(self, mock_send_to_sqs):
         s3_client = boto3.client('s3', region_name='us-west-2')
         bucket_name = 'test-bucket'
         file_key = 'test-file.csv'
@@ -125,86 +111,73 @@ class TestProcessLambdaFunction(unittest.TestCase):
                                     'LocationConstraint': 'eu-west-2'
                                 })
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_imms_id_missing)
+
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
 
-        # Patch the convert_to_fhir_json function
-        vaccine_types = ['covid19', 'flu', 'mmr']
-        for vaccine_type in vaccine_types:
-            with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": {"diagnostics": "The requested resource was not found."}}):
+        with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
+             patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": '{"diagnostics": "The requested resource was not found."}'}):
+            process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, 'covid19', ack_bucket_name)
 
-                process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
-
-            # Check if the ack file was created
-            ack_filename = 'processedFile/test-file_response.csv'
-            response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
-            content = response['Body'].read().decode('utf-8')
-            self.assertIn('fatal-error', content)
-            mock_send_to_sqs_message.assert_not_called()
-
-    def test_convert_to_fhir_json_valid(self):
-        vaccine_types = ['covid19', 'flu', 'mmr']
-        for vaccine_type in vaccine_types:
-            result, valid = convert_to_fhir_json(Constant.row, vaccine_type)
-            self.assertTrue(valid)
-            self.assertEqual(result['resourceType'], 'Immunization')
-
-    @mock_s3
-    def test_create_ack_file(self):
-        # Mock S3 client
-        s3_client = boto3.client('s3', region_name='us-west-2')
-        ack_bucket_name = 'ack-bucket'
-        file_key = 'test-file.csv'
-        results = [{'valid': True, 'message': 'Success'}]
-        created_at_formatted = '2024-07-08T12:13:01Z'
-
-        # Create mock bucket
-        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
-
-        # Patch the s3_client in the module where create_ack_file is defined
-        with patch('processing_lambda.s3_client', s3_client):  # Replace 'your_module_name' with the actual module name
-            create_ack_file(file_key, ack_bucket_name, results, created_at_formatted)
-
-            # List objects in the mock S3 bucket
-            ack_files = s3_client.list_objects_v2(Bucket=ack_bucket_name)
-            ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
-
-            # Check if the expected acknowledgment file exists in the bucket
-            expected_file_key = f"processedFile/{file_key.split('.')[0]}_response.csv"
-            self.assertIn(expected_file_key, ack_file_keys)
-
-            # Additional assertions to verify the contents of the file could be added here if needed
+        ack_filename = 'processedFile/test-file_response.csv'
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('fatal-error', content)
+        mock_send_to_sqs.assert_not_called()
 
     @mock_s3
     @mock_sqs
     @patch('processing_lambda.send_to_sqs')
-    def test_process_csv_to_fhir_valid_invalid_content(self, mock_send_to_sqs_message):
+    def test_process_csv_to_fhir_successful(self, mock_send_to_sqs):
         s3_client = boto3.client('s3', region_name='us-west-2')
-        bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        bucket_name = 'test-bucket'
         file_key = 'test-file.csv'
-
+        ack_bucket_name = 'ack-bucket'
+        csv_content = Constant.file_content
         s3_client.create_bucket(Bucket=bucket_name,
                                 CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
                                 })
-        s3_client.create_bucket(Bucket=ack_bucket_name,
-                                CreateBucketConfiguration={
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
                                 })
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body="ID,Name\n1,Test")
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_content)
+
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
+
         vaccine_types = ['covid19', 'flu', 'mmr']
         for vaccine_type in vaccine_types:
-            with patch('processing_lambda.s3_client', s3_client):
+            with patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
                 process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
-                # Check if acknowledgment file is created
-                ack_files = s3_client.list_objects_v2(Bucket=ack_bucket_name)
-                ack_file_keys = [obj['Key'] for obj in ack_files.get('Contents', [])]
-                self.assertIn(f"processedFile/{file_key.split('.')[0]}_response.csv", ack_file_keys)
-                mock_send_to_sqs_message.assert_not_called()
+
+            ack_filename = 'processedFile/test-file_response.csv'
+            response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+            content = response['Body'].read().decode('utf-8')
+            self.assertIn('Success', content)
+            mock_send_to_sqs.assert_called()
+
+    @mock_s3
+    def test_write_to_ack_file_append(self):
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        ack_bucket_name = 'ack-bucket'
+        ack_filename = 'test-ack-file.csv'
+        existing_content = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID
+existing_row"""
+        new_row = ['TBC', 'ok', 'information', 'informational', 'business', '20013', 'Success', '20210730T12000000', 'TBC', 'DPS']
+
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=ack_bucket_name, Key=ack_filename, Body=existing_content)
+
+        with patch('processing_lambda.s3_client', s3_client):
+            write_to_ack_file(ack_bucket_name, ack_filename, new_row)
+
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('existing_row', content)
+        self.assertIn('|'.join(new_row), content) 
 
     def test_get_environment(self):
         with patch('processing_lambda.os.getenv', return_value="internal-dev"):

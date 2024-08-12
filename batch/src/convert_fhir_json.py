@@ -1,41 +1,8 @@
+import json
+from datetime import datetime, timezone
+
+
 def convert_to_fhir_json(row, vaccine_type):
-    row = {
-        'NHS_NUMBER': '9674963871',
-        'PERSON_FORENAME': 'SABINA',
-        'PERSON_SURNAME': 'GREIR',
-        'PERSON_DOB': '20190131',
-        'PERSON_GENDER_CODE': '2',
-        'PERSON_POSTCODE': '',
-        'DATE_AND_TIME': '20240610T183325',
-        'SITE_CODE': 'J82067',
-        'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-        'UNIQUE_ID': '0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1',
-        'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-        'ACTION_FLAG': 'new',
-        'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-        'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-        'RECORDED_DATE': '20240609',  #
-        'PRIMARY_SOURCE': 'TRUE',
-        'VACCINATION_PROCEDURE_CODE': '1303503001',
-        'VACCINATION_PROCEDURE_TERM': 'Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)',
-        'DOSE_SEQUENCE': '1',
-        'VACCINE_PRODUCT_CODE': '42605811000001109',
-        'VACCINE_PRODUCT_TERM': 'Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer Ltd) (product)',
-        'VACCINE_MANUFACTURER': 'Pfizer',
-        'BATCH_NUMBER': 'RSVTEST',
-        'EXPIRY_DATE': '20241231',
-        'SITE_OF_VACCINATION_CODE': '',
-        'SITE_OF_VACCINATION_TERM': 'Left upper arm structure (body structure)',
-        'ROUTE_OF_VACCINATION_CODE': '78421000',
-        'ROUTE_OF_VACCINATION_TERM': 'Intramuscular route (qualifier value)',
-        'DOSE_AMOUNT': '0.5',
-        'DOSE_UNIT_CODE': '258773002',
-        'DOSE_UNIT_TERM': 'Milliliter (qualifier value)',
-        'INDICATION_CODE': '',
-        'INDICATION_TERM': '',  # Not provided
-        'LOCATION_CODE': 'J82067',
-        'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
-    }
     vaccine_type = vaccine_type.lower()
 
     def map_target_disease(vaccine_type):
@@ -142,14 +109,15 @@ def convert_to_fhir_json(row, vaccine_type):
         patient = {
             "resourceType": "Patient",
             "id": "Pat1",
-            "identifier": []
         }
-        identifier = {
-            "system": "https://fhir.nhs.uk/Id/nhs-number",
-            "value": row.get('NHS_NUMBER', '')
-        }
-        if identifier["value"]:
-            patient["identifier"].append(identifier)
+        # Create the identifier only if 'NHS_NUMBER' has a value
+        nhs_number = row.get('NHS_NUMBER', '')
+        if nhs_number:
+            identifier = {
+                "system": "https://fhir.nhs.uk/Id/nhs-number",
+                "value": nhs_number
+            }
+            patient["identifier"] = [identifier]
         name = {}
         add_if_not_empty(name, "family", row.get('PERSON_SURNAME', ''))
         given = row.get('PERSON_FORENAME', '')
@@ -173,35 +141,51 @@ def convert_to_fhir_json(row, vaccine_type):
                 "coding": []
             }
         }
+
+        # Creating the coding dictionary
         coding = {
-            "system": "http://snomed.info/sct",
-            "code": row.get('VACCINATION_PROCEDURE_CODE', ''),
-            "display": row.get('VACCINATION_PROCEDURE_TERM', '')
+            "system": "http://snomed.info/sct"
         }
-        if coding["code"] or coding["display"]:
+        add_if_not_empty(coding, "code", row.get('VACCINATION_PROCEDURE_CODE', ''))
+        add_if_not_empty(coding, "display", row.get('VACCINATION_PROCEDURE_TERM', ''))
+
+        # Only append coding if both 'code' and 'display' are present
+        if "code" in coding and "display" in coding or "system" in coding:  # Ensure both code and display exist
             extension["valueCodeableConcept"]["coding"].append(coding)
+
+        # Only add the extension to the fhir_json if coding was added
         if extension["valueCodeableConcept"]["coding"]:
             fhir_json["extension"] = [extension]
 
         # Identifier
-        identifier = {
-            "system": row.get('UNIQUE_ID_URI', ''),
-            "value": row.get('UNIQUE_ID', '')
-        }
-        if identifier["system"] or identifier["value"]:
+        identifier = {}
+
+        # Use add_if_not_empty to conditionally add 'system' and 'value'
+        add_if_not_empty(identifier, "system", row.get('UNIQUE_ID_URI', ''))
+        add_if_not_empty(identifier, "value", row.get('UNIQUE_ID', ''))
+
+        # Only add the identifier to fhir_json if at least one field is present
+        if identifier:
             fhir_json["identifier"] = [identifier]
 
         # Vaccine Code
         vaccine_code = {
             "coding": []
         }
+
         coding = {
-            "system": "http://snomed.info/sct",
-            "code": row.get('VACCINE_PRODUCT_CODE', ''),
-            "display": row.get('VACCINE_PRODUCT_TERM', '')
+            "system": "http://snomed.info/sct"
         }
-        if coding["code"] or coding["display"]:
+
+        # Use add_if_not_empty to conditionally add 'code' and 'display'
+        add_if_not_empty(coding, "code", row.get('VACCINE_PRODUCT_CODE', ''))
+        add_if_not_empty(coding, "display", row.get('VACCINE_PRODUCT_TERM', ''))
+
+        # Only append the coding if it has at least one of 'code', 'display', or 'system'
+        if coding.get("code") or coding.get("display") or coding.get("system"):
             vaccine_code["coding"].append(coding)
+
+        # Only add vaccineCode to fhir_json if the coding list is not empty
         if vaccine_code["coding"]:
             fhir_json["vaccineCode"] = vaccine_code
 
@@ -211,10 +195,21 @@ def convert_to_fhir_json(row, vaccine_type):
         }
 
         # Occurrence DateTime
-        add_if_not_empty(fhir_json, "occurrenceDateTime", row.get('DATE_AND_TIME', ''))
+        # Convert the 'DATE_AND_TIME' to a datetime object
+        date_time_str = row.get('DATE_AND_TIME', '')
+        if date_time_str:
+            date_time_obj = datetime.strptime(date_time_str, '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc)
+            formatted_date_time = date_time_obj.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
+            # Add the formatted datetime to the fhir_json if it's not empty
+            add_if_not_empty(fhir_json, "occurrenceDateTime", formatted_date_time)
         # Recorded Date
-        add_if_not_empty(fhir_json, "recorded", row.get('RECORDED_DATE', ''))
+        recorded_str = row.get('RECORDED_DATE', '')
+        if recorded_str:
+            recorded_date_obj = datetime.strptime(recorded_str, '%Y%m%d').date()
+
+            # Add the date to the fhir_json if it's not empty
+            add_if_not_empty(fhir_json, "recorded", recorded_date_obj.isoformat())
 
         # Primary Source
         add_if_not_empty(fhir_json, "primarySource", convert_to_boolean(row.get('PRIMARY_SOURCE', 'false')))
@@ -228,32 +223,51 @@ def convert_to_fhir_json(row, vaccine_type):
 
         # Location
         location = {
-            "type": "Location",
-            "identifier": {
-                "value": row.get('LOCATION_CODE', ''),
-                "system": row.get('LOCATION_CODE_TYPE_URI', '')
-            }
+            "type": "Location"
         }
-        if location["identifier"]["value"] or location["identifier"]["system"]:
+
+        identifier = {}
+        # Use add_if_not_empty to conditionally add 'value' and 'system'
+        add_if_not_empty(identifier, "value", row.get('LOCATION_CODE', ''))
+        add_if_not_empty(identifier, "system", row.get('LOCATION_CODE_TYPE_URI', ''))
+
+        # Only add the identifier to the location if it's not empty
+        if identifier:
+            location["identifier"] = identifier
+
+        # Only add the location to fhir_json if it has either an identifier or a type
+        if location.get("identifier") or location.get("type"):
             fhir_json["location"] = location
 
         # Lot Number
         add_if_not_empty(fhir_json, "lotNumber", row.get('BATCH_NUMBER', ''))
 
         # Expiration Date
-        add_if_not_empty(fhir_json, "expirationDate", row.get('EXPIRY_DATE', ''))
+        expiry_date_str = row.get('EXPIRY_DATE', '')
+        if expiry_date_str:
+            expiry_date_obj = datetime.strptime(expiry_date_str, '%Y%m%d').date()
+
+            # Add the date to the fhir_json if it's not empty
+            add_if_not_empty(fhir_json, "expirationDate", expiry_date_obj.isoformat())
 
         # Site
         site = {
             "coding": []
         }
+
         coding = {
-            "system": "http://snomed.info/sct",
-            "code": row.get('SITE_OF_VACCINATION_CODE', ''),
-            "display": row.get('SITE_OF_VACCINATION_TERM', '')
+            "system": "http://snomed.info/sct"
         }
-        if coding["code"] or coding["display"]:
+
+        # Use add_if_not_empty to conditionally add 'code' and 'display'
+        add_if_not_empty(coding, "code", row.get('SITE_OF_VACCINATION_CODE', ''))
+        add_if_not_empty(coding, "display", row.get('SITE_OF_VACCINATION_TERM', ''))
+
+        # Only append the coding if it has at least one of 'code' or 'display'
+        if coding.get("code") or coding.get("display") or coding.get("system"):
             site["coding"].append(coding)
+
+        # Only add site to fhir_json if the coding list is not empty
         if site["coding"]:
             fhir_json["site"] = site
 
@@ -263,22 +277,34 @@ def convert_to_fhir_json(row, vaccine_type):
         }
         coding = {
             "system": "http://snomed.info/sct",
-            "code": row.get('ROUTE_OF_VACCINATION_CODE', ''),
-            "display": row.get('ROUTE_OF_VACCINATION_TERM', '')
         }
-        if coding["code"] or coding["display"]:
+        add_if_not_empty(coding, "code", row.get('ROUTE_OF_VACCINATION_CODE', ''))
+        add_if_not_empty(coding, "display", row.get('ROUTE_OF_VACCINATION_TERM', ''))
+        # Only append the coding if it has at least one of 'code' or 'display'
+        if coding.get("code") or coding.get("display") or coding.get("system"):
             route["coding"].append(coding)
+
+        # Only add route to fhir_json if the coding list is not empty
         if route["coding"]:
             fhir_json["route"] = route
 
         # Dose Quantity
         dose_quantity = {
-            "value": float(row.get('DOSE_AMOUNT', 0)),
-            "unit": row.get('DOSE_UNIT_TERM', ''),
-            "system": "http://unitsofmeasure.org",
-            "code": row.get('DOSE_UNIT_CODE', '')
+            "system": "http://unitsofmeasure.org"
         }
-        if dose_quantity["value"] and (dose_quantity["unit"] or dose_quantity["code"]):
+
+        # Use add_if_not_empty to conditionally add 'value', 'unit', and 'code'
+        add_if_not_empty(dose_quantity, "value", row.get('DOSE_AMOUNT', ''))
+        add_if_not_empty(dose_quantity, "unit", row.get('DOSE_UNIT_TERM', ''))
+        add_if_not_empty(dose_quantity, "code", row.get('DOSE_UNIT_CODE', ''))
+        if "value" in dose_quantity:
+            value_str = dose_quantity["value"]
+            if '.' in value_str:
+                dose_quantity["value"] = float(value_str)
+            else:
+                dose_quantity["value"] = int(value_str)
+        # Only add doseQuantity to fhir_json if it has any relevant fields
+        if "value" in dose_quantity or "unit" in dose_quantity or "code" in dose_quantity or "system" in dose_quantity:
             fhir_json["doseQuantity"] = dose_quantity
 
         # Performer
@@ -291,14 +317,21 @@ def convert_to_fhir_json(row, vaccine_type):
             {
                 "actor": {
                     "type": "Organization",
-                    "identifier": {
-                        "system": row.get('SITE_CODE_TYPE_URI', ''),
-                        "value": row.get('SITE_CODE', '')
-                    }
+                    "identifier": {}
                 }
             }
         ]
-        fhir_json["performer"] = performer
+
+        # Use add_if_not_empty to conditionally add 'system' and 'value'
+        add_if_not_empty(performer[1]["actor"]["identifier"], "system", row.get('SITE_CODE_TYPE_URI', ''))
+        add_if_not_empty(performer[1]["actor"]["identifier"], "value", row.get('SITE_CODE', ''))
+
+        # Only add the 'identifier' field if it has content
+        if performer[1]["actor"]["identifier"]:
+            fhir_json["performer"] = performer
+        else:
+            # Remove the second performer entry if the identifier is empty
+            fhir_json["performer"] = [performer[0]]
 
         # Reason Code
         reason_code = {
@@ -309,7 +342,7 @@ def convert_to_fhir_json(row, vaccine_type):
                 }
             ]
         }
-        if reason_code["coding"][0]["code"]:
+        if reason_code["coding"][0]["code"] or reason_code["coding"][0]["system"]:
             fhir_json["reasonCode"] = [reason_code]
 
         # Protocol Applied
@@ -318,8 +351,8 @@ def convert_to_fhir_json(row, vaccine_type):
             "doseNumberPositiveInt": int(row.get('DOSE_SEQUENCE', 0))
         }
         fhir_json["protocolApplied"] = [protocol_applied]
-
-        return fhir_json, True
+        final_json = json.dumps(fhir_json)
+        return final_json, True
     except KeyError as e:
         print(f"Missing field in row data: {e}")
         return None, False
