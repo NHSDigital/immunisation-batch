@@ -230,9 +230,7 @@ def lambda_handler(event, context):
                         file_key, ack_bucket_name, True, True, created_at_formatted
                     )
                 else:
-                    logger.error(
-                        f"Failed to send file to {supplier}_pipeline: {str(e)}"
-                    )
+                    logger.error(f"Failed to send file to {supplier}_pipeline")
                     create_ack_file(
                         file_key, ack_bucket_name, True, False, created_at_formatted
                     )
