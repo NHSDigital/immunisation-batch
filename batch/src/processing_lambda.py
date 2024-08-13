@@ -58,7 +58,7 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
 
     headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
-               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID']
+               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
     parts = file_key.split('.')
     ack_filename = f"processedFile/{parts[0]}_response.csv"
 
@@ -105,26 +105,25 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                                 'imms_id': imms_id,
                                 "version": version
                             }
-
                         send_to_sqs(sqs_queue_url, message_body)
                         data_row = ['TBC', 'ok', 'information', 'informational', 'business',
-                                    '20013', 'Success', created_at_formatted, 'TBC', 'DPS']
+                                    '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
                     except Exception as e:
                         print(f"Error sending to SQS: {e}")
                         data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                                    '20005', f'Error sending to SQS: {e}', created_at_formatted, 'TBC', 'DPS']
+                                    '20005', 'Error sending to SQS', created_at_formatted, 'TBC', 'DPS', False]
                 else:
                     print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value} and status_code:{status_code}")
                     data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                                '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
+                                '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
             else:
                 print(f"Invalid FHIR conversion for row: {row}")
                 data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                            '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
+                            '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
         else:
             print(f"Invalid FHIR conversion for row: {row}")
             data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                        '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
+                        '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
 
         # Write the data row to the ack file
         write_to_ack_file(ack_bucket_name, ack_filename, data_row)

@@ -351,8 +351,7 @@ def convert_to_fhir_json(row, vaccine_type):
             "doseNumberPositiveInt": int(row.get('DOSE_SEQUENCE', 0))
         }
         fhir_json["protocolApplied"] = [protocol_applied]
-        final_json = json.dumps(fhir_json)
-        return final_json, True
+        return fhir_json, True
     except KeyError as e:
         print(f"Missing field in row data: {e}")
         return None, False
