@@ -665,13 +665,13 @@ class TestLambdaHandler(unittest.TestCase):
             'LastModified': datetime(2024, 7, 30, 15, 22, 17)
         }
         mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID"""
-
-        vaccine_types = Constant.valid_vaccine_type # Example valid vaccine types
+        response = {"resourceType": "Bundle", "type": "searchset", "link": [ { "relation": "self", "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/Immunization?immunization.identifier=https://supplierABC/identifiers/vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta" } ], "entry": [ { "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/Immunization/277befd9-574e-47fe-a6ee-189858af3bb0", "resource": { "resourceType": "Immunization", "id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": { "versionId": 1 } } } ], "total": 1 },200
+        vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
         for vaccine_type in vaccine_types:
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content), \
                  patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}), \
+                 patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                  patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                 # Mock SQS and send a test message
                 sqs = boto3.client('sqs', region_name='eu-west-2')
@@ -734,14 +734,14 @@ class TestLambdaHandler(unittest.TestCase):
             'LastModified': datetime(2024, 7, 30, 15, 22, 17)
         }
         mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID"""
-
+        response = {"resourceType": "Bundle", "type": "searchset", "link": [ { "relation": "self", "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/Immunization?immunization.identifier=https://supplierABC/identifiers/vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta" } ], "entry": [ { "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/Immunization/277befd9-574e-47fe-a6ee-189858af3bb0", "resource": { "resourceType": "Immunization", "id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": { "versionId": 1 } } } ], "total": 1 },200
         vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
         for vaccine_type in vaccine_types:
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.invalid_file_content), \
                     patch('processing_lambda.convert_to_fhir_json', return_value={False, None}), \
                     patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                    patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'headers': {'Content-Type': 'application/fhir+json'}, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}), \
+                    patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                     patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
 
                 # Mock SQS and send a test message
@@ -803,12 +803,13 @@ class TestLambdaHandler(unittest.TestCase):
                 'LastModified': datetime(2024, 7, 30, 15, 22, 17)
             }
         mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID"""
+        response = {"total": 0}, 404
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
             # Mock the fetch_file_from_s3 function
             with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content_imms_id_missing), \
                  patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                 patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": {"diagnostics": "The requested resource was not found."}}), \
+                 patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                  patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                 # Mock SQS and send a test message
                 sqs = boto3.client('sqs', region_name='eu-west-2')

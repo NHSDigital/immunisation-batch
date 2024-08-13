@@ -5,9 +5,11 @@ import requests
 import time
 import uuid
 from enum import Enum
-
+import boto3
+from botocore.config import Config
 from .cache import Cache
 from .utils import UnhandledResponseError
+from .env import get_environment
 
 
 class Service(Enum):
@@ -16,11 +18,13 @@ class Service(Enum):
 
 
 class AppRestrictedAuth:
-    def __init__(self, service: Service, secret_manager_client, environment, cache: Cache):
-        self.secret_manager_client = secret_manager_client
+    def __init__(self, service: Service, cache: Cache):
+        boto_config = Config(region_name="eu-west-2")
+        secrets_manager = boto3.client("secretsmanager", config=boto_config)
+        self.secret_manager_client = secrets_manager
         self.cache = cache
         self.cache_key = f"{service.value}_access_token"
-
+        environment = get_environment
         self.expiry = 30
         self.secret_name = f"imms/pds/{environment}/jwt-secrets" if service == Service.PDS else \
             f"imms/immunization/{environment}/jwt-secrets"

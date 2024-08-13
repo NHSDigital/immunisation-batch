@@ -84,8 +84,8 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                 flag = True
                 if action_flag in ("delete", "update"):
                     flag = False
-                    response = ImmunizationApi.get_immunization_id(identifier_system, identifier_value)
-                    if response["statusCode"] == 200:
+                    response, status_code = ImmunizationApi.get_imms_id(identifier_system, identifier_value)
+                    if response.get("total") == 1 and status_code == 200:
                         flag = True
                 if flag:
                     try:
@@ -96,9 +96,9 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                                 'action_flag': action_flag,
                             }
                         if action_flag in ("delete", "update"):
-                            body = json.loads(response["body"])
-                            imms_id = body["id"]
-                            version = body["Version"]
+                            entry = response.get("entry", [])[0]
+                            imms_id = entry["resource"].get("id")
+                            version = entry["resource"].get("meta", {}).get("versionId")
                             message_body = {
                                 'fhir_json': fhir_json,
                                 'action_flag': action_flag,
@@ -114,7 +114,7 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                         data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                                     '20005', f'Error sending to SQS: {e}', created_at_formatted, 'TBC', 'DPS']
                 else:
-                    print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value}")
+                    print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value} and status_code:{status_code}")
                     data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                                 '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS']
             else:

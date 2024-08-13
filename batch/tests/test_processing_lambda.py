@@ -84,9 +84,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
-
+        results = {"resourceType": "Bundle", "type": "searchset", "link": [ { "relation": "self", "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/Immunization?immunization.identifier=https://supplierABC/identifiers/vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta" } ], "entry": [ { "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/Immunization/277befd9-574e-47fe-a6ee-189858af3bb0", "resource": { "resourceType": "Immunization", "id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": { "versionId": 1 } } } ], "total": 1 },200
         with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-             patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
+             patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
             process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, 'covid19', ack_bucket_name)
 
         ack_filename = 'processedFile/test-file_response.csv'
@@ -114,9 +114,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
-
+        results = {"total": 0}, 404
         with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-             patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={"statusCode": 404, "body": '{"diagnostics": "The requested resource was not found."}'}):
+             patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
             process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, 'covid19', ack_bucket_name)
 
         ack_filename = 'processedFile/test-file_response.csv'
@@ -145,10 +145,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
-
-        vaccine_types = ['covid19', 'flu', 'mmr']
+        results = {"resourceType": "Bundle", "type": "searchset", "link": [ { "relation": "self", "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/Immunization?immunization.identifier=https://supplierABC/identifiers/vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta" } ], "entry": [ { "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/Immunization/277befd9-574e-47fe-a6ee-189858af3bb0", "resource": { "resourceType": "Immunization", "id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": { "versionId": 1 } } } ], "total": 1 },200
+        vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch('processing_lambda.ImmunizationApi.get_immunization_id', return_value={'statusCode': 200, 'body': '{"id": "93bdcd32-27bc-4564-ae0d-4de1a8b13c5c", "Version":1}'}):
+            with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
                 process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
 
             ack_filename = 'processedFile/test-file_response.csv'
