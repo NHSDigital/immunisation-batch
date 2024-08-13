@@ -4,7 +4,6 @@ import re
 import csv
 import os
 import logging
-import uuid
 from io import BytesIO, StringIO
 import boto3
 from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
