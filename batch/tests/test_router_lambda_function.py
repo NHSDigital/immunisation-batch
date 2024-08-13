@@ -185,8 +185,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
 
     @mock_sqs
     @patch("router_lambda_function.os.getenv")
-    @patch("router_lambda_function.uuid.uuid4", return_value="12345")
-    def test_send_to_supplier_queue_success(self, mock_uuid, mock_getenv):
+    def test_send_to_supplier_queue_success(self, mock_getenv):
         """
         Test send_to_supplier_queue function for a successful message send.
 
@@ -231,8 +230,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
 
     @mock_sqs
     @patch("router_lambda_function.os.getenv")
-    @patch("router_lambda_function.uuid.uuid4", return_value="12345")
-    def test_send_to_supplier_queue_queue_not_exist(self, mock_uuid, mock_getenv):
+    def test_send_to_supplier_queue_queue_not_exist(self, mock_getenv):
         """
         Test send_to_supplier_queue function when the queue does not exist.
         """
