@@ -19,7 +19,7 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
     def test_lambda_handler(
         self, mock_validate_csv_column_count, mock_sqs_client, mock_s3_client
     ):
-        # Mock S3 event
+        # Mock an S3 event
         event = {
             "Records": [
                 {
