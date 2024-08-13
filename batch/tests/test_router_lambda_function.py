@@ -202,7 +202,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         sqs = boto3.client("sqs", region_name="eu-west-2")
         queue_url = sqs.create_queue(
             QueueName="imms-batch-internal-dev-EMIS-metadata-queue.fifo",
-            Attributes={"FifoQueue": "true"},
+            Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
         )["QueueUrl"]
 
         supplier = "EMIS"
