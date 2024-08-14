@@ -73,6 +73,16 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }
 
+# Permission for SQS to invoke Lambda function
+resource "aws_lambda_permission" "allow_sqs_invoke" {
+  for_each       = var.existing_sqs_arns
+  statement_id   = "AllowSQSInvoke${each.key}"
+  action         = "lambda:InvokeFunction"
+  function_name  = aws_lambda_function.file_transforming_lambda.arn
+  principal      = "sqs.amazonaws.com"
+  source_arn     = each.value
+}
+
 # Lambda Function
 resource "aws_lambda_function" "file_transforming_lambda" {
   function_name    = "${local.prefix}-file_transforming_lambda"
