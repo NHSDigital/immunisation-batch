@@ -22,7 +22,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_s3_client_instance = MagicMock()
         mock_boto_client.return_value = mock_s3_client_instance
 
-        # Set up the queue URL and message body
+        # Set up the queue URL and message body.
         message_body = {
             'vaccine_type': 'COVID19',
             'supplier': 'Pfizer',
