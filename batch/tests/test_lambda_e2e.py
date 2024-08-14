@@ -370,7 +370,7 @@ class TestLambdaHandler(unittest.TestCase):
             ]
         }
 
-        # Call the lambda_handler function
+        # Call the lambda_handler function.
         lambda_handler(event, None)
         # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
