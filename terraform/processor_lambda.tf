@@ -6,7 +6,7 @@ data "archive_file" "file_transforming_lambda_zip" {
 }
 
 # IAM Role for Lambda
-resource "aws_iam_role" "lambda_exec_role" {
+resource "aws_iam_role" "processor_lambda_exec_role" {
   name = "${local.prefix}-lambda-exec-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -22,7 +22,7 @@ resource "aws_iam_role" "lambda_exec_role" {
 }
 
 # Policy for Lambda execution role to interact with logs, S3, and KMS
-resource "aws_iam_policy" "lambda_exec_policy" {
+resource "aws_iam_policy" "processor_lambda_exec_policy" {
   name   = "${local.prefix}-lambda-exec-policy"
   policy = jsonencode({
     Version = "2012-10-17",
@@ -34,7 +34,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         "logs:PutLogEvents",
         "s3:GetObject",
         "s3:PutObject",
-        "kms:Decrypt"
+        "s3:HeadObject",
+        "kms:Decrypt",
       ],
       Resource = "*"
     }]
@@ -42,7 +43,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
 }
 
 # Policy for Lambda to interact with existing SQS FIFO Queues
-resource "aws_iam_policy" "lambda_sqs_policy" {
+resource "aws_iam_policy" "processor_lambda_sqs_policy" {
   name = "${local.prefix}-lambda-sqs-policy"
 
   policy = jsonencode({
@@ -62,13 +63,13 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
 }
 
 # Attach the execution policy to the Lambda role
-resource "aws_iam_role_policy_attachment" "lambda_exec_policy_attachment" {
+resource "aws_iam_role_policy_attachment" "processor_lambda_exec_policy_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.lambda_exec_policy.arn
 }
 
 # Attach the SQS policy to the Lambda role
-resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
+resource "aws_iam_role_policy_attachment" "processor_lambda_sqs_policy_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }

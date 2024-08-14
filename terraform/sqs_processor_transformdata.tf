@@ -1,6 +1,6 @@
 
 
-resource "aws_sqs_queue" "fifo_queues" {
+resource "aws_sqs_queue" "processor_fifo_queues" {
     for_each                  = toset(var.suppliers)
     name                      = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-queue.fifo"
     fifo_queue                = true

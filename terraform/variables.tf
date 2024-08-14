@@ -56,12 +56,6 @@ data "aws_sqs_queue" "queues" {
   name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-metadata-queue.fifo"
 }
 
-variable "existing_sqs_arns" {
-  description = "List of ARNs of existing SQS queues"
-  type        = list(string)
-  default     = [for queue in data.aws_sqs_queue.queues : queue.arn]
-}
-
 data "aws_vpc" "default" {
   default = true
 }
@@ -87,6 +81,9 @@ locals {
     Environment = local.environment
     Service     = var.service
   }
+
+  # Calculate the ARNs of existing SQS queues
+  existing_sqs_arns = [for queue in data.aws_sqs_queue.queues : queue.arn]
 }
 
 # Local Account ID variable (Assuming it's retrieved or set elsewhere in the code)
@@ -105,4 +102,9 @@ variable "account_id" {
 variable "environment" {
   description = "Environment name (e.g., dev, prod)"
   type        = string
+}
+
+# Usage example for existing_sqs_arns
+resource "some_aws_resource" "example" {
+  sqs_arns = local.existing_sqs_arns
 }
