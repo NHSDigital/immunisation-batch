@@ -14,7 +14,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch('processing_lambda.process_csv_to_fhir')
     @patch('processing_lambda.boto3.client')
     def test_lambda_handler(self, mock_boto_client, mock_process_csv_to_fhir, mock_sqs_client):
-        # Mock SQS client
+        # Mock SQS client.
         mock_sqs_client_instance = MagicMock()
         mock_sqs_client.return_value = mock_sqs_client_instance
 
