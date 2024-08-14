@@ -18,7 +18,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_sqs_client_instance = MagicMock()
         mock_sqs_client.return_value = mock_sqs_client_instance
 
-        # Mock S3 client
+        # Mock S3 client.
         mock_s3_client_instance = MagicMock()
         mock_boto_client.return_value = mock_s3_client_instance
 
