@@ -9,10 +9,6 @@ variable "project_short_name" {
 variable "service" {
     default = "batch"
 }
-data "aws_sqs_queue" "queues" {
-  for_each = toset(var.suppliers)
-  name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-metadata-queue.fifo"
-}
 
 data "aws_vpc" "default" {
     default = true
@@ -32,9 +28,6 @@ locals {
     project_domain_name = data.aws_route53_zone.project_zone.name
 }
 
-locals{
-  existing_sqs_arns = [for queue in data.aws_sqs_queue.queues : queue.arn]
-}
 
 locals {
     environment         = terraform.workspace
