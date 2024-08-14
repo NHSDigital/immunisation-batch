@@ -97,7 +97,34 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
-        results = {"resourceType": "Bundle", "type": "searchset", "link": [ { "relation": "self", "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/Immunization?immunization.identifier=https://supplierABC/identifiers/vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta" } ], "entry": [ { "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/Immunization/277befd9-574e-47fe-a6ee-189858af3bb0", "resource": { "resourceType": "Immunization", "id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": { "versionId": 1 } } } ], "total": 1 },200
+        results = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "link": [
+                {
+                    "relation": "self",
+                    "url": (
+                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+                    )
+                }
+            ],
+            "entry": [
+                {
+                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+                    "resource": {
+                        "resourceType": "Immunization",
+                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
+                        "meta": {
+                            "versionId": 1
+                        }
+                    }
+                }
+            ],
+            "total": 1
+        }, 200
         with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
              patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
             process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, 'covid19', ack_bucket_name)
@@ -158,7 +185,34 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
-        results = {"resourceType": "Bundle", "type": "searchset", "link": [ { "relation": "self", "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/Immunization?immunization.identifier=https://supplierABC/identifiers/vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta" } ], "entry": [ { "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/Immunization/277befd9-574e-47fe-a6ee-189858af3bb0", "resource": { "resourceType": "Immunization", "id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": { "versionId": 1 } } } ], "total": 1 },200
+        results = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "link": [
+                {
+                    "relation": "self",
+                    "url": (
+                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+                    )
+                }
+            ],
+            "entry": [
+                {
+                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+                    "resource": {
+                        "resourceType": "Immunization",
+                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
+                        "meta": {
+                            "versionId": 1
+                        }
+                    }
+                }
+            ],
+            "total": 1
+        }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
             with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
@@ -175,9 +229,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client = boto3.client('s3', region_name='us-west-2')
         ack_bucket_name = 'ack-bucket'
         ack_filename = 'test-ack-file.csv'
-        existing_content = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID
+        existing_content = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|
+        RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID
 existing_row"""
-        new_row = ['TBC', 'ok', 'information', 'informational', 'business', '20013', 'Success', '20210730T12000000', 'TBC', 'DPS']
+        new_row = ['TBC', 'ok', 'information', 'informational', 'business', '20013', 'Success',
+                   '20210730T12000000', 'TBC', 'DPS']
 
         s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
@@ -190,7 +246,7 @@ existing_row"""
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response['Body'].read().decode('utf-8')
         self.assertIn('existing_row', content)
-        self.assertIn('|'.join(new_row), content) 
+        self.assertIn('|'.join(new_row), content)
 
     def test_get_environment(self):
         with patch('processing_lambda.os.getenv', return_value="internal-dev"):

@@ -93,7 +93,8 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
     for row in csv_reader:
         row_count += 1  # Increment the counter for each row
-        if row.get('ACTION_FLAG') and row.get('ACTION_FLAG') in ("new", "update", "delete") and row.get('UNIQUE_ID_URI') and row.get('UNIQUE_ID'):
+        if row.get('ACTION_FLAG') in {"new", "update", "delete"} and row.get('UNIQUE_ID_URI') and row.get('UNIQUE_ID'):
+
             fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
             if valid:
                 identifier_system = row.get('UNIQUE_ID_URI')
@@ -132,17 +133,21 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                         data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                                     '20005', 'Error sending to SQS', created_at_formatted, 'TBC', 'DPS', False]
                 else:
-                    logger.error(f"imms_id not found:{response} for: {identifier_system}#{identifier_value} and status_code:{status_code}")
+                    logger.error(f"imms_id not found:{response} for: {identifier_system}#{identifier_value}"
+                                 F"and status_code:{status_code}")
                     data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                                '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
+                                '20005', 'Unsupported file type received as an attachment', created_at_formatted,
+                                'TBC', 'DPS', False]
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                            '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
+                            '20005', 'Unsupported file type received as an attachment', created_at_formatted,
+                            'TBC', 'DPS', False]
         else:
             logger.error(f"Invalid FHIR conversion for row: {row}")
             data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                        '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
+                        '20005', 'Unsupported file type received as an attachment', created_at_formatted,
+                        'TBC', 'DPS', False]
 
         # Write the data row to the ack file
         write_to_ack_file(ack_bucket_name, ack_filename, data_row)
