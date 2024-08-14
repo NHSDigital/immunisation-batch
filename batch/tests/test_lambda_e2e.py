@@ -717,8 +717,7 @@ class TestLambdaHandler(unittest.TestCase):
         mock_head_object_response = {
             'LastModified': datetime(2024, 7, 30, 15, 22, 17)
         }
-        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|
-        RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"""
+        mock_download_fileobj = Constant.mock_download_fileobj
         response = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -777,11 +776,11 @@ class TestLambdaHandler(unittest.TestCase):
                             'SHORT_QUEUE_PREFIX': 'imms-batch-internal-dev'
                         }):
                             # Initialize the acknowledgment file with headers
-                            ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}'
-                            '_20210730T12000000_response.csv'
-                            headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE',
-                                       'RESPONSE_TYPE', 'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME',
-                                       'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+                            ack_key = (
+                                        f'processedFile/{vaccine_type}_Vaccinations_v5_'
+                                        f'{ods_code}_20210730T12000000_response.csv'
+                                    )
+                            headers = Constant.headers
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter='|')
                             csv_writer.writerow(headers)
@@ -824,8 +823,7 @@ class TestLambdaHandler(unittest.TestCase):
         mock_head_object_response = {
             'LastModified': datetime(2024, 7, 30, 15, 22, 17)
         }
-        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|
-        RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|MESSAGE_DELIVERY"""
+        mock_download_fileobj = Constant.mock_download_fileobj
         response = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -884,11 +882,11 @@ class TestLambdaHandler(unittest.TestCase):
                             'SHORT_QUEUE_PREFIX': 'imms-batch-internal-dev'
                         }):
                             # Initialize the acknowledgment file with headers
-                            ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}'
-                            '_20210730T12000000_response.csv'
-                            headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE',
-                                       'RESPONSE_TYPE', 'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME',
-                                       'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+                            ack_key = (
+                                        f'processedFile/{vaccine_type}_Vaccinations_v5_'
+                                        f'{ods_code}_20210730T12000000_response.csv'
+                                    )
+                            headers = Constant.headers
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter='|')
                             csv_writer.writerow(headers)
@@ -932,8 +930,7 @@ class TestLambdaHandler(unittest.TestCase):
         mock_head_object_response = {
             'LastModified': datetime(2024, 7, 30, 15, 22, 17)
         }
-        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|
-        RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|MESSAGE_DELIVERY"""
+        mock_download_fileobj = Constant.mock_download_fileobj
         response = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -993,11 +990,11 @@ class TestLambdaHandler(unittest.TestCase):
                             'SHORT_QUEUE_PREFIX': 'imms-batch-internal-dev'
                         }):
                             # Initialize the acknowledgment file with headers
-                            ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}'
-                            '_20210730T12000000_response.csv'
-                            headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE',
-                                       'RESPONSE_TYPE', 'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME',
-                                       'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+                            ack_key = (
+                                        f'processedFile/{vaccine_type}_Vaccinations_v5_'
+                                        f'{ods_code}_20210730T12000000_response.csv'
+                                    )
+                            headers = Constant.headers
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter='|')
                             csv_writer.writerow(headers)
@@ -1038,8 +1035,7 @@ class TestLambdaHandler(unittest.TestCase):
         mock_head_object_response = {
                 'LastModified': datetime(2024, 7, 30, 15, 22, 17)
             }
-        mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|
-        RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|MESSAGE_DELIVERY"""
+        mock_download_fileobj = Constant.mock_download_fileobj
         response = {"total": 0}, 404
         vaccine_types = Constant.valid_vaccine_type
         suppilers = Constant.valid_supplier
@@ -1048,8 +1044,7 @@ class TestLambdaHandler(unittest.TestCase):
             for supplier in suppilers:
                 for ods_code in ods_codes:
                     #   Mock the fetch_file_from_s3 function
-                    with patch('processing_lambda.fetch_file_from_s3',
-                               return_value=Constant.file_content_imms_id_missing), \
+                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content_id_missing), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
                          patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
@@ -1072,11 +1067,11 @@ class TestLambdaHandler(unittest.TestCase):
                         }):
 
                             # Initialize the acknowledgment file with headers
-                            ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}'
-                            '_20210730T12000000_response.csv'
-                            headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE',
-                                       'RESPONSE_TYPE', 'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME',
-                                       'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+                            ack_key = (
+                                        f'processedFile/{vaccine_type}_Vaccinations_v5_'
+                                        f'{ods_code}_20210730T12000000_response.csv'
+                                    )
+                            headers = Constant.headers
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter='|')
                             csv_writer.writerow(headers)
@@ -1092,8 +1087,10 @@ class TestLambdaHandler(unittest.TestCase):
 
                         # Verify that the acknowledgment file has been created in S3
                         ack_bucket = 'immunisation-batch-internal-dev-batch-data-destination'
-                        ack_key = f'processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}'
-                        '_20210730T12000000_response.csv'
+                        ack_key = (
+                                        f'processedFile/{vaccine_type}_Vaccinations_v5_'
+                                        f'{ods_code}_20210730T12000000_response.csv'
+                                    )
                         ack_file = s3.get_object(Bucket=ack_bucket, Key=ack_key)['Body'].read().decode('utf-8')
                         self.assertIn('fatal-error', ack_file)
                         self.assertIn('Unsupported file type received as an attachment', ack_file)

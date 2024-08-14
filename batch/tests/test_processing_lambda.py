@@ -150,7 +150,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
                                     'LocationConstraint': 'eu-west-2'
                                 })
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_imms_id_missing)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_id_missing)
 
         sqs_client = boto3.client('sqs', region_name='eu-west-2')
         sqs_queue_url = sqs_client.create_queue(QueueName='EMIS_processing_queue')['QueueUrl']
