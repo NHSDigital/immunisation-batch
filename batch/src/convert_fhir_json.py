@@ -1,5 +1,6 @@
-import json
 from datetime import datetime, timezone
+import logging
+logger = logging.getLogger()
 
 
 def convert_to_fhir_json(row, vaccine_type):
@@ -353,8 +354,8 @@ def convert_to_fhir_json(row, vaccine_type):
         fhir_json["protocolApplied"] = [protocol_applied]
         return fhir_json, True
     except KeyError as e:
-        print(f"Missing field in row data: {e}")
+        logger.error(f"Missing field in row data: {e}")
         return None, False
     except ValueError as e:
-        print(f"Value error in row data: {e}")
+        logger.error(f"Value error in row data: {e}")
         return None, False

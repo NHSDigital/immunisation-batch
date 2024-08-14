@@ -3,6 +3,8 @@ import uuid
 
 from models.authentication import AppRestrictedAuth
 from models.env import get_environment
+import logging
+logger = logging.getLogger()
 
 
 class ImmunizationApi:
@@ -17,6 +19,7 @@ class ImmunizationApi:
 
     def _send(self, method, path):
         access_token = self.authenticator.get_access_token()
+        logger.error(f"access_token: {access_token}")
         request_headers = {
             'Authorization': f'Bearer {access_token}',
             'X-Request-ID': str(uuid.uuid4()),
@@ -25,7 +28,9 @@ class ImmunizationApi:
             "Accept": "application/fhir+json",
         }
         response = requests.request(method=method, url=f"{self.base_url}/{path}", headers=request_headers, timeout=5)
+        logger.error(f"response: {response}")
         response_json = response.json()
+        logger.error(f"response_json: {response_json}")
         if "total" in response_json:
             if response_json.get("total") == 1:
                 return response_json, response.status_code

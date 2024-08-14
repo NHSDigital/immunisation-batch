@@ -5,9 +5,12 @@ from io import StringIO, BytesIO
 import os
 from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
+import logging
+from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
 
 s3_client = boto3.client('s3')
 sqs_client = boto3.client('sqs')
+logger = logging.getLogger()
 
 
 def get_environment():
@@ -21,13 +24,29 @@ def get_environment():
         return "internal-dev"  # default to internal-dev for pr and user workspaces
 
 
-def send_to_sqs(queue_url, message_body):
+def send_to_sqs(supplier, message_body):
     """Send a message to the specified SQS queue."""
-    response = sqs_client.send_message(
-        QueueUrl=queue_url,
-        MessageBody=json.dumps(message_body)
-    )
-    return response
+    # Send a message to the supplier queue
+    imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
+    SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
+    if "prod" in imms_env or "production" in imms_env:
+        account_id = os.getenv("PROD_ACCOUNT_ID")
+    else:
+        account_id = os.getenv("LOCAL_ACCOUNT_ID")
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-processing_queue"
+    logger.error(f"Queue_URL: {queue_url}")
+
+    try:
+        sqs_client.send_message(
+            QueueUrl=queue_url,
+            MessageBody=json.dumps(message_body),
+            MessageGroupId="default",
+        )
+        logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
+    except sqs_client.exceptions.QueueDoesNotExist:
+        logger.error(f"queue {queue_url} does not exist")
+        return False
+    return True
 
 
 def fetch_file_from_s3(bucket_name, file_key):
@@ -47,10 +66,10 @@ def write_to_ack_file(ack_bucket_name, ack_filename, data_row):
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
-    print(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
+    logger.error(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
 
 
-def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name):
+def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name):
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter='|')
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
@@ -80,7 +99,7 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                 identifier_system = row.get('UNIQUE_ID_URI')
                 action_flag = row.get('ACTION_FLAG')
                 identifier_value = row.get('UNIQUE_ID')
-                print(f"Successfully converted row to FHIR: {fhir_json}")
+                logger.error(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
                 if action_flag in ("delete", "update"):
                     flag = False
@@ -88,82 +107,65 @@ def process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_
                     if response.get("total") == 1 and status_code == 200:
                         flag = True
                 if flag:
-                    try:
-                        # Prepare the message for SQS
-                        if action_flag == "new":
-                            message_body = {
-                                'fhir_json': fhir_json,
-                                'action_flag': action_flag,
-                            }
-                        if action_flag in ("delete", "update"):
-                            entry = response.get("entry", [])[0]
-                            imms_id = entry["resource"].get("id")
-                            version = entry["resource"].get("meta", {}).get("versionId")
-                            message_body = {
-                                'fhir_json': fhir_json,
-                                'action_flag': action_flag,
-                                'imms_id': imms_id,
-                                "version": version
-                            }
-                        send_to_sqs(sqs_queue_url, message_body)
+                    # Prepare the message for SQS
+                    if action_flag == "new":
+                        message_body = {
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                        }
+                    if action_flag in ("delete", "update"):
+                        entry = response.get("entry", [])[0]
+                        imms_id = entry["resource"].get("id")
+                        version = entry["resource"].get("meta", {}).get("versionId")
+                        message_body = {
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'imms_id': imms_id,
+                            "version": version
+                        }
+                    status = send_to_sqs(supplier, message_body)
+                    if status:
                         data_row = ['TBC', 'ok', 'information', 'informational', 'business',
                                     '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
-                    except Exception as e:
-                        print(f"Error sending to SQS: {e}")
+                    else:
+                        logger.error("Error sending to SQS")
                         data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                                     '20005', 'Error sending to SQS', created_at_formatted, 'TBC', 'DPS', False]
                 else:
-                    print(f"imms_id not found:{response} for: {identifier_system}#{identifier_value} and status_code:{status_code}")
+                    logger.error(f"imms_id not found:{response} for: {identifier_system}#{identifier_value} and status_code:{status_code}")
                     data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                                 '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
             else:
-                print(f"Invalid FHIR conversion for row: {row}")
+                logger.error(f"Invalid FHIR conversion for row: {row}")
                 data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                             '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
         else:
-            print(f"Invalid FHIR conversion for row: {row}")
+            logger.error(f"Invalid FHIR conversion for row: {row}")
             data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                         '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS',False]
 
         # Write the data row to the ack file
         write_to_ack_file(ack_bucket_name, ack_filename, data_row)
 
-    print(f"Total rows processed: {row_count}")  # Print the total number of rows processed
+    logger.error(f"Total rows processed: {row_count}")  # logger.error the total number of rows processed
 
 
 def process_lambda_handler(event, context):
-    # Fetch message from SQS
     imms_env = get_environment()
-    account_id = os.getenv(f"{imms_env.upper()}_ACCOUNT_ID")
-
-    sqs_client = boto3.client('sqs', region_name='eu-west-2')
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/EMIS_metadata_queue"
-    sqs_queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/EMIS_processing_queue"
-    response = sqs_client.receive_message(
-        QueueUrl=queue_url,
-        MaxNumberOfMessages=1
-    )
     bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-source')
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
 
-    for message in response.get('Messages', []):
+    for record in event['Records']:
         try:
-            message_body = json.loads(message['Body'])
+            message_body = json.loads(record['body'])
             vaccine_type = message_body.get('vaccine_type')
             supplier = message_body.get('supplier')
-            timestamp = message_body.get('timestamp')
-            receipt_handle = message['ReceiptHandle']
+            file_key = message_body.get('filename')
+            process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name)
 
-            file_key = f"{vaccine_type}_Vaccinations_v5_{supplier}_{timestamp}.csv"
-            process_csv_to_fhir(bucket_name, file_key, sqs_queue_url, vaccine_type, ack_bucket_name)
-
-            sqs_client.delete_message(
-                QueueUrl=queue_url,
-                ReceiptHandle=receipt_handle
-            )
         except Exception as e:
-            print(f"Error processing message: {e}")
+            logger.error(f"Error processing message: {e}")
 
 
 if __name__ == "__main__":
-    process_lambda_handler({}, {})
+    process_lambda_handler({'Records': []}, {})

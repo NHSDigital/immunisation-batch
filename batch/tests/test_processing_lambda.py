@@ -4,12 +4,9 @@ import boto3
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 import json
-from io import StringIO, BytesIO
 from processing_lambda import (
     process_lambda_handler, fetch_file_from_s3, process_csv_to_fhir, write_to_ack_file, get_environment
 )
-from convert_fhir_json import convert_to_fhir_json
-from get_imms_id import ImmunizationApi
 
 
 class TestProcessLambdaFunction(unittest.TestCase):
@@ -17,16 +14,22 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch('processing_lambda.process_csv_to_fhir')
     @patch('processing_lambda.boto3.client')
     def test_lambda_handler(self, mock_boto_client, mock_process_csv_to_fhir, mock_sqs_client):
-        sqs = boto3.client('sqs', region_name='eu-west-2')
-        queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
+        # Mock SQS client
+        mock_sqs_client_instance = MagicMock()
+        mock_sqs_client.return_value = mock_sqs_client_instance
+
+        # Mock S3 client
+        mock_s3_client_instance = MagicMock()
+        mock_boto_client.return_value = mock_s3_client_instance
+
+        # Set up the queue URL and message body
         message_body = {
             'vaccine_type': 'COVID19',
             'supplier': 'Pfizer',
-            'timestamp': '20210730T12000000'
+            'filename': 'testfile.csv'
         }
-        sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body))
 
-        mock_sqs_client_instance = MagicMock()
+        # Mock SQS receive_message to return a predefined message
         mock_sqs_client_instance.receive_message.return_value = {
             'Messages': [{
                 'MessageId': '1',
@@ -34,19 +37,29 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 'Body': json.dumps(message_body)
             }]
         }
-        mock_boto_client.return_value = mock_sqs_client_instance
 
+        # Patch environment variables
         with patch.dict('os.environ', {
-            'INTERNAL-DEV_ACCOUNT_ID': '123456789012',
+            'PROD_ACCOUNT_ID': '123456789012',
+            'LOCAL_ACCOUNT_ID': 'local-123',
             'ENVIRONMENT': 'internal-dev',
             'ACK_BUCKET_NAME': 'ack-bucket'
         }):
-            process_lambda_handler({}, {})
+            # Invoke the lambda handler
+            event = {
+                'Records': [{
+                    'body': json.dumps(message_body)
+                }]
+            }
+            process_lambda_handler(event, {})
 
-            mock_process_csv_to_fhir.assert_called_once()
-            mock_sqs_client_instance.delete_message(
-                QueueUrl=queue_url,
-                ReceiptHandle='dummy-receipt-handle'
+            # Assert process_csv_to_fhir was called with correct arguments
+            mock_process_csv_to_fhir.assert_called_once_with(
+                'ack-bucket',
+                'testfile.csv',
+                'Pfizer',
+                'COVID19',
+                'ack-bucket'
             )
 
     @mock_s3
