@@ -6,7 +6,7 @@ data "archive_file" "file_transforming_lambda_zip" {
 }
 # IAM Role for Lambda
 resource "aws_iam_role" "processor_lambda_exec_role" {
-  name = "${local.prefix}-processor_lambda-exec-role"
+  name = "${local.prefix}-processor-lambda-exec-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -20,9 +20,9 @@ resource "aws_iam_role" "processor_lambda_exec_role" {
   })
 }
  
-# Policy for Lambda execution role to interact with logs, S3, and KMS
+# Policy for Lambda execution role to interact with logs, S3, and KMS.
 resource "aws_iam_policy" "processor_lambda_exec_policy" {
-  name   = "${local.prefix}-processor_lambda-exec-policy"
+  name   = "${local.prefix}-processor-lambda-exec-policy"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -33,7 +33,7 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
         "logs:PutLogEvents",
         "s3:GetObject",
         "s3:PutObject",
-        "s3:HeadObject",
+        "s3:ListBucket",
         "kms:Decrypt",
       ],
       Resource = "*"
@@ -46,7 +46,7 @@ locals {
 } 
 # Policy for Lambda to interact with existing SQS FIFO Queues
 resource "aws_iam_policy" "processor_lambda_sqs_policy" {
-  name = "${local.prefix}-processor_lambda-sqs-policy"
+  name = "${local.prefix}-processor-lambda-sqs-policy"
  
   policy = jsonencode({
     Version = "2012-10-17",
@@ -55,11 +55,14 @@ resource "aws_iam_policy" "processor_lambda_sqs_policy" {
       Action = [
         "sqs:ReceiveMessage",
         "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
+        "sqs:GetQueueAttributes",
+        "sqs:SendMessage",
+        "kms: Decrypt"
       ],
-      Resource = [
-        for queue in local.existing_sqs_arns_map : queue
-      ]
+      Resource = concat(
+        [for queue in local.existing_sqs_arns_map : queue],
+        [for queue in local.new_sqs_arns : queue]
+      )
     }]
   })
 }
@@ -98,10 +101,11 @@ resource "aws_lambda_function" "file_transforming_lambda" {
  
   environment {
     variables = {
+      SOURCE_BUCKET_NAME = "${local.prefix}-batch-data-source"
       ACK_BUCKET_NAME    = "${local.prefix}-batch-data-destination"
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
-      #SHORT_QUEUE_PREFIX = local.short_queue_prefix
+      SHORT_QUEUE_PREFIX = local.short_queue_prefix
       PROD_ACCOUNT_ID    = local.account_id
     }
     
