@@ -33,7 +33,7 @@ def send_to_sqs(supplier, message_body):
         account_id = os.getenv("PROD_ACCOUNT_ID")
     else:
         account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-processing_queue"
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-processingdata-queue.fifo"
     logger.error(f"Queue_URL: {queue_url}")
 
     try:
