@@ -358,7 +358,7 @@ class TestLambdaHandler(unittest.TestCase):
             Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
         )
 
-        # Prepare the event
+        # Prepare the event.
         event = {
             "Records": [
                 {
