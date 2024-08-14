@@ -1,10 +1,10 @@
 # Archive the Lambda function code
 data "archive_file" "file_transforming_lambda_zip" {  
   type        = "zip"  
-  source_dir  = "${path.module}/../batch/src" 
+  source_dir  = "${path.module}/../batch/src"
   output_path = "${path.module}/processing_lambda.zip"
 }
-
+ 
 # IAM Role for Lambda
 resource "aws_iam_role" "processor_lambda_exec_role" {
   name = "${local.prefix}-lambda-exec-role"
@@ -20,7 +20,7 @@ resource "aws_iam_role" "processor_lambda_exec_role" {
     }]
   })
 }
-
+ 
 # Policy for Lambda execution role to interact with logs, S3, and KMS
 resource "aws_iam_policy" "processor_lambda_exec_policy" {
   name   = "${local.prefix}-lambda-exec-policy"
@@ -41,11 +41,11 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
     }]
   })
 }
-
+ 
 # Policy for Lambda to interact with existing SQS FIFO Queues
 resource "aws_iam_policy" "processor_lambda_sqs_policy" {
   name = "${local.prefix}-lambda-sqs-policy"
-
+ 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -56,61 +56,61 @@ resource "aws_iam_policy" "processor_lambda_sqs_policy" {
         "sqs:GetQueueAttributes"
       ],
       Resource = [
-        for queue in var.existing_sqs_arns : queue
+        for queue in local.existing_sqs_arns : queue
       ]
     }]
   })
 }
-
+ 
 # Attach the execution policy to the Lambda role
 resource "aws_iam_role_policy_attachment" "processor_lambda_exec_policy_attachment" {
-  role       = aws_iam_role.lambda_exec_role.name
-  policy_arn = aws_iam_policy.lambda_exec_policy.arn
+  role       = aws_iam_role.processor_lambda_exec_role.name
+  policy_arn = aws_iam_policy.processor_lambda_exec_policy.arn
 }
-
+ 
 # Attach the SQS policy to the Lambda role
 resource "aws_iam_role_policy_attachment" "processor_lambda_sqs_policy_attachment" {
-  role       = aws_iam_role.lambda_exec_role.name
-  policy_arn = aws_iam_policy.lambda_sqs_policy.arn
+  role       = aws_iam_role.processor_lambda_exec_role.name
+  policy_arn = aws_iam_policy.processor_lambda_sqs_policy.arn
 }
-
+ 
 # Permission for SQS to invoke Lambda function
 resource "aws_lambda_permission" "allow_sqs_invoke" {
-  for_each       = var.existing_sqs_arns
+  for_each       = local.existing_sqs_arns
   statement_id   = "AllowSQSInvoke${each.key}"
   action         = "lambda:InvokeFunction"
   function_name  = aws_lambda_function.file_transforming_lambda.arn
   principal      = "sqs.amazonaws.com"
   source_arn     = each.value
 }
-
+ 
 # Lambda Function
 resource "aws_lambda_function" "file_transforming_lambda" {
   function_name    = "${local.prefix}-file_transforming_lambda"
   filename         = data.archive_file.file_transforming_lambda_zip.output_path
   source_code_hash = data.archive_file.file_transforming_lambda_zip.output_base64sha256
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = aws_iam_role.processor_lambda_exec_role.arn
   handler          = "processing_lambda.process_lambda_handler"
   runtime          = "python3.8"
   timeout          = 60
-
+ 
   environment {
     variables = {
       ACK_BUCKET_NAME    = "${local.prefix}-batch-data-destination"
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
-      SHORT_QUEUE_PREFIX = local.short_queue_prefix
+      #SHORT_QUEUE_PREFIX = local.short_queue_prefix
       PROD_ACCOUNT_ID    = local.account_id
     }
   }
-
-  # Adding SQS trigger for each existing queue
-  dynamic "event_source_mapping" {
-    for_each = var.existing_sqs_arns
-    content {
-      event_source_arn = event_source_mapping.value
-      batch_size       = 1
-      enabled          = true
-    }
-  }
+ 
+  # # Adding SQS trigger for each existing queue
+  # dynamic "event_source_mapping" {
+  #   for_each = local.existing_sqs_arns
+  #   content {
+  #     event_source_arn = event_source_mapping.value
+  #     batch_size       = 1
+  #     enabled          = true
+  #   }
+  # }
 }
