@@ -374,7 +374,7 @@ class TestLambdaHandler(unittest.TestCase):
         lambda_handler(event, None)
         # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
-        # Check if the acknowledgment file is created in the S3 bucket
+        # Check if the acknowledgment file is created in the S3 bucket.
         ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
