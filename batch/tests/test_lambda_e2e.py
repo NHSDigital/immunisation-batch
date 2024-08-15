@@ -757,7 +757,7 @@ class TestLambdaHandler(unittest.TestCase):
                 for ods_code in ods_codes:
                     with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_return), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
+                         patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
@@ -866,7 +866,7 @@ class TestLambdaHandler(unittest.TestCase):
                     # Mock the fetch_file_from_s3 function
                     with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_return), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
+                         patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj), \
                          patch('processing_lambda.send_to_sqs', return_value=False):
                         # Mock SQS and send a test message
@@ -979,7 +979,7 @@ class TestLambdaHandler(unittest.TestCase):
                     with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.invalid_file_content), \
                          patch('processing_lambda.convert_to_fhir_json', return_value={False, None}), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
+                         patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
@@ -1060,7 +1060,7 @@ class TestLambdaHandler(unittest.TestCase):
                     #   Mock the fetch_file_from_s3 function
                     with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_update_return), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
+                         patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()

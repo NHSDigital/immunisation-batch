@@ -126,7 +126,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "total": 1
         }, 200
         with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-             patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+             patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
@@ -159,7 +159,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_id_missing)
         results = {"total": 0}, 404
         with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-             patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+             patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
@@ -221,7 +221,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+            with patch('processing_lambda.ImmunizationApi.fetch_imms_id', return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)

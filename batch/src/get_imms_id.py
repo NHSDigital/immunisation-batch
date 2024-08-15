@@ -17,7 +17,7 @@ class ImmunizationApi:
             else "https://api.service.nhs.uk/immunisation-fhir-api"
         )
 
-    def get_imms_id(self, identifier_system: str, identifier_value: str):
+    def fetch_imms_id(self, identifier_system: str, identifier_value: str):
         return self._send(
             "GET",
             f"/Immunization?immunization.identifier="

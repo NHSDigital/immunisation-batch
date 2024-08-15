@@ -100,7 +100,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
                 if action_flag in ("delete", "update"):
                     flag = False
-                    response, status_code = ImmunizationApi.get_imms_id(identifier_system, identifier_value)
+                    response, status_code = ImmunizationApi.fetch_imms_id(identifier_system, identifier_value)
                     if response.get("total") == 1 and status_code == 200:
                         flag = True
 
