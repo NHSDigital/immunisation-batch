@@ -40,7 +40,7 @@ class ImmunizationApi:
             url=f"{self.base_url}/{path}",
             headers=request_headers,
             timeout=5
-        )
+         )
 
         logger.debug(f"Response received: {response}")
         response_json = response.json()
