@@ -701,7 +701,8 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch('processing_lambda.sqs_client')
     @patch('processing_lambda.send_to_sqs')
-    def test_e2e_successful_conversion(self, mock_send_to_sqs, mock_sqs_client):
+    @patch('csv.DictReader')
+    def test_e2e_successful_conversion(self, mock_csv_dict_reader, mock_send_to_sqs, mock_sqs_client):
         # Mock S3 and SQS setup
         s3 = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
@@ -749,15 +750,19 @@ class TestLambdaHandler(unittest.TestCase):
 
         vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
         suppilers = Constant.valid_supplier
-        ods_codes = Constant.valid_ods_codes
+        ods_codes = Constant.valid_ods_codes  # Example valid ODS codes
+
         for vaccine_type in vaccine_types:
             for supplier in suppilers:
                 for ods_code in ods_codes:
-                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content), \
+                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_return), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
                          patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
-
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+                        mock_csv_dict_reader.return_value = mock_csv_reader_instance
                         # Mock SQS and send a test message
                         sqs = boto3.client('sqs', region_name='eu-west-2')
                         queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
@@ -784,7 +789,6 @@ class TestLambdaHandler(unittest.TestCase):
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter='|')
                             csv_writer.writerow(headers)
-                            csv_buffer.seek(0)
                             csv_bytes = BytesIO(csv_buffer.getvalue().encode('utf-8'))
 
                             s3.upload_fileobj(csv_bytes, ack_bucket_name, ack_key)
@@ -807,7 +811,8 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch('processing_lambda.sqs_client')
     @patch('processing_lambda.send_to_sqs')
-    def test_e2e_successful_conversion_sqs_failed(self, mock_send_to_sqs, mock_sqs_client):
+    @patch('csv.DictReader')
+    def test_e2e_successful_conversion_sqs_failed(self, mock_csv_dict_reader, mock_send_to_sqs, mock_sqs_client):
         # Mock S3 and SQS setup
         s3 = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
@@ -859,12 +864,16 @@ class TestLambdaHandler(unittest.TestCase):
             for supplier in suppilers:
                 for ods_code in ods_codes:
                     # Mock the fetch_file_from_s3 function
-                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content), \
+                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_return), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
                          patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj), \
                          patch('processing_lambda.send_to_sqs', return_value=False):
                         # Mock SQS and send a test message
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+                        mock_csv_dict_reader.return_value = mock_csv_reader_instance
                         sqs = boto3.client('sqs', region_name='eu-west-2')
                         queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
                         message_body = {
@@ -914,7 +923,8 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch('processing_lambda.sqs_client')
     @patch('processing_lambda.send_to_sqs')
-    def test_e2e_processing_invalid_data(self, mock_send_to_sqs, mock_sqs_client):
+    @patch('csv.DictReader')
+    def test_e2e_processing_invalid_data(self, mock_csv_dict_reader, mock_send_to_sqs, mock_sqs_client):
         # Mock S3 and SQS setup
         s3 = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
@@ -971,7 +981,10 @@ class TestLambdaHandler(unittest.TestCase):
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
                          patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
-
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+                        mock_csv_dict_reader.return_value = mock_csv_reader_instance
                         # Mock SQS and send a test message
                         sqs = boto3.client('sqs', region_name='eu-west-2')
                         queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']
@@ -1020,7 +1033,8 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_sqs
     @patch('processing_lambda.sqs_client')
     @patch('processing_lambda.send_to_sqs')
-    def test_e2e_processing_imms_id_missing(self, mock_send_to_sqs_message, mock_delete_message):
+    @patch('csv.DictReader')
+    def test_e2e_processing_imms_id_missing(self, mock_csv_dict_reader, mock_send_to_sqs_message, mock_delete_message):
         # Set up the S3 environment
         s3 = boto3.client('s3', region_name='eu-west-2')
         bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
@@ -1044,10 +1058,14 @@ class TestLambdaHandler(unittest.TestCase):
             for supplier in suppilers:
                 for ods_code in ods_codes:
                     #   Mock the fetch_file_from_s3 function
-                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.file_content_id_missing), \
+                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_update_return), \
                          patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
                          patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
                          patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance = MagicMock()
+                        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+                        mock_csv_dict_reader.return_value = mock_csv_reader_instance
                         # Mock SQS and send a test message
                         sqs = boto3.client('sqs', region_name='eu-west-2')
                         queue_url = sqs.create_queue(QueueName='EMIS_metadata_queue')['QueueUrl']

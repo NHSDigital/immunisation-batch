@@ -1,4 +1,6 @@
 class Constant:
+    """A class to hold various constants used in the application."""
+
     valid_vaccine_type = ["flu", "covid19", "mmr"]
     valid_versions = ["v5"]
     valid_ods_codes = [
@@ -10,11 +12,16 @@ class Constant:
         "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA", "SCOTLAND_DA",
         "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "EMIS"
     ]
-    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
-               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+    headers = [
+        'MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE',
+        'RESPONSE_TYPE', 'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME',
+        'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY'
+    ]
 
-    mock_download_fileobj = """MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|
-        RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"""
+    mock_download_fileobj = (
+        "MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|"
+        "RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"
+    )
 
     expected_csv_content = [
         'NHS_NUMBER', 'PERSON_FORENAME', 'PERSON_SURNAME', 'PERSON_DOB', 'PERSON_GENDER_CODE',
@@ -158,3 +165,66 @@ class Constant:
         'REDUCE_VALIDATION_CODE': 'dummy',
         'REDUCE_VALIDATION_REASON': 'dummy'
     }
+
+    string_return = (
+        'NHS_NUMBER|1234567890|John|Doe|2000-01-01|M|SW1A 1AA|2022-01-01T10:00:00|123456|'
+        'https://nhs.uk|ABC123|https://supplierABC|new|Dr|Smith|2022-01-01|true|procedureCode|'
+        'procedureTerm|1|productCode|productTerm|manufacturer|batchNumber|2023-01-01|siteCode|'
+        'siteTerm|routeCode|routeTerm|0.5|ml|code|location|https://locationUri'
+    )
+    string_update_return = (
+        'NHS_NUMBER|1234567890|John|Doe|2000-01-01|M|SW1A 1AA|2022-01-01T10:00:00|123456|'
+        'https://nhs.uk|ABC123|https://supplierABC|new|Dr|Smith|2022-01-01|true|procedureCode|'
+        'procedureTerm|1|productCode|productTerm|manufacturer|batchNumber|2023-01-01|siteCode|'
+        'siteTerm|routeCode|routeTerm|0.5|ml|code|location|https://locationUri'
+    )
+    mock_request = [
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"|dummy|dummy'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }
+    ]
+    mock_update_request = [
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"update"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|'
+                '"Intramuscular route (qualifier value)"|"0.5"|"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"|dummy|dummy'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }
+    ]

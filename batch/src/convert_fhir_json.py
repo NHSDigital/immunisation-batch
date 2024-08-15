@@ -336,22 +336,31 @@ def convert_to_fhir_json(row, vaccine_type):
 
         # Reason Code
         reason_code = {
-            "coding": [
-                {
-                    "code": row.get('INDICATION_CODE', ''),
-                    "system": "http://snomed.info/sct"
-                }
-            ]
+            "coding": []
         }
-        if reason_code["coding"][0]["code"] or reason_code["coding"][0]["system"]:
-            fhir_json["reasonCode"] = [reason_code]
+        coding = {
+            "system": "http://snomed.info/sct",
+        }
+        add_if_not_empty(coding, "code", row.get('INDICATION_CODE', ''))
+        if coding.get("code") or coding.get("system"):
+            reason_code["coding"].append(coding)
+
+        if reason_code["coding"]:
+            fhir_json["reason_code"] = reason_code
 
         # Protocol Applied
         protocol_applied = {
-            "targetDisease": map_target_disease(vaccine_type),
-            "doseNumberPositiveInt": int(row.get('DOSE_SEQUENCE', 0))
+            "targetDisease": map_target_disease(vaccine_type)
         }
+
+        # Add 'doseNumberPositiveInt' if 'DOSE_SEQUENCE' is not empty
+        dose_sequence = row.get('DOSE_SEQUENCE', '').strip()
+        if dose_sequence:
+            protocol_applied["doseNumberPositiveInt"] = int(dose_sequence)
+
+        # Add the protocolApplied to the fhir_json
         fhir_json["protocolApplied"] = [protocol_applied]
+
         return fhir_json, True
     except KeyError as e:
         logger.error(f"Missing field in row data: {e}")
