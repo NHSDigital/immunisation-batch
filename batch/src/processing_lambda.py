@@ -4,11 +4,12 @@ import json
 from io import StringIO
 import io
 import os
-from convert_fhir_json import convert_to_fhir_json
+from convert_fhir_json import convert_to_fhir_json, dict_formation
 from get_imms_id import ImmunizationApi
 import logging
 from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
 from botocore.exceptions import ClientError
+from constants import Constant
 
 s3_client = boto3.client('s3')
 sqs_client = boto3.client('sqs')
@@ -41,7 +42,7 @@ def send_to_sqs(supplier, message_body):
     try:
         sqs_client.send_message(
             QueueUrl=queue_url,
-            MessageBody=json.dumps(message_body),
+            MessageBody=json.dumps(message_body, ensure_ascii=False),
             MessageGroupId="default",
         )
         logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
@@ -69,8 +70,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
     created_at = response['LastModified']
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
 
-    headers = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
-               'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+    headers = Constant.header
     parts = file_key.split('.')
     ack_filename = f"processedFile/{parts[0]}_response.csv"
 
@@ -87,42 +87,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         # Strip quotes and handle missing values
         row_values = [value.strip('"') if value else '' for value in row_values]
         print(f"row_values:{row_values}")
-        val = {
-                'NHS_NUMBER': row_values[0],
-                'PERSON_FORENAME': row_values[1],
-                'PERSON_SURNAME': row_values[2],
-                'PERSON_DOB': row_values[3],
-                'PERSON_GENDER_CODE': row_values[4],
-                'PERSON_POSTCODE': row_values[5],
-                'DATE_AND_TIME': row_values[6],
-                'SITE_CODE': row_values[7],
-                'SITE_CODE_TYPE_URI': row_values[8],
-                'UNIQUE_ID': row_values[9],
-                'UNIQUE_ID_URI': row_values[10],
-                'ACTION_FLAG': row_values[11],
-                'PERFORMING_PROFESSIONAL_FORENAME': row_values[12],
-                'PERFORMING_PROFESSIONAL_SURNAME': row_values[13],
-                'RECORDED_DATE': row_values[14],
-                'PRIMARY_SOURCE': row_values[15],
-                'VACCINATION_PROCEDURE_CODE': row_values[16],
-                'VACCINATION_PROCEDURE_TERM': row_values[17],
-                'DOSE_SEQUENCE': row_values[18],
-                'VACCINE_PRODUCT_CODE': row_values[19],
-                'VACCINE_PRODUCT_TERM': row_values[20],
-                'VACCINE_MANUFACTURER': row_values[21],
-                'BATCH_NUMBER': row_values[22],
-                'EXPIRY_DATE': row_values[23],
-                'SITE_OF_VACCINATION_CODE': row_values[24],
-                'SITE_OF_VACCINATION_TERM': row_values[25],
-                'ROUTE_OF_VACCINATION_CODE': row_values[26],
-                'ROUTE_OF_VACCINATION_TERM': row_values[27],
-                'DOSE_AMOUNT': row_values[28],
-                'DOSE_UNIT_CODE': row_values[29],
-                'DOSE_UNIT_TERM': row_values[30],
-                'INDICATION_CODE': row_values[31],
-                'LOCATION_CODE': row_values[32],
-                'LOCATION_CODE_TYPE_URI': row_values[33] if len(row_values) > 33 else ''
-            }
+        val = dict_formation(row_values)
         print(f"parsed_row:{val}")
         if val.get('ACTION_FLAG') in {"new", "update", "delete"} and val.get('UNIQUE_ID_URI') and val.get('UNIQUE_ID'):
             fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
@@ -160,29 +125,22 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     status = send_to_sqs(supplier, message_body)
                     if status:
                         logger.info("message sent successfully to SQS")
-                        data_row = ['TBC', 'ok', 'information', 'informational', 'business',
-                                    '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
+                        data_row = Constant.data_rows(True, created_at_formatted)
                     else:
                         logger.error("Error sending to SQS")
-                        data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                                    '20005', 'Error sending to SQS', created_at_formatted, 'TBC', 'DPS', False]
+                        data_row = Constant.data_rows(False, created_at_formatted)
 
                 else:
                     print(f"imms_id not found:{response} for:{identifier_system}#{identifier_value},code:{status_code}")
-                    data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                                '20005', 'Unsupported file type received as an attachment',
-                                created_at_formatted, 'TBC', 'DPS', False]
+                    data_row = Constant.data_rows(False, created_at_formatted)
 
             else:
                 print(f"Invalid FHIR conversion for row: {row}")
-                data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                            '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC',
-                            'DPS', False]
+                data_row = Constant.data_rows(False, created_at_formatted)
 
         else:
             print(f"Invalid row format: {row}")
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                        '20005', 'Invalid row format', created_at_formatted, 'TBC', 'DPS', False]
+            data_row = Constant.data_rows(False, created_at_formatted)
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]

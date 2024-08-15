@@ -18,6 +18,9 @@ class Constant:
         'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY'
     ]
 
+    header = ['MESSAGE_HEADER_ID', 'HEADER_RESPONSE_CODE', 'ISSUE_SEVERITY', 'ISSUE_CODE', 'RESPONSE_TYPE',
+              'RESPONSE_CODE', 'RESPONSE_DISPLAY', 'RECEIVED_TIME', 'MAILBOX_FROM', 'LOCAL_ID', 'MESSAGE_DELIVERY']
+
     mock_download_fileobj = (
         "MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|"
         "RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"
@@ -161,9 +164,7 @@ class Constant:
         'INDICATION_CODE': 'None',
         'INDICATION_TERM': 'none',  # Not provided
         'LOCATION_CODE': 'J82067',
-        'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-        'REDUCE_VALIDATION_CODE': 'dummy',
-        'REDUCE_VALIDATION_REASON': 'dummy'
+        'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
     }
 
     string_return = (
@@ -189,7 +190,7 @@ class Constant:
                 '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
                 'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
                 '"258773002|"Milliliter (qualifier '
-                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"|dummy|dummy'
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
             ),
             'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
             'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
@@ -214,7 +215,7 @@ class Constant:
                 '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
                 'structure)"|"78421000"|'
                 '"Intramuscular route (qualifier value)"|"0.5"|"258773002|"Milliliter (qualifier '
-                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"|dummy|dummy'
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
             ),
             'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
             'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
@@ -228,3 +229,15 @@ class Constant:
             'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
         }
     ]
+
+    def data_rows(status, created_at_formatted):
+
+        if status:
+            data_row = ['TBC', 'ok', 'information', 'informational', 'business',
+                        '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
+            return data_row
+        else:
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
+                        '20005', 'Unsupported file type received as an attachment', created_at_formatted,
+                        'TBC', 'DPS', False]
+            return data_row

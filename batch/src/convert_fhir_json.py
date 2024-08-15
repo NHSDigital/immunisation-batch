@@ -368,3 +368,45 @@ def convert_to_fhir_json(row, vaccine_type):
     except ValueError as e:
         logger.error(f"Value error in row data: {e}")
         return None, False
+
+
+def dict_formation(row_values):
+
+    val = {
+                'NHS_NUMBER': row_values[0],
+                'PERSON_FORENAME': row_values[1],
+                'PERSON_SURNAME': row_values[2],
+                'PERSON_DOB': row_values[3],
+                'PERSON_GENDER_CODE': row_values[4],
+                'PERSON_POSTCODE': row_values[5],
+                'DATE_AND_TIME': row_values[6],
+                'SITE_CODE': row_values[7],
+                'SITE_CODE_TYPE_URI': row_values[8],
+                'UNIQUE_ID': row_values[9],
+                'UNIQUE_ID_URI': row_values[10],
+                'ACTION_FLAG': row_values[11],
+                'PERFORMING_PROFESSIONAL_FORENAME': row_values[12],
+                'PERFORMING_PROFESSIONAL_SURNAME': row_values[13],
+                'RECORDED_DATE': row_values[14],
+                'PRIMARY_SOURCE': row_values[15],
+                'VACCINATION_PROCEDURE_CODE': row_values[16],
+                'VACCINATION_PROCEDURE_TERM': row_values[17],
+                'DOSE_SEQUENCE': row_values[18],
+                'VACCINE_PRODUCT_CODE': row_values[19],
+                'VACCINE_PRODUCT_TERM': row_values[20],
+                'VACCINE_MANUFACTURER': row_values[21],
+                'BATCH_NUMBER': row_values[22],
+                'EXPIRY_DATE': row_values[23],
+                'SITE_OF_VACCINATION_CODE': row_values[24],
+                'SITE_OF_VACCINATION_TERM': row_values[25],
+                'ROUTE_OF_VACCINATION_CODE': row_values[26],
+                'ROUTE_OF_VACCINATION_TERM': row_values[27],
+                'DOSE_AMOUNT': row_values[28],
+                'DOSE_UNIT_CODE': row_values[29],
+                'DOSE_UNIT_TERM': row_values[30],
+                'INDICATION_CODE': row_values[31],
+                'LOCATION_CODE': row_values[32],
+                'LOCATION_CODE_TYPE_URI': row_values[33] if len(row_values) > 33 else ''
+            }
+
+    return val
