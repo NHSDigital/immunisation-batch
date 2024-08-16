@@ -65,6 +65,7 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
         "s3:PutObject",
         "s3:ListBucket",
         "kms:Decrypt",
+        "secretsmanager:GetSecretValue"
       ],
       Resource = "*"
     }]
