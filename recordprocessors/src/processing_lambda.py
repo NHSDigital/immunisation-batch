@@ -9,10 +9,11 @@ from get_imms_id import ImmunizationApi
 import logging
 from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
 from botocore.exceptions import ClientError
+from botocore.config import Config
 from constants import Constant
 
-s3_client = boto3.client('s3')
-sqs_client = boto3.client('sqs')
+s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
+sqs_client = boto3.client("sqs", config=Config(region_name="eu-west-2"))
 logger = logging.getLogger()
 
 

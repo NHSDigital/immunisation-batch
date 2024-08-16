@@ -1,5 +1,5 @@
 locals {
-  processing_lambda_dir = abspath("${path.module}/../recordprocessors/src")
+  processing_lambda_dir = abspath("${path.root}/../recordprocessors")
   lambda_files          = fileset(local.processing_lambda_dir, "**")
   lambda_dir_sha        = sha1(join("", [for f in local.lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
 }
