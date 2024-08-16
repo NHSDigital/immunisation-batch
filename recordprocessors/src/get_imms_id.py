@@ -17,14 +17,14 @@ class ImmunizationApi:
             else "https://api.service.nhs.uk/immunisation-fhir-api"
         )
 
-    def fetch_imms_id(self, identifier_system: str, identifier_value: str):
+    def create_imms(self, imms):
         return self._send(
-            "GET",
-            f"/Immunization?immunization.identifier="
-            f"{identifier_system}|{identifier_value}&_element=id,meta"
+            "POST",
+            "/Immunization",
+            imms
         )
 
-    def _send(self, method: str, path: str):
+    def _send(self, method: str, path: str, imms):
         access_token = self.authenticator.get_access_token()
         logger.debug(f"Access token obtained: {access_token}")
 
@@ -38,15 +38,14 @@ class ImmunizationApi:
         response = requests.request(
             method=method,
             url=f"{self.base_url}/{path}",
+            json=imms,
             headers=request_headers,
             timeout=5
         )
 
         logger.debug(f"Response received: {response}")
-        response_json = response.json()
-        logger.debug(f"Response JSON: {response_json}")
 
-        if response_json.get("total", 0) == 1:
-            return response_json, response.status_code
+        if response.status_code == 201:
+            return response, response.status_code
         else:
-            return {"total": 0}, response.status_code
+            response, response.status_code
