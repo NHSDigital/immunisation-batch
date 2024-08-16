@@ -11,10 +11,15 @@ from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
 from botocore.exceptions import ClientError
 from botocore.config import Config
 from constants import Constant
+from models.authentication import AppRestrictedAuth, Service
+from models.cache import Cache
 
 s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
 sqs_client = boto3.client("sqs", config=Config(region_name="eu-west-2"))
 logger = logging.getLogger()
+cache = Cache("/tmp")
+authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
+immunization_api_instance = ImmunizationApi(authenticator)
 
 
 def get_environment():
@@ -101,7 +106,8 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
                 if action_flag in ("delete", "update"):
                     flag = False
-                    response, status_code = ImmunizationApi.fetch_imms_id(identifier_system, identifier_value)
+                    # Now, call the fetch_imms_id method
+                    response, status_code = immunization_api_instance.fetch_imms_id(identifier_system, identifier_value)
                     if response.get("total") == 1 and status_code == 200:
                         flag = True
 
