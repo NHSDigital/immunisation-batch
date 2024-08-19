@@ -80,5 +80,4 @@ class AppRestrictedAuth:
         token = token_response.json().get('access_token')
 
         self.cache.put(self.cache_key, {"token": token, "expires_at": now + self.expiry})
-
         return token

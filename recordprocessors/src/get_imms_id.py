@@ -18,6 +18,8 @@ class ImmunizationApi:
         )
 
     def create_imms(self, imms):
+        print("started")
+        print(f"imms:{imms}")
         return self._send(
             "POST",
             "/Immunization",
@@ -25,9 +27,10 @@ class ImmunizationApi:
         )
 
     def _send(self, method: str, path: str, imms):
+        print("send_started")
         access_token = self.authenticator.get_access_token()
         logger.debug(f"Access token obtained: {access_token}")
-
+        print(f"access_token:{access_token}")
         request_headers = {
             'Authorization': f'Bearer {access_token}',
             'X-Request-ID': str(uuid.uuid4()),
@@ -35,6 +38,7 @@ class ImmunizationApi:
             "Content-Type": "application/fhir+json",
             "Accept": "application/fhir+json",
         }
+        print(f"request_headers:{request_headers}")
         response = requests.request(
             method=method,
             url=f"{self.base_url}/{path}",
@@ -42,10 +46,10 @@ class ImmunizationApi:
             headers=request_headers,
             timeout=5
         )
-
+        print(f"response:{response}")
         logger.debug(f"Response received: {response}")
 
         if response.status_code == 201:
             return response, response.status_code
         else:
-            response, response.status_code
+            return response, response.status_code
