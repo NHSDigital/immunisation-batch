@@ -38,6 +38,7 @@ class AppRestrictedAuth:
         secret_object = json.loads(response['SecretString'])
         decoded_key = base64.b64decode(secret_object['private_key_b64']).decode('utf-8')
         secret_object['private_key'] = decoded_key
+        print(f"secret_object:{secret_object}")
         return secret_object
 
     def create_jwt(self, now: int):
@@ -50,11 +51,13 @@ class AppRestrictedAuth:
             "exp": now + self.expiry,
             "jti": str(uuid.uuid4())
         }
+        print(f"claims:{claims}")
         return jwt.encode(claims, secret_object['private_key'], algorithm='RS512',
                           headers={"kid": secret_object['kid']})
 
     def get_access_token(self):
         now = int(time.time())
+        print(f"now:{now}")
         cached = self.cache.get(self.cache_key)
         if cached and cached["expires_at"] > now:
             return cached["token"]
