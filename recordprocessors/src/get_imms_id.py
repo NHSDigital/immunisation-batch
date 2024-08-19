@@ -50,6 +50,6 @@ class ImmunizationApi:
         logger.debug(f"Response received: {response}")
 
         if response.status_code == 201:
-            return response, response.status_code
+            return response.text, response.status_code
         else:
-            return response, response.status_code
+            return response.text, response.status_code
