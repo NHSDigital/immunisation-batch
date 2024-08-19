@@ -12,9 +12,10 @@ from botocore.exceptions import ClientError
 from constants import Constant
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
+from botocore.config import Config
 
-s3_client = boto3.client('s3')
-sqs_client = boto3.client('sqs')
+s3_client = boto3.client('s3', config=Config(region_name="eu-west-2"))
+sqs_client = boto3.client('sqs', config=Config(region_name="eu-west-2"))
 logger = logging.getLogger()
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
