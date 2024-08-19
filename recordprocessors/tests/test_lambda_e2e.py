@@ -351,7 +351,8 @@ class TestLambdaHandler(unittest.TestCase):
     # @patch('processing_lambda.sqs_client')
     # @patch('processing_lambda.send_to_sqs')
     # @patch('csv.DictReader')
-    # def test_e2e_processing_imms_id_missing(self, mock_csv_dict_reader, mock_send_to_sqs_message, mock_delete_message):
+    # def test_e2e_processing_imms_id_missing(self, mock_csv_dict_reader, mock_send_to_sqs_message,
+    # mock_delete_message):
     #     # Set up the S3 environment
     #     s3 = boto3.client('s3', region_name='eu-west-2')
     #     bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
