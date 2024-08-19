@@ -29,8 +29,8 @@ class AppRestrictedAuth:
         self.secret_name = f"imms/pds/{environment}/jwt-secrets" if service == Service.PDS else \
             f"imms/immunization/{environment}/jwt-secrets"
 
-        self.token_url = f"https://{environment}.api.service.nhs.uk/oauth2/token" \
-            if environment != "prod" else "https://api.service.nhs.uk/oauth2/token"
+        self.token_url = f"https://{environment}.api.service.nhs.uk/oauth2-mock/token" \
+            if environment != "prod" else "https://api.service.nhs.uk/oauth2-mock/token"
 
     def get_service_secrets(self):
         kwargs = {"SecretId": self.secret_name}
@@ -73,6 +73,7 @@ class AppRestrictedAuth:
             'client_assertion': _jwt
         }
         token_response = requests.post(self.token_url, data=data, headers=headers)
+        print(f"token_response:{token_response}")
         if token_response.status_code != 200:
             raise UnhandledResponseError(response=token_response.text, message="Failed to get access token")
 
