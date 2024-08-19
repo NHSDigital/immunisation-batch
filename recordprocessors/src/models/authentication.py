@@ -36,7 +36,7 @@ class AppRestrictedAuth:
         kwargs = {"SecretId": self.secret_name}
         response = self.secret_manager_client.get_secret_value(**kwargs)
         secret_object = json.loads(response['SecretString'])
-        decoded_key = base64.b64decode(secret_object['private_key_b64'])
+        decoded_key = base64.b64decode(secret_object['private_key_b64']).decode('utf-8')
         secret_object['private_key'] = decoded_key
         return secret_object
 
