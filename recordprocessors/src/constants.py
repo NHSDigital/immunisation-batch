@@ -283,7 +283,5 @@ class Constant:
                         '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
             return data_row
         else:
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                        '20005', 'Unsupported file type received as an attachment', created_at_formatted,
-                        'TBC', 'DPS', False]
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
             return data_row

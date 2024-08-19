@@ -127,7 +127,12 @@ def convert_to_fhir_json(row, vaccine_type):
         if name:
             patient["name"] = [name]
         add_if_not_empty(patient, "gender", map_gender(row.get('PERSON_GENDER_CODE', '0')))
-        add_if_not_empty(patient, "birthDate", row.get('PERSON_DOB', ''))
+        birthdate_str = row.get('PERSON_DOB', '')
+        if birthdate_str:
+            birthdate_obj = datetime.strptime(birthdate_str, '%Y%m%d').date()
+
+            # Add the date to the fhir_json if it's not empty
+            add_if_not_empty(patient, "birthDate", birthdate_obj.isoformat())
         address = {}
         add_if_not_empty(address, "postalCode", row.get('PERSON_POSTCODE', ''))
         if address:
@@ -168,6 +173,9 @@ def convert_to_fhir_json(row, vaccine_type):
         # Only add the identifier to fhir_json if at least one field is present
         if identifier:
             fhir_json["identifier"] = [identifier]
+
+        # status
+        fhir_json["status"] = "completed"
 
         # Vaccine Code
         vaccine_code = {
@@ -291,7 +299,7 @@ def convert_to_fhir_json(row, vaccine_type):
 
         # Dose Quantity
         dose_quantity = {
-            "system": "http://unitsofmeasure.org"
+            "system": "http://snomed.info/sct"
         }
 
         # Use add_if_not_empty to conditionally add 'value', 'unit', and 'code'
@@ -305,7 +313,7 @@ def convert_to_fhir_json(row, vaccine_type):
             else:
                 dose_quantity["value"] = int(value_str)
         # Only add doseQuantity to fhir_json if it has any relevant fields
-        if "value" in dose_quantity or "unit" in dose_quantity or "code" in dose_quantity or "system" in dose_quantity:
+        if "value" in dose_quantity or "unit" in dose_quantity or "code" in dose_quantity:
             fhir_json["doseQuantity"] = dose_quantity
 
         # Performer
@@ -335,18 +343,24 @@ def convert_to_fhir_json(row, vaccine_type):
             fhir_json["performer"] = [performer[0]]
 
         # Reason Code
-        reason_code = {
-            "coding": []
-        }
+        # Initialize reason_code as a list
+        reason_code = []
+
+        # Prepare the coding dictionary
         coding = {
             "system": "http://snomed.info/sct",
         }
-        add_if_not_empty(coding, "code", row.get('INDICATION_CODE', ''))
-        if coding.get("code") or coding.get("system"):
-            reason_code["coding"].append(coding)
 
-        if reason_code["coding"]:
-            fhir_json["reason_code"] = reason_code
+        # Add the 'code' key to the coding dictionary if 'INDICATION_CODE' is not empty
+        add_if_not_empty(coding, "code", row.get('INDICATION_CODE', ''))
+
+        # If the coding dictionary has either 'code' or 'system', append it to reason_code
+        if coding.get("code") or coding.get("system"):
+            reason_code.append({"coding": [coding]})
+
+        # If reason_code is not empty, add it to fhir_json
+        if reason_code:
+            fhir_json["reasonCode"] = reason_code
 
         # Protocol Applied
         protocol_applied = {

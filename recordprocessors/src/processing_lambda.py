@@ -154,9 +154,13 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
+        cleaned_row = '|'.join(data_row_str).replace(' |', '|').replace('| ', '|').strip()
+
+        # Write the cleaned and aligned data row to the accumulated CSV content
+        accumulated_csv_content.write(cleaned_row + '\n')
 
         # Write the data row to the accumulated CSV content
-        accumulated_csv_content.write('|'.join(data_row_str) + '\n')
+        # accumulated_csv_content.write('|'.join(data_row_str) + '\n')
 
         # Upload to S3 after processing this row
         # csv_bytes = BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
