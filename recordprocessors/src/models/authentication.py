@@ -36,9 +36,11 @@ class AppRestrictedAuth:
         kwargs = {"SecretId": self.secret_name}
         response = self.secret_manager_client.get_secret_value(**kwargs)
         secret_object = json.loads(response['SecretString'])
-        # secret_object['private_key'] = base64.b64decode(secret_object['private_key_b64']).decode()
-        decode_value = base64.b64decode(secret_object['private_key_b64'])
-        secret_object['private_key'] = base64.encodebytes(decode_value).decode('utf-8')
+        # Decode the base64-encoded private key
+        decoded_key = base64.b64decode(secret_object['private_key_b64']).decode('utf-8')
+        if not decoded_key.startswith("-----BEGIN "):
+            decoded_key = f"-----BEGIN PRIVATE KEY-----\n{decoded_key}\n-----END PRIVATE KEY-----"
+        secret_object['private_key'] = decoded_key
         return secret_object
 
     def create_jwt(self, now: int):
