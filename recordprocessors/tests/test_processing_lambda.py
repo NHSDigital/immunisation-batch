@@ -139,6 +139,102 @@ class TestProcessLambdaFunction(unittest.TestCase):
         self.assertIn('Success', content)
         mock_send_to_sqs.assert_called()
 
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.send_to_sqs')
+    @patch('csv.DictReader')
+    def test_process_csv_to_fhir_invalid(self, mock_csv_dict_reader, mock_send_to_sqs):
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket_name = 'test-bucket'
+        file_key = 'test-file.csv'
+        supplier = 'test'
+        ack_bucket_name = 'ack-bucket'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        with patch('processing_lambda.convert_to_fhir_json', return_value=({}, False)):
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+            mock_csv_dict_reader.return_value = mock_csv_reader_instance
+            process_csv_to_fhir(bucket_name, file_key, supplier, Constant.valid_vaccine_type[1], ack_bucket_name)
+
+        ack_filename = 'processedFile/test-file_response.csv'
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('fatal-error', content)
+        mock_send_to_sqs.assert_not_called()
+
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.send_to_sqs')
+    @patch('csv.DictReader')
+    def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_sqs):
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket_name = 'test-bucket'
+        file_key = 'test-file.csv'
+        supplier = 'test'
+        ack_bucket_name = 'ack-bucket'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)):
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_params_missing)
+            mock_csv_dict_reader.return_value = mock_csv_reader_instance
+            process_csv_to_fhir(bucket_name, file_key, supplier, Constant.valid_vaccine_type[1], ack_bucket_name)
+
+        ack_filename = 'processedFile/test-file_response.csv'
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('fatal-error', content)
+        mock_send_to_sqs.assert_not_called()
+
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.send_to_sqs')
+    @patch('csv.DictReader')
+    def test_process_csv_to_fhir_create_failed(self, mock_csv_dict_reader, mock_send_to_sqs):
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket_name = 'test-bucket'
+        file_key = 'test-file.csv'
+        supplier = 'test'
+        ack_bucket_name = 'ack-bucket'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        results = {
+        }, 400
+        with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
+             patch('processing_lambda.ImmunizationApi.create_imms', return_value=results):
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_create_request)
+            mock_csv_dict_reader.return_value = mock_csv_reader_instance
+            process_csv_to_fhir(bucket_name, file_key, supplier, 'covid19', ack_bucket_name)
+
+        ack_filename = 'processedFile/test-file_response.csv'
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('fatal-error', content)
+        mock_send_to_sqs.assert_not_called()
+
     # @mock_s3
     # @mock_sqs
     # @patch('processing_lambda.send_to_sqs')
