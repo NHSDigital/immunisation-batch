@@ -2,7 +2,7 @@ class Constant:
     valid_vaccine_type = ["flu", "covid19", "mmr"]
     valid_versions = ["v5"]
     valid_ods_codes = ["YGM41", "8J1100001", "8HK48", "YGA", "0DE", "0DF", "8HA94", "X26", "YGMYH",
-                       "W00", "W000", "ZT001", "YA7", "N2N9I", "YGJ"]
+                       "W00", "W000", "ZT001", "YA7", "N2N9I", "YGJ", "DPS_REDUCED", "DPS_FULL"]
     expected_csv_content = [
         'NHS_NUMBER', 'PERSON_FORENAME', 'PERSON_SURNAME', 'PERSON_DOB', 'PERSON_GENDER_CODE', 'PERSON_POSTCODE',
         'DATE_AND_TIME', 'SITE_CODE', 'SITE_CODE_TYPE_URI', 'UNIQUE_ID', 'UNIQUE_ID_URI', 'ACTION_FLAG',
@@ -20,3 +20,5 @@ class Constant:
         "INVALID_HEADER25,INVALID_HEADER26,INVALID_HEADER27,INVALID_HEADER28,INVALID_HEADER29,INVALID_HEADER30,"
         "INVALID_HEADER31,INVALID_HEADER32,INVALID_HEADER33,INVALID_HEADER34"
     )
+
+    action_flag_mapping = { "NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
