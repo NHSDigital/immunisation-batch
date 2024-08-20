@@ -107,8 +107,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                 if action_flag in ("new"):
                     flag = False
                     # Now, call the fetch_imms_id method
-                    final_json = json.dumps(fhir_json)
-                    response, status_code = immunization_api_instance.create_imms(final_json)
+                    response, status_code = immunization_api_instance.create_imms(fhir_json)
                     print(f"status_code:{status_code}, response:{response}")
                     if status_code == 201:
                         flag = True
