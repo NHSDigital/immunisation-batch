@@ -380,10 +380,15 @@ def convert_to_fhir_json(row, vaccine_type):
             "targetDisease": map_target_disease(vaccine_type)
         }
 
-        # Add 'doseNumberPositiveInt' if 'DOSE_SEQUENCE' is not empty
+        # Retrieve and process 'DOSE_SEQUENCE'
         dose_sequence = row.get('DOSE_SEQUENCE', '').strip()
-        if dose_sequence:
+
+        if dose_sequence.isdigit():  # Check if 'DOSE_SEQUENCE' is an integer (all digits)
             protocol_applied["doseNumberPositiveInt"] = int(dose_sequence)
+        elif dose_sequence:  # If it's a non-empty string but not an integer
+            protocol_applied["doseNumberString"] = dose_sequence
+        else:  # If it's empty or null
+            protocol_applied["doseNumberString"] = "Not recorded"
 
         # Add the protocolApplied to the fhir_json
         fhir_json["protocolApplied"] = [protocol_applied]

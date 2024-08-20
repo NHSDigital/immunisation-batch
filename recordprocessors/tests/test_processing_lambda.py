@@ -133,11 +133,123 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(bucket_name, file_key, supplier, 'covid19', ack_bucket_name)
 
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.send_to_sqs')
+    @patch('csv.DictReader')
+    def test_process_csv_to_fhir_positive_string_provided(self, mock_csv_dict_reader, mock_send_to_sqs):
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket_name = 'test-bucket'
+        file_key = 'test-file.csv'
+        supplier = 'test'
+        ack_bucket_name = 'ack-bucket'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        results = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "link": [
+                {
+                    "relation": "self",
+                    "url": (
+                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+                    )
+                }
+            ],
+            "entry": [
+                {
+                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+                    "resource": {
+                        "resourceType": "Immunization",
+                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
+                        "meta": {
+                            "versionId": 1
+                        }
+                    }
+                }
+            ],
+            "total": 1
+        }, 201
+        with patch('processing_lambda.ImmunizationApi.create_imms', return_value=results):
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_positive_string)
+            mock_csv_dict_reader.return_value = mock_csv_reader_instance
+            process_csv_to_fhir(bucket_name, file_key, supplier, 'covid19', ack_bucket_name)
+
         ack_filename = 'processedFile/test-file_response.csv'
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response['Body'].read().decode('utf-8')
         self.assertIn('Success', content)
         mock_send_to_sqs.assert_called()
+
+    @mock_s3
+    @mock_sqs
+    @patch('processing_lambda.send_to_sqs')
+    @patch('csv.DictReader')
+    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_csv_dict_reader, mock_send_to_sqs):
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        bucket_name = 'test-bucket'
+        file_key = 'test-file.csv'
+        supplier = 'test'
+        ack_bucket_name = 'ack-bucket'
+        s3_client.create_bucket(Bucket=bucket_name,
+                                CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
+                                    'LocationConstraint': 'eu-west-2'
+                                })
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        results = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "link": [
+                {
+                    "relation": "self",
+                    "url": (
+                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+                    )
+                }
+            ],
+            "entry": [
+                {
+                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+                    "resource": {
+                        "resourceType": "Immunization",
+                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
+                        "meta": {
+                            "versionId": 1
+                        }
+                    }
+                }
+            ],
+            "total": 1
+        }, 201
+        with patch('processing_lambda.ImmunizationApi.create_imms', return_value=results):
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance = MagicMock()
+            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_positive_string_missing)
+            mock_csv_dict_reader.return_value = mock_csv_reader_instance
+            process_csv_to_fhir(bucket_name, file_key, supplier, 'covid19', ack_bucket_name)
+
+        ack_filename = 'processedFile/test-file_response.csv'
+        response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+        content = response['Body'].read().decode('utf-8')
+        self.assertIn('Success', content)
+        mock_send_to_sqs.assert_called()    
 
     @mock_s3
     @mock_sqs
