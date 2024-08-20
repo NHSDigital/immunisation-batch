@@ -207,18 +207,31 @@ def convert_to_fhir_json(row, vaccine_type):
         # Convert the 'DATE_AND_TIME' to a datetime object
         date_time_str = row.get('DATE_AND_TIME', '')
         if date_time_str:
-            date_time_obj = datetime.strptime(date_time_str, '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc)
-            formatted_date_time = date_time_obj.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            if len(date_time_str) == 8:  # Format: YYYYMMDD
+                date_time_obj = datetime.strptime(date_time_str, '%Y%m%d').date()
+                formatted_date_time = date_time_obj.strftime("%Y-%m-%d")
+            elif len(date_time_str) == 15:  # Format: YYYYMMDDTHHMMSS
+                date_time_obj = datetime.strptime(date_time_str, '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc)
+                formatted_date_time = date_time_obj.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            else:
+                raise ValueError(f"Unexpected DATE_AND_TIME format: {date_time_str}")
 
             # Add the formatted datetime to the fhir_json if it's not empty
             add_if_not_empty(fhir_json, "occurrenceDateTime", formatted_date_time)
         # Recorded Date
         recorded_str = row.get('RECORDED_DATE', '')
         if recorded_str:
-            recorded_date_obj = datetime.strptime(recorded_str, '%Y%m%d').date()
+            if len(recorded_str) == 8:  # Format: YYYYMMDD
+                recorded_date_obj = datetime.strptime(recorded_str, '%Y%m%d').date()
+                formatted_recorded_date = recorded_date_obj.strftime("%Y-%m-%d")
+            elif len(recorded_str) == 15:  # Format: YYYYMMDDTHHMMSS
+                recorded_date_obj = datetime.strptime(recorded_str, '%Y%m%dT%H%M%S').replace(tzinfo=timezone.utc)
+                formatted_recorded_date = recorded_date_obj.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            else:
+                raise ValueError(f"Unexpected RECORDED_DATE format: {recorded_str}")
 
-            # Add the date to the fhir_json if it's not empty
-            add_if_not_empty(fhir_json, "recorded", recorded_date_obj.isoformat())
+            # Add the formatted date to the fhir_json if it's not empty
+            add_if_not_empty(fhir_json, "recorded", formatted_recorded_date)
 
         # Primary Source
         add_if_not_empty(fhir_json, "primarySource", convert_to_boolean(row.get('PRIMARY_SOURCE', 'false')))

@@ -30,7 +30,7 @@ class AppRestrictedAuth:
             f"imms/immunization/{environment}/jwt-secrets"
 
         self.token_url = f"https://{environment}.api.service.nhs.uk/oauth2-mock/token" \
-            if environment != "prod" else "https://api.service.nhs.uk/oauth2-mock/token"
+            if environment != "prod" else "https://api.service.nhs.uk/oauth2-mock/token"  # TO CHANGE:oauth2
 
     def get_service_secrets(self):
         kwargs = {"SecretId": self.secret_name}
