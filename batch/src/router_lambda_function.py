@@ -8,7 +8,7 @@ from io import BytesIO, StringIO
 import boto3
 from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
-from permissions_config import permissions_config, DPS_config
+
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
 # for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
@@ -91,7 +91,7 @@ def validate_action_flag_permissions(
 
     # check for _full permissions
     if f"{vaccine_type}_full" in allowed_permissions:
-        logger.info(f"Supplier has full permissions")
+        logger.info(f"Supplier has full permissions for {vaccine_type}")
         return True
 
     csv_operation_request = {f"{vaccine_type}_{perm}" for perm in unique_permissions}
@@ -101,7 +101,8 @@ def validate_action_flag_permissions(
         return True
 
     logger.error(
-        f"Supplier permissions {mapped_permissions} do not match any allowed operations {allowed_permissions} for vaccine type {vaccine_type}."
+        f"Supplier permissions {mapped_permissions} do not match any allowed operations"
+        f" {allowed_permissions} for vaccine type {vaccine_type}."
     )
     return False
 
