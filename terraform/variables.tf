@@ -9,6 +9,7 @@ variable "project_short_name" {
 variable "service" {
     default = "batch"
 }
+
 data "aws_vpc" "default" {
     default = true
 }
@@ -26,6 +27,7 @@ locals {
 locals {
     project_domain_name = data.aws_route53_zone.project_zone.name
 }
+
 
 locals {
     environment         = terraform.workspace
@@ -81,6 +83,3 @@ variable "supplier_name_map" {
     "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
   }
 }
-
-
-

@@ -1,10 +1,10 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import boto3
-from moto import mock_s3, mock_sqs
-
+import unittest
 import json
+from unittest.mock import patch, MagicMock
+from moto import mock_s3, mock_sqs
 from src.constants import Constant
+
 
 from router_lambda_function import (
     lambda_handler,  # Import lambda_handler for end-to-end test
@@ -354,7 +354,7 @@ class TestLambdaHandler(unittest.TestCase):
             Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
         )
 
-        # Prepare the event
+        # Prepare the event.
         event = {
             "Records": [
                 {
@@ -366,11 +366,11 @@ class TestLambdaHandler(unittest.TestCase):
             ]
         }
 
-        # Call the lambda_handler function
+        # Call the lambda_handler function.
         lambda_handler(event, None)
         # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
-        # Check if the acknowledgment file is created in the S3 bucket
+        # Check if the acknowledgment file is created in the S3 bucket.
         ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
@@ -692,3 +692,7 @@ class TestLambdaHandler(unittest.TestCase):
         ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
         self.assertIn(ack_file_key, ack_file_keys)
+
+
+if __name__ == '__main__':
+    unittest.main()

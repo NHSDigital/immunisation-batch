@@ -3,10 +3,10 @@ class Constant:
 
     valid_vaccine_type = ["flu", "covid19", "mmr"]
     valid_versions = ["v5"]
-
-    valid_ods_codes = ["YGM41", "8J1100001", "8HK48", "YGA", "0DE", "0DF", "8HA94", "X26", "YGMYH",
-                       "W00", "W000", "ZT001", "YA7", "N2N9I", "YGJ", "DPS_REDUCED", "DPS_FULL"]
-
+    valid_ods_codes = [
+        "YGM41", "8J1100001", "8HK48", "YGA", "0DE", "0DF", "8HA94", "X26", "YGMYH",
+        "W00", "W000", "ZT001", "YA7", "N2N9I", "YGJ"
+    ]
     valid_supplier = [
         "EMIS", "PINNACLE", "SONAR", "TPP", "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
         "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA", "SCOTLAND_DA",
@@ -25,7 +25,6 @@ class Constant:
         "MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|"
         "RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"
     )
-
 
     expected_csv_content = [
         'NHS_NUMBER', 'PERSON_FORENAME', 'PERSON_SURNAME', 'PERSON_DOB', 'PERSON_GENDER_CODE',
@@ -49,9 +48,6 @@ class Constant:
         "INVALID_HEADER26,INVALID_HEADER27,INVALID_HEADER28,INVALID_HEADER29,INVALID_HEADER30,"
         "INVALID_HEADER31,INVALID_HEADER32,INVALID_HEADER33,INVALID_HEADER34"
     )
-
-
-    action_flag_mapping = { "NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
 
     file_content = (
         "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
@@ -183,12 +179,81 @@ class Constant:
         'procedureTerm|1|productCode|productTerm|manufacturer|batchNumber|2023-01-01|siteCode|'
         'siteTerm|routeCode|routeTerm|0.5|ml|code|location|https://locationUri'
     )
+    mock_request_positive_string = [
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '"test"|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }]
+
+    mock_request_only_mandatory = [
+        {
+            'NHS_NUMBER': (
+                '|”SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"B0C4P"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|'
+                '"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|"https://www.ravs.england.nhs.uk/"|"new"|||'
+                '"20240610T183325"|"TRUE"|'
+                '"1303503001"||||||||||||||||"B0C4P”|”https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }]
+    mock_request_positive_string_missing = [
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }]
     mock_request = [
         {
             'NHS_NUMBER': (
                 '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
                 '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
-                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
                 '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
                 '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
                 '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
@@ -254,6 +319,125 @@ class Constant:
             'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
         }
     ]
+
+    mock_create_request = [
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }]
+    mock_request_params_missing = [
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"||"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        },
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"||'
+                '"https://www.ravs.england.nhs.uk/"|"update"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        },
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '|"delete"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        },
+        {
+            'NHS_NUMBER': (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"create"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            'PERSON_FORENAME': None, 'PERSON_SURNAME': None, 'PERSON_DOB': None, 'PERSON_GENDER_CODE': None,
+            'PERSON_POSTCODE': None, 'DATE_AND_TIME': None, 'SITE_CODE': None, 'SITE_CODE_TYPE_URI': None,
+            'UNIQUE_ID': None, 'UNIQUE_ID_URI': None, 'ACTION_FLAG': None, 'PERFORMING_PROFESSIONAL_FORENAME': None,
+            'PERFORMING_PROFESSIONAL_SURNAME': None, 'RECORDED_DATE': None, 'PRIMARY_SOURCE': None,
+            'VACCINATION_PROCEDURE_CODE': None, 'VACCINATION_PROCEDURE_TERM': None, 'DOSE_SEQUENCE': None,
+            'VACCINE_PRODUCT_CODE': None, 'VACCINE_PRODUCT_TERM': None, 'VACCINE_MANUFACTURER': None,
+            'BATCH_NUMBER': None, 'EXPIRY_DATE': None, 'SITE_OF_VACCINATION_CODE': None,
+            'SITE_OF_VACCINATION_TERM': None, 'ROUTE_OF_VACCINATION_CODE': None, 'ROUTE_OF_VACCINATION_TERM': None,
+            'DOSE_AMOUNT': None, 'DOSE_UNIT_CODE': None, 'DOSE_UNIT_TERM': None, 'INDICATION_CODE': None,
+            'LOCATION_CODE': None, 'LOCATION_CODE_TYPE_URI': None
+        }
+    ]
     mock_update_request = [
         {
             'NHS_NUMBER': (
@@ -287,8 +471,5 @@ class Constant:
                         '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
             return data_row
         else:
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
-                        '20005', 'Unsupported file type received as an attachment', created_at_formatted,
-                        'TBC', 'DPS', False]
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
             return data_row
-
