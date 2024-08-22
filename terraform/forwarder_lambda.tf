@@ -92,7 +92,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
 }
 
 locals {
-  new_sqs_arn_map = { for key in tolist(var.suppliers) : key => data.aws_sqs_queue.processingqueues[key].arn }
+  new_sqs_arn_map = { for i, key in tolist(var.suppliers) : key => data.aws_sqs_queue.processingqueues[key].arn }
 }
 
 # Policy for Lambda to interact with existing SQS FIFO Queues
