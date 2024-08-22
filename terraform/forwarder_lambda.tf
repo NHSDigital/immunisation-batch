@@ -1,7 +1,7 @@
 locals {
   forwarder_lambda_dir = abspath("${path.root}/../recordforwarder")
-  lambda_files         = fileset(local.forwarder_lambda_dir, "**")
-  lambda_dir_sha       = sha1(join("", [for f in local.lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
+  forwarder_lambda_files         = fileset(local.forwarder_lambda_dir, "**")
+  forwarding_lambda_dir_sha       = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
 }
 
 module "forwarding_docker_image" {
@@ -30,7 +30,7 @@ module "forwarding_docker_image" {
   use_image_tag = false
   source_path   = local.forwarder_lambda_dir
   triggers = {
-    dir_sha = local.lambda_dir_sha
+    dir_sha = local.forwarding_lambda_dir_sha
   }
 }
 
@@ -92,7 +92,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
 }
 
 locals {
-  new_sqs_arns = { for key in tolist(var.suppliers) : key => data.aws_sqs_queue.processingqueues[key].arn }
+  new_sqs_arn_map = { for key in tolist(var.suppliers) : key => data.aws_sqs_queue.processingqueues[key].arn }
 }
 
 # Policy for Lambda to interact with existing SQS FIFO Queues
@@ -110,7 +110,7 @@ resource "aws_iam_policy" "forwarding_lambda_sqs_policy" {
         "sqs:SendMessage",
         "kms:Decrypt"
       ]
-      Resource = [for queue in local.new_sqs_arns : queue]
+      Resource = [for queue in local.new_sqs_arn_map : queue]
     }]
   })
 }
@@ -128,8 +128,8 @@ resource "aws_iam_role_policy_attachment" "forwarding_lambda_sqs_policy_attachme
 }
 
 # Permission for SQS to invoke Lambda function
-resource "aws_lambda_permission" "allow_sqs_invoke" {
-  for_each      = local.new_sqs_arns
+resource "aws_lambda_permission" "allow_sqs_invoke_forwarder_lambda" {
+  for_each      = local.new_sqs_arn_map
   statement_id  = "AllowSQSInvoke${each.key}"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.forwarding_lambda.arn
@@ -163,12 +163,12 @@ resource "aws_lambda_function" "forwarding_lambda" {
   ]
 }
 
-resource "aws_lambda_event_source_mapping" "sqs_event_source_mapping" {
-  for_each         = local.new_sqs_arns
+resource "aws_lambda_event_source_mapping" "sqs_event_source_mapping_forwarder_lambda" {
+  for_each         = local.new_sqs_arn_map
   event_source_arn = each.value
   function_name    = aws_lambda_function.forwarding_lambda.function_name
   batch_size       = 1
   enabled          = true
 
-  depends_on = [aws_lambda_permission.allow_sqs_invoke]
+  depends_on = [aws_lambda_permission.allow_sqs_invoke_forwarder_lambda]
 }

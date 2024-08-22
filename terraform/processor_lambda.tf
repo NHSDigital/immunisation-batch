@@ -1,7 +1,7 @@
 locals {
   processing_lambda_dir = abspath("${path.root}/../recordprocessors")
-  lambda_files          = fileset(local.processing_lambda_dir, "**")
-  lambda_dir_sha        = sha1(join("", [for f in local.lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
+  processing_lambda_files          = fileset(local.processing_lambda_dir, "**")
+  processing_lambda_dir_sha        = sha1(join("", [for f in local.processing_lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
 }
 
 module "processing_docker_image" {
@@ -30,7 +30,7 @@ module "processing_docker_image" {
   use_image_tag = false
   source_path   = local.processing_lambda_dir
   triggers = {
-    dir_sha = local.lambda_dir_sha
+    dir_sha = local.processing_lambda_dir_sha
   }
 }
 
