@@ -55,20 +55,50 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
   name   = "${local.prefix}-processor-lambda-exec-policy"
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Action = [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:ListBucket",
-        "kms:Decrypt",
-        "secretsmanager:GetSecretValue"
-      ],
-      Resource = "*"
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${local.prefix}-batch-data-source",           
+          "arn:aws:s3:::${local.prefix}-batch-data-source/*"        
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${local.prefix}-batch-data-destination",       
+          "arn:aws:s3:::${local.prefix}-batch-data-destination/*"        
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = "*"
+      }
+    ]
   })
 }
 locals {

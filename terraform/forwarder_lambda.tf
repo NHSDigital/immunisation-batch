@@ -69,12 +69,23 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         Effect   = "Allow"
         Action   = [
           "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${local.prefix}-batch-data-source",           
+          "arn:aws:s3:::${local.prefix}-batch-data-source/*"        
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-batch-data-destination",
-          "arn:aws:s3:::${local.prefix}-batch-data-destination/*"       
+          "arn:aws:s3:::${local.prefix}-batch-data-destination",       
+          "arn:aws:s3:::${local.prefix}-batch-data-destination/*"        
         ]
       },
       {
