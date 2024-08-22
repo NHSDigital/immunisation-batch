@@ -34,8 +34,6 @@ def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucke
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
     created_at = response['LastModified']
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
-    success = Constant.data_rows(True, created_at_formatted)
-    failed = Constant.data_rows(False, created_at_formatted)
     headers = Constant.header
     parts = file_key.split('.')
     ack_filename = f"forwardedFile/{parts[0]}_response.csv"
@@ -62,21 +60,21 @@ def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucke
     if action_flag == "new":
         response, status_code = immunization_api_instance.create_immunization(fhir_json)
         if status_code == 201:
-            data_row = success
+            data_row = Constant.data_rows(True, created_at_formatted)
         else:
-            data_row = failed
+            data_row = Constant.data_rows(False, created_at_formatted)
     elif action_flag == "update":
         response, status_code = immunization_api_instance.update_immunization(imms_id, version, fhir_json)
         if status_code == 200:
-            data_row = success
+            data_row = Constant.data_rows(True, created_at_formatted)
         else:
-            data_row = failed
+            data_row = Constant.data_rows(False, created_at_formatted)
     elif action_flag == "delete":
         response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json)
         if status_code == 204:
-            data_row = success
+            data_row = Constant.data_rows(True, created_at_formatted)
         else:
-            data_row = failed
+            data_row = Constant.data_rows(False, created_at_formatted)
 
     data_row_str = [str(item) for item in data_row]
     cleaned_row = '|'.join(data_row_str).replace(' |', '|').replace('| ', '|').strip()
@@ -101,6 +99,8 @@ def forward_lambda_handler(event, context):
             fhir_json = message_body.get('fhir_json')
             action_flag = message_body.get('action_flag')
             file_key = message_body.get('file_name')
+            imms_id = None
+            version = None
             if action_flag in ("update", "delete"):
                 imms_id = message_body.get('imms_id')
                 version = message_body.get('version')
