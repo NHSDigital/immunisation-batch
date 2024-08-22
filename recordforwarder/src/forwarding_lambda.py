@@ -3,7 +3,7 @@ import json
 from io import StringIO
 import io
 import os
-from recordforwarder.src.immunisation_api import ImmunizationApi
+from immunisation_api import ImmunizationApi
 import logging
 from botocore.exceptions import ClientError
 from botocore.config import Config
