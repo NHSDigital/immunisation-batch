@@ -21,7 +21,9 @@ class ImmunizationApi:
         return self._send(
             "POST",
             "/Immunization",
-            imms
+            imms,
+            None
+
         )
 
     def update_immunization(self, imms_id, version_id, imms):
@@ -36,7 +38,8 @@ class ImmunizationApi:
         return self._send(
             "DELETE",
             f"/Immunization/{imms_id}",
-            imms
+            imms,
+            None
         )
 
     def _send(self, method: str, path: str, imms, version_id):
