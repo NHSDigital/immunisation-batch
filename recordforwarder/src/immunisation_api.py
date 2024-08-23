@@ -58,7 +58,7 @@ class ImmunizationApi:
                 'X-Correlation-ID': str(uuid.uuid4()),
                 "Content-Type": "application/fhir+json",
                 "Accept": "application/fhir+json",
-                "E-Tag": version_id
+                "E-Tag": str(version_id)
                 }
         else:
             request_headers = {
