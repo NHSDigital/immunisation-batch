@@ -71,7 +71,7 @@ def validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
     for permissions in allowed_permissions:
         if permissions.startswith(vaccine_type):
             return True
-    logger.error(f"vaccine type issue")
+    logger.error(f"vaccine type permission issue {vaccine_type}")
     return False
 
 
@@ -151,19 +151,19 @@ def initial_file_validation(file_key, bucket_name):
 
     column_count_valid = validate_csv_column_count(bucket_name, file_key)
     if not column_count_valid:
-        logger.error(f"column count issue")
+        logger.error(f"column count issue {supplier}")
         return False
 
     # Validate if has the vaccine_type permissions
     if not validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
-        logger.error(f"vaccine type permissions issue")
+        logger.error(f"vaccine type permissions issue {supplier}")
         return False
 
     # Validate the ACTION_FLAG column for permissions - if none reject
     if not validate_action_flag_permissions(
         bucket_name, file_key, supplier, vaccine_type
     ):
-        logger.error(f"action flag permission issue")
+        logger.error(f"action flag permission issue {supplier}")
         return False
 
     return True
