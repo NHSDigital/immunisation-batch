@@ -37,6 +37,7 @@ class ImmunizationApi:
         )
 
     def delete_immunization(self, imms_id, imms):
+        print(f"imms_id:{imms_id}")
         return self._send(
             "DELETE",
             f"/Immunization/{imms_id}",
