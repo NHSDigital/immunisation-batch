@@ -1,6 +1,7 @@
 import boto3
 import unittest
-import json
+
+# import json
 from unittest.mock import patch, MagicMock
 from moto import mock_s3, mock_sqs
 from src.constants import Constant

@@ -1,6 +1,7 @@
 import boto3
 import json
-from datetime import datetime
+
+# from datetime import datetime
 
 # Global variables to hold the cached JSON data and its last modified time
 _cached_json_data = None
