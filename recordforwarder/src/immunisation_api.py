@@ -27,6 +27,8 @@ class ImmunizationApi:
         )
 
     def update_immunization(self, imms_id, version_id, imms):
+        print(f"imms_id:{imms_id}")
+        print(f"version_id:{version_id}")
         return self._send(
             "PUT",
             f"/Immunization/{imms_id}",
@@ -44,6 +46,7 @@ class ImmunizationApi:
 
     def _send(self, method: str, path: str, imms, version_id):
         print("send_started")
+        print(f"version_id:{version_id}")
         access_token = self.authenticator.get_access_token()
         logger.debug(f"Access token obtained: {access_token}")
         print(f"access_token:{access_token}")
