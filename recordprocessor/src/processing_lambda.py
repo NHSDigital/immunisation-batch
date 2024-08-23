@@ -168,30 +168,30 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
         if ack_flag:
             ack_filenames = f"forwardedFile/{parts[0]}_response.csv"
-            accumulated_csv_content = StringIO()
+            accumulated_csv_contents = StringIO()
             try:
                 # Check if the acknowledgment file exists in S3
                 s3_client.head_object(Bucket=ack_bucket_name, Key=ack_filenames)
                 # If it exists, download the file and accumulate its content
                 existing_ack_file = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filenames)
                 existing_content = existing_ack_file['Body'].read().decode('utf-8')
-                accumulated_csv_content.write(existing_content)
-                print(f"accumulated_csv_content_existing:{accumulated_csv_content}")  # Add existing content to StringIO
+                accumulated_csv_contents.write(existing_content)
+                print(f"accumulate_csv_content_existing:{accumulated_csv_contents}")  # Add existing content to StringIO
             except ClientError as e:
                 print(f"error:{e}")
                 if e.response['Error']['Code'] == '404':
                     # File doesn't exist, write the header to the new file
-                    accumulated_csv_content.write('|'.join(headers) + '\n')
-                    print(f"accumulated_csv_content:{accumulated_csv_content}")
+                    accumulated_csv_contents.write('|'.join(headers) + '\n')
+                    print(f"accumulated_csv_content:{accumulated_csv_contents}")
                 else:
                     raise  # Re-raise the exception if it's not a 404 error
             data_row_str = [str(item) for item in data_row]
             cleaned_row = '|'.join(data_row_str).replace(' |', '|').replace('| ', '|').strip()
 
-            accumulated_csv_content.write(cleaned_row + '\n')
+            accumulated_csv_contents.write(cleaned_row + '\n')
 
             # Upload the updated CSV content to S3
-            csv_file_like_object = io.BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
+            csv_file_like_object = io.BytesIO(accumulated_csv_contents.getvalue().encode('utf-8'))
             s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filenames)
             logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filenames}")
 
