@@ -72,6 +72,5 @@ class ImmunizationApi:
             timeout=5
         )
         logger.error(f"response: {response}")
-        response_json = response.json()
-        logger.error(f"response_json: {response_json}")
-        return response_json, response.status_code
+        logger.error(f"response_json: {response.text}")
+        return response.text, response.status_code

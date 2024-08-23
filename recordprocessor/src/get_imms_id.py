@@ -22,7 +22,7 @@ class ImmunizationApi:
                           f"/Immunization?immunization.identifier={identifier_system}|{identifier_value}"
                           f"&_element=id,meta")
 
-    def _send(self, method: str, path: str, imms):
+    def _send(self, method: str, path: str):
         print("send_started")
         access_token = self.authenticator.get_access_token()
         logger.debug(f"Access token obtained: {access_token}")
@@ -38,7 +38,6 @@ class ImmunizationApi:
         response = requests.request(
             method=method,
             url=f"{self.base_url}/{path}",
-            json=imms,
             headers=request_headers,
             timeout=5
         )
