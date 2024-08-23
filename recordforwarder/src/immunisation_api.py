@@ -60,13 +60,14 @@ class ImmunizationApi:
                 "Accept": "application/fhir+json",
                 "E-Tag": version_id
                 }
-        request_headers = {
-            'Authorization': f'Bearer {access_token}',
-            'X-Request-ID': str(uuid.uuid4()),
-            'X-Correlation-ID': str(uuid.uuid4()),
-            "Content-Type": "application/fhir+json",
-            "Accept": "application/fhir+json",
-        }
+        else:
+            request_headers = {
+                'Authorization': f'Bearer {access_token}',
+                'X-Request-ID': str(uuid.uuid4()),
+                'X-Correlation-ID': str(uuid.uuid4()),
+                "Content-Type": "application/fhir+json",
+                "Accept": "application/fhir+json",
+            }
         print(f"request_headers:{request_headers}")
         response = requests.request(
             method=method,
