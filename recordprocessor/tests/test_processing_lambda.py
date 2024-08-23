@@ -402,7 +402,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response['Body'].read().decode('utf-8')
         self.assertIn('fatal-error', content)
-        mock_send_to_sqs.assert_not_called()
+        mock_send_to_sqs.assert_called()
 
     @mock_s3
     @mock_sqs

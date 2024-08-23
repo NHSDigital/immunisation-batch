@@ -56,7 +56,8 @@ def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucke
             print(f"accumulated_csv_content:{accumulated_csv_content}")
         else:
             raise  # Re-raise the exception if it's not a 404 error
-
+    if imms_id == "None" and version == "None":
+        data_row = Constant.data_rows(False, created_at_formatted)
     if action_flag == "new":
         response, status_code = immunization_api_instance.create_immunization(fhir_json)
         print(f"response:{response},status_code:{status_code}")
@@ -64,14 +65,14 @@ def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucke
             data_row = Constant.data_rows(True, created_at_formatted)
         else:
             data_row = Constant.data_rows(False, created_at_formatted)
-    elif action_flag == "update":
+    elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
         response, status_code = immunization_api_instance.update_immunization(imms_id, version, fhir_json)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 200:
             data_row = Constant.data_rows(True, created_at_formatted)
         else:
             data_row = Constant.data_rows(False, created_at_formatted)
-    elif action_flag == "delete":
+    elif action_flag == "delete" and imms_id not in (None, "None"):
         response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 204:

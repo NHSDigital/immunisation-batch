@@ -56,6 +56,32 @@ class TestForwardingLambda(unittest.TestCase):
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
+    def test_process_csv_to_fhir_update_failure_imms_id_none(self, mock_api, mock_s3):
+        # Mock LastModified as a datetime object
+        mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
+        mock_api.update_immunization.return_value = (None, 400)
+        mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
+
+        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+            process_csv_to_fhir('source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'None', 'None')
+            mock_data_rows.assert_called_with(False, '20240821T10153000')
+            mock_api.update_immunization.assert_not_called
+
+    @patch('forwarding_lambda.s3_client')
+    @patch('forwarding_lambda.immunization_api_instance')
+    def test_process_csv_to_fhir_delete_failure_imms_id_none(self, mock_api, mock_s3):
+        # Mock LastModified as a datetime object
+        mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
+        mock_api.update_immunization.return_value = (None, 400)
+        mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
+
+        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+            process_csv_to_fhir('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'None', 'None')
+            mock_data_rows.assert_called_with(False, '20240821T10153000')
+            mock_api.delete_immunization.assert_not_called
+
+    @patch('forwarding_lambda.s3_client')
+    @patch('forwarding_lambda.immunization_api_instance')
     def test_process_csv_to_fhir_delete_success(self, mock_api, mock_s3):
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
         mock_api.delete_immunization.return_value = (None, 204)

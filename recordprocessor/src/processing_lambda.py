@@ -87,7 +87,6 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
     for row in csv_reader:
         print(f"row:{row}")
-        ack_flag = False
         row_count += 1  # Increment the counter for each row
         # Split the first column which contains concatenated values
         row_values = row.get('NHS_NUMBER', '').split('|')
@@ -139,9 +138,20 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
-                    ack_flag = True
+                    message_body = {
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
+                    status = send_to_sqs(supplier, message_body)
+                    if status:
+                        print("create successful imms not found")
+                        logger.info("message sent successfully to SQS")
+                    else:
+                        logger.error("Error sending to SQS imms id not found")
                     data_row = Constant.data_rows(False, created_at_formatted)
-
             else:
                 print(f"Invalid FHIR conversion for row: {row}")
                 data_row = Constant.data_rows(False, created_at_formatted)
@@ -166,34 +176,6 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         csv_file_like_object = io.BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
         s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
         logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
-        if ack_flag:
-            ack_filenames = f"forwardedFile/{parts[0]}_response.csv"
-            accumulated_csv_contents = StringIO()
-            try:
-                # Check if the acknowledgment file exists in S3
-                s3_client.head_object(Bucket=ack_bucket_name, Key=ack_filenames)
-                # If it exists, download the file and accumulate its content
-                existing_ack_file = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filenames)
-                existing_content = existing_ack_file['Body'].read().decode('utf-8')
-                accumulated_csv_contents.write(existing_content)
-                print(f"accumulate_csv_content_existing:{accumulated_csv_contents}")  # Add existing content to StringIO
-            except ClientError as e:
-                print(f"error:{e}")
-                if e.response['Error']['Code'] == '404':
-                    # File doesn't exist, write the header to the new file
-                    accumulated_csv_contents.write('|'.join(headers) + '\n')
-                    print(f"accumulated_csv_content:{accumulated_csv_contents}")
-                else:
-                    raise  # Re-raise the exception if it's not a 404 error
-            data_row_str = [str(item) for item in data_row]
-            cleaned_row = '|'.join(data_row_str).replace(' |', '|').replace('| ', '|').strip()
-
-            accumulated_csv_contents.write(cleaned_row + '\n')
-
-            # Upload the updated CSV content to S3
-            csv_file_like_object = io.BytesIO(accumulated_csv_contents.getvalue().encode('utf-8'))
-            s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filenames)
-            logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filenames}")
 
     logger.info(f"Total rows processed: {row_count}")  # logger the total number of rows processed
 
