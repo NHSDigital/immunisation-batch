@@ -48,6 +48,6 @@ class ImmunizationApi:
             if response_json.get("total") == 1:
                 return response_json, response.status_code
             else:
-                return response.text, response.status_code
+                return response_json, response.status_code
         else:
-            return response.text, response.status_code
+            return response_json, response.status_code
