@@ -58,7 +58,7 @@ variable "suppliers" {
         "EMIS", "PINNACLE", "SONAR", "TPP",
     "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
     "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
-    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK"
+    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "DPS"
     ]
 
 }
@@ -81,5 +81,6 @@ variable "supplier_name_map" {
     "NORTHERN_IRELAND_DA"   = "NIREDA"
     "SCOTLAND_DA"           = "SCOTDA"
     "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
+    "DPS"                   = "DPS"
   }
 }
