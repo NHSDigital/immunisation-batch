@@ -80,6 +80,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   environment {
     variables = {
+      SOURCE_BUCKET_NAME = "${local.prefix}-batch-data-source"
       ACK_BUCKET_NAME = "${local.prefix}-batch-data-destination"
       ENVIRONMENT     = local.environment
       LOCAL_ACCOUNT_ID      = local.local_account_id

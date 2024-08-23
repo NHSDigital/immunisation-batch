@@ -1,0 +1,7 @@
+{
+    "all_permissions": {
+        "DPS_FULL": ["COV_FULL", "FLU_FULL", "MMR_FULL"],
+        "DPS_REDUCED": ["COV_FULL", "FLU_FULL", "MMR_FULL"],
+        "EMIS": ["FLU_UPDATE", "FLU_DELETE", "FLU_CREATE"]
+    }
+    }

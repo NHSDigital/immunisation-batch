@@ -8,6 +8,7 @@ from io import BytesIO, StringIO
 import boto3
 from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
+from fetch_permissions import get_json_from_s3
 
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
@@ -29,20 +30,6 @@ def get_environment():
         return "internal-dev"  # default to internal-dev for pr and user workspaces
 
 
-def load_permissions_config(bucket_name, file_key):
-    s3 = boto3.client("s3")
-    response = s3.get_object(Bucket=bucket_name, Key=file_key)
-    config = json.loads(response["Body"].read().decode("utf-8"))
-    return config
-
-
-imms_env = get_environment()
-# NEED CONFIG S3 LOCATION
-permissions_config = load_permissions_config(
-    f"immunisation-batch-{imms_env}-batch-data-destination", "permissions_config.json"
-)
-
-
 def extract_ods_code(file_key):
     supplier_match = re.search(r"_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$", file_key)
     return supplier_match.group(1).upper() if supplier_match else None
@@ -62,47 +49,68 @@ def identify_timestamp(file_key):
     return timestamp_match.group(1) if timestamp_match else None
 
 
-def validate_vaccine_type_permissions(supplier, vaccine_type):
+def get_supplier_permissions(supplier, bucket_name):
+    supplier_permissions = get_json_from_s3(bucket_name)
+    print(f"configgy: {supplier_permissions}")
+    if supplier_permissions is None:
+        return []
+    all_permissions = supplier_permissions("all_permissions", {})
+    return all_permissions.get(supplier, [])
+    # return supplier_permissions["all_permissions"].get(supplier, [])
+
+
+def validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
     """Checks for permissions for vaccine type"""
-    supplier_permissions = permissions_config["all_permissions"].get(supplier, [])
-    return any(vaccine_type in permission for permission in supplier_permissions)
+    vaccine_type = vaccine_type.upper()
+    bucket_name = bucket_name
+    print(f"BUCKET_NAME:{bucket_name}")
+    print(f"VACCINE TYPE 1:{vaccine_type}")
+    print(f"supplier:{supplier}")
+    allowed_permissions = get_supplier_permissions(supplier, bucket_name)
+    print(f"config_check: {allowed_permissions}")
+    for permissions in allowed_permissions:
+        if permissions.startswith(vaccine_type):
+            return True
+
+    return False
 
 
-def validate_action_flag_permissions(
-    bucket_name, file_key, allowed_permissions, vaccine_type
-):
+def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type):
     """Checks if the ACTION_FLAG values in the CSV match any of the allowed permissions for the specific vaccine type"""
 
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     body = csv_obj["Body"].read().decode("utf-8")
     csv_reader = csv.DictReader(StringIO(body))
-
+    vaccine_type_CAPS = vaccine_type.upper()
     # Stores unique ACTION_FLAG values
     unique_permissions = set()
 
     # Extract the ACTION_FLAG column and deduplicate values
     for row in csv_reader:
-        action_flag = row.get("ACTION_FLAG", "").strip().lower()
+        action_flag = row.get("ACTION_FLAG", "").strip().upper()
         if action_flag:
             mapped_permissions = Constant.action_flag_mapping.get(
                 action_flag, action_flag
             )
             unique_permissions.add(mapped_permissions)
-
+    allowed_permissions = get_supplier_permissions(supplier, bucket_name)
     # check for _full permissions
-    if f"{vaccine_type}_full" in allowed_permissions:
+    if f"{vaccine_type_CAPS}_full" in allowed_permissions:
         logger.info(f"Supplier has full permissions for {vaccine_type}")
         return True
 
-    csv_operation_request = {f"{vaccine_type}_{perm}" for perm in unique_permissions}
+    csv_operation_request = {
+        f"{vaccine_type_CAPS}_{perm}" for perm in unique_permissions
+    }
+    print(f"CSV OPERTION REQUEST: {csv_operation_request}")
 
     # Check if at least one of the mapped permissions is allowed for the specific vaccine type
     if csv_operation_request.intersection(allowed_permissions):
         return True
 
     logger.error(
-        f"Supplier permissions {mapped_permissions} do not match any allowed operations"
-        f" {allowed_permissions} for vaccine type {vaccine_type}."
+        f"Supplier permissions {mapped_permissions} does not match any allowed operations"
+        f" {allowed_permissions} for vaccine type {vaccine_type_CAPS}."
     )
     return False
 
@@ -146,14 +154,12 @@ def initial_file_validation(file_key, bucket_name):
         return False
 
     # Validate if has the vaccine_type permissions
-    if not validate_vaccine_type_permissions(supplier, vaccine_type):
+    if not validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
         return False
-
-    allowed_permissions = permissions_config["suppliers"].get(supplier, [])
 
     # Validate the ACTION_FLAG column for permissions - if none reject
     if not validate_action_flag_permissions(
-        bucket_name, file_key, allowed_permissions, vaccine_type
+        bucket_name, file_key, supplier, vaccine_type
     ):
         return False
 
