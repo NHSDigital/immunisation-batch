@@ -466,9 +466,12 @@ class Constant:
 
     def data_rows(status, created_at_formatted):
 
-        if status:
+        if status is True:
             data_row = ['TBC', 'ok', 'information', 'informational', 'business',
                         '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
+            return data_row
+        elif status == "None":
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS', True]  # noqa: E501
             return data_row
         else:
             data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501

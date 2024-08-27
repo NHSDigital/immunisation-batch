@@ -149,9 +149,10 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     if status:
                         print("create successful imms not found")
                         logger.info("message sent successfully to SQS")
+                        data_row = Constant.data_rows("None", created_at_formatted)
                     else:
                         logger.error("Error sending to SQS imms id not found")
-                    data_row = Constant.data_rows(False, created_at_formatted)
+                        data_row = Constant.data_rows(False, created_at_formatted)
             else:
                 print(f"Invalid FHIR conversion for row: {row}")
                 data_row = Constant.data_rows(False, created_at_formatted)

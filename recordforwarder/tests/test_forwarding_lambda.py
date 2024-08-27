@@ -50,9 +50,11 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            process_csv_to_fhir('source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'imms_id', 'v1')
+            process_csv_to_fhir('source-bucket', 'file.csv', 'update', {"resourceType": "immunization"}, 'ack-bucket',
+                                'imms_id', 'v1')
             mock_data_rows.assert_called_with(False, '20240821T10153000')
-            mock_api.update_immunization.assert_called_once_with('imms_id', 'v1', '{}')
+            mock_api.update_immunization.assert_called_once_with('imms_id', 'v1',
+                                                                 {'resourceType': 'immunization', 'id': 'imms_id'})
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')

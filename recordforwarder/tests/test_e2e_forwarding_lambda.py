@@ -4,6 +4,7 @@ import boto3
 import json
 from moto import mock_s3, mock_sqs
 from forwarding_lambda import forward_lambda_handler
+from src.constants import Constant
 
 
 class TestForwardingLambdaE2E(unittest.TestCase):
@@ -121,18 +122,19 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         # Mock the API response
         mock_api.update_immunization.return_value = ('', 200)
+        message = {
+                        "fhir_json": Constant.test_fhir_json,
+                        "action_flag": "update",
+                        "file_name": test_file_key,
+                        "imms_id": "test",
+                        "version": 1
+                    }
 
         # Create a mock SQS message
         sqs_message = {
             "Records": [
                 {
-                    "body": json.dumps({
-                        "fhir_json": "{}",
-                        "action_flag": "update",
-                        "file_name": test_file_key,
-                        "imms_id": "test",
-                        "version": 1
-                    })
+                    "body": json.dumps(message)
                 }
             ]
         }
@@ -171,17 +173,19 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         # Mock the API response
         mock_api.update_immunization.return_value = ('', 400)
 
-        # Create a mock SQS message
-        sqs_message = {
-            "Records": [
-                {
-                    "body": json.dumps({
-                        "fhir_json": "{}",
+        message = {
+                        "fhir_json": Constant.test_fhir_json,
                         "action_flag": "update",
                         "file_name": test_file_key,
                         "imms_id": "test",
                         "version": 1
-                    })
+                    }
+
+        # Create a mock SQS message
+        sqs_message = {
+            "Records": [
+                {
+                    "body": json.dumps(message)
                 }
             ]
         }
