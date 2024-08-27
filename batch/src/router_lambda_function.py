@@ -55,6 +55,7 @@ def get_supplier_permissions(supplier, bucket_name):
     if supplier_permissions is None:
         return []
     all_permissions = supplier_permissions.get("all_permissions", {})
+    print(f"ALL_PERMISSIONS:{all_permissions}")
     return all_permissions.get(supplier, [])
     # return supplier_permissions["all_permissions"].get(supplier, [])
 
@@ -69,7 +70,8 @@ def validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
     print(f"config_check: {allowed_permissions}")
     for permissions in allowed_permissions:
-        if permissions.startswith(vaccine_type):
+        if vaccine_type.upper() in permissions:
+            # if permissions.startswith(vaccine_type):
             return True
     logger.error(f"vaccine type permission issue {vaccine_type}")
     return False
