@@ -88,7 +88,8 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
     unique_permissions = set()
     # Extract the ACTION_FLAG column and deduplicate values
     for row in csv_reader:
-        action_flag = row.get("ACTION_FLAG", "").strip().upper()
+        print(f"raw row:{row}")
+        action_flag = row.get("ACTION_FLAG", "").strip().replace('"', "").upper()
         print(f"Processing action flag: {action_flag}")
         if action_flag:
             mapped_permissions = Constant.action_flag_mapping.get(
