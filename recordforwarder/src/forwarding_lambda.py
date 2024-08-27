@@ -67,6 +67,7 @@ def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucke
             data_row = Constant.data_rows(False, created_at_formatted)
     elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
         fhir_json["id"] = imms_id
+        print(f"updated_fhir_json:{fhir_json}")
         response, status_code = immunization_api_instance.update_immunization(imms_id, version, fhir_json)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 200:
