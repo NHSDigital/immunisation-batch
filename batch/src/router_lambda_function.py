@@ -85,8 +85,9 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
     csv_reader = csv.DictReader(StringIO(body))
     vaccine_type_CAPS = vaccine_type.upper()
     # Stores unique ACTION_FLAG values
+    mapped_permissions = None
     unique_permissions = set()
-
+    print(f"UNIQUE_PERMISSIONS: {unique_permissions}")
     # Extract the ACTION_FLAG column and deduplicate values
     for row in csv_reader:
         action_flag = row.get("ACTION_FLAG", "").strip().upper()
@@ -96,6 +97,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
             )
             unique_permissions.add(mapped_permissions)
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
+    print(f"ALLOWED_PERMS :{allowed_permissions}")
     # check for _full permissions
     if f"{vaccine_type_CAPS}_FULL" in allowed_permissions:
         logger.info(f"Supplier has full permissions for {vaccine_type}")

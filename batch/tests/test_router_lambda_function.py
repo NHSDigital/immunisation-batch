@@ -54,7 +54,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         mock_validate_csv,
     ):
         mock_validate_csv.return_value = (True, [])
-        mock_get_permissions.return_value = ["FLU_READ", "FLU_WRITE"]
+        mock_get_permissions.return_value = ["FLU_CREATE", "FLU_UPDATE"]
         mock_validate_action_flag_permissions.return_value = True
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -268,7 +268,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     @patch("router_lambda_function.get_supplier_permissions")
     def test_validate_permissions(self, mock_get_permissions):
         """Test validate vaccine type permissions"""
-        mock_get_permissions.return_value = ["FLU_READ", "FLU_WRITE", "COVID19_FULL"]
+        mock_get_permissions.return_value = ["FLU_DELETE", "FLU_CREATE", "COVID19_FULL"]
 
         result = validate_vaccine_type_permissions("test-bucket", "supplierA", "FLU")
         self.assertTrue(result)
@@ -291,7 +291,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = "ACTION_FLAG\nupdate\ncreate\ndelete\n"
+        csv_data = "ACTION_FLAG\nupdate\nnew\ndelete\n"
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -302,7 +302,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         mock_get_supplier_permissions.return_value = [
             "COVID19_DELETE",
             "MMR_UPDATE",
-            "FLU_FULL",
+            "FLU_CREATE",
         ]
 
         # Define test parameters
@@ -315,7 +315,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         result = validate_action_flag_permissions(
             bucket_name, file_key, supplier, vaccine_type
         )
-
+        print(f"TEST_RESULT{result}")
         # Check the result
         self.assertTrue(result)
 
@@ -367,7 +367,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
         # Define test parameters
         bucket_name = "test-bucket"
-        file_key = "COVUD_Vaccinations_v5_YYY78_20240708T12130100.csv"
+        file_key = "COVID19_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_test"
         vaccine_type = "COVID19"
 
