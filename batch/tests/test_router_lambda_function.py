@@ -378,3 +378,33 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
         # Check the result
         self.assertTrue(result)
+
+    @patch("router_lambda_function.s3_client")
+    @patch("router_lambda_function.get_supplier_permissions")
+    def test_validate_action_flag_permissions_with_one_permission(
+        self, mock_get_supplier_permissions, mock_s3_client
+    ):
+        # Sample CSV data
+        csv_data = "ACTION_FLAG\ncreate\ndelete\n"
+
+        # Mock S3 get_object
+        mock_s3_client.get_object.return_value = {
+            "Body": io.BytesIO(csv_data.encode("utf-8"))
+        }
+
+        # Mock get_supplier_permissions
+        mock_get_supplier_permissions.return_value = ["COVID19_DELETE"]
+
+        # Define test parameters
+        bucket_name = "test-bucket"
+        file_key = "COVID19_Vaccinations_v5_YYY78_20240708T12130100.csv"
+        supplier = "supplier_test"
+        vaccine_type = "COVID19"
+
+        # Call the function
+        result = validate_action_flag_permissions(
+            bucket_name, file_key, supplier, vaccine_type
+        )
+
+        # Check the result
+        self.assertTrue(result)

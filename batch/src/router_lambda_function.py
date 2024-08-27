@@ -63,7 +63,6 @@ def get_supplier_permissions(supplier, bucket_name):
 def validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
     """Checks for permissions for vaccine type"""
     vaccine_type = vaccine_type.upper()
-    bucket_name = bucket_name
     print(f"BUCKET_NAME:{bucket_name}")
     print(f"VACCINE TYPE 1:{vaccine_type}")
     print(f"supplier:{supplier}")
@@ -87,7 +86,6 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
     # Stores unique ACTION_FLAG values
     mapped_permissions = None
     unique_permissions = set()
-    print(f"UNIQUE_PERMISSIONS: {unique_permissions}")
     # Extract the ACTION_FLAG column and deduplicate values
     for row in csv_reader:
         action_flag = row.get("ACTION_FLAG", "").strip().upper()
@@ -96,10 +94,13 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
                 action_flag, action_flag
             )
             unique_permissions.add(mapped_permissions)
+            print(f"UNIQUE_PERMISSIONS: {unique_permissions}")
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
+    allowed_permissions_set = set(allowed_permissions)
     print(f"ALLOWED_PERMS :{allowed_permissions}")
+    print({f"MAPPED PERMISSIONS: {mapped_permissions}"})
     # check for _full permissions
-    if f"{vaccine_type_CAPS}_FULL" in allowed_permissions:
+    if f"{vaccine_type_CAPS}_FULL" in allowed_permissions_set:
         logger.info(f"Supplier has full permissions for {vaccine_type}")
         return True
 
@@ -107,14 +108,16 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
         f"{vaccine_type_CAPS}_{perm}" for perm in unique_permissions
     }
     print(f"CSV OPERTION REQUEST: {csv_operation_request}")
+    print(f"allow:{allowed_permissions}")
 
     # Check if at least one of the mapped permissions is allowed for the specific vaccine type
-    if csv_operation_request.intersection(allowed_permissions):
+    if csv_operation_request.intersection(allowed_permissions_set):
         return True
 
+    print(f"No match {csv_operation_request} vs {allowed_permissions_set}")
     logger.error(
-        f"Supplier permissions {mapped_permissions} does not match any allowed operations"
-        f" {allowed_permissions} for vaccine type {vaccine_type_CAPS}."
+        f"Suppliers permissions {allowed_permissions_set} do not match any requested csv operations"
+        f" {unique_permissions} for vaccine type {vaccine_type_CAPS}."
     )
     return False
 
