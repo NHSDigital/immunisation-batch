@@ -84,21 +84,22 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
     csv_reader = csv.DictReader(StringIO(body))
     vaccine_type_CAPS = vaccine_type.upper()
     # Stores unique ACTION_FLAG values
-    mapped_permissions = None
+    # mapped_permissions = None
     unique_permissions = set()
     # Extract the ACTION_FLAG column and deduplicate values
     for row in csv_reader:
         action_flag = row.get("ACTION_FLAG", "").strip().upper()
+        print(f"Processing action flag: {action_flag}")
         if action_flag:
             mapped_permissions = Constant.action_flag_mapping.get(
                 action_flag, action_flag
             )
             unique_permissions.add(mapped_permissions)
+            print(f"MAPPED PERMISSIONS {mapped_permissions}")
             print(f"UNIQUE_PERMISSIONS: {unique_permissions}")
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
     allowed_permissions_set = set(allowed_permissions)
     print(f"ALLOWED_PERMS :{allowed_permissions}")
-    print({f"MAPPED PERMISSIONS: {mapped_permissions}"})
     # check for _full permissions
     if f"{vaccine_type_CAPS}_FULL" in allowed_permissions_set:
         logger.info(f"Supplier has full permissions for {vaccine_type}")
@@ -108,7 +109,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
         f"{vaccine_type_CAPS}_{perm}" for perm in unique_permissions
     }
     print(f"CSV OPERTION REQUEST: {csv_operation_request}")
-    print(f"allow:{allowed_permissions}")
+    print(f"allow:{allowed_permissions_set}")
 
     # Check if at least one of the mapped permissions is allowed for the specific vaccine type
     if csv_operation_request.intersection(allowed_permissions_set):
