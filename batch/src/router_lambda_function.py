@@ -51,10 +51,10 @@ def identify_timestamp(file_key):
 
 def get_supplier_permissions(supplier, bucket_name):
     supplier_permissions = get_json_from_s3(bucket_name)
-    print(f"configgy: {supplier_permissions}")
+    print(f"config_perms_check: {supplier_permissions}")
     if supplier_permissions is None:
         return []
-    all_permissions = supplier_permissions("all_permissions", {})
+    all_permissions = supplier_permissions.get("all_permissions", {})
     return all_permissions.get(supplier, [])
     # return supplier_permissions["all_permissions"].get(supplier, [])
 
@@ -95,7 +95,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
             unique_permissions.add(mapped_permissions)
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
     # check for _full permissions
-    if f"{vaccine_type_CAPS}_full" in allowed_permissions:
+    if f"{vaccine_type_CAPS}_FULL" in allowed_permissions:
         logger.info(f"Supplier has full permissions for {vaccine_type}")
         return True
 

@@ -20,8 +20,8 @@ class Constant:
         "YA7",
         "N2N9I",
         "YGJ",
-        "DPS_REDUCED",
-        "DPS_FULL",
+        "DPSREDUCED",
+        "DPSFULL",
     ]
 
     valid_supplier = [

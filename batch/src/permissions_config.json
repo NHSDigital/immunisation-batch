@@ -1,7 +1,7 @@
 {
 "all_permissions": {
-    "DPS_FULL": ["COV_FULL", "FLU_FULL", "MMR_FULL"],
-    "DPS_REDUCED": ["COV_FULL", "FLU_FULL", "MMR_FULL"],
+    "DPSFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+    "DPSREDUCED": ["COVid19_FULL", "FLU_FULL", "MMR_FULL"],
     "EMIS": [""],
     "PINNACLE": [""],
     "SONAR": [""],
