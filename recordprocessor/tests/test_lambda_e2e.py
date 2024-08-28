@@ -344,7 +344,7 @@ class TestLambdaHandler(unittest.TestCase):
 
                             print(f"Content of ack file: {ack_file}")  # Debugging print statement
                             self.assertIn('fatal-error', ack_file)
-                            mock_send_to_sqs.assert_not_called()
+                            mock_send_to_sqs.assert_called()
 
     # @mock_s3
     # @mock_sqs

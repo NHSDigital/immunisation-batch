@@ -29,15 +29,19 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         # Mock the API response
         mock_api.create_immunization.return_value = ('', 201)
 
+        message = {
+                        "fhir_json": Constant.test_fhir_json,
+                        "action_flag": "new",
+                        "file_name": test_file_key,
+                        "imms_id": "test",
+                        "version": 1
+                    }
+
         # Create a mock SQS message
         sqs_message = {
             "Records": [
                 {
-                    "body": json.dumps({
-                        "fhir_json": "{}",
-                        "action_flag": "new",
-                        "file_name": test_file_key
-                    })
+                    "body": json.dumps(message)
                 }
             ]
         }
@@ -76,15 +80,19 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         # Mock the API response
         mock_api.create_immunization.return_value = ('', 400)
 
+        message = {
+                        "fhir_json": Constant.test_fhir_json,
+                        "action_flag": "new",
+                        "file_name": test_file_key,
+                        "imms_id": "test",
+                        "version": 1
+                    }
+
         # Create a mock SQS message
         sqs_message = {
             "Records": [
                 {
-                    "body": json.dumps({
-                        "fhir_json": "{}",
-                        "action_flag": "new",
-                        "file_name": test_file_key
-                    })
+                    "body": json.dumps(message)
                 }
             ]
         }
@@ -224,17 +232,19 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         # Mock the API response
         mock_api.delete_immunization.return_value = ('', 204)
 
-        # Create a mock SQS message
-        sqs_message = {
-            "Records": [
-                {
-                    "body": json.dumps({
-                        "fhir_json": "{}",
+        message = {
+                        "fhir_json": Constant.test_fhir_json,
                         "action_flag": "delete",
                         "file_name": test_file_key,
                         "imms_id": "test",
                         "version": 1
-                    })
+                    }
+
+        # Create a mock SQS message
+        sqs_message = {
+            "Records": [
+                {
+                    "body": json.dumps(message)
                 }
             ]
         }
@@ -273,17 +283,19 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         # Mock the API response
         mock_api.delete_immunization.return_value = ('', 404)
 
-        # Create a mock SQS message
-        sqs_message = {
-            "Records": [
-                {
-                    "body": json.dumps({
-                        "fhir_json": "{}",
+        message = {
+                        "fhir_json": Constant.test_fhir_json,
                         "action_flag": "delete",
                         "file_name": test_file_key,
                         "imms_id": "test",
                         "version": 1
-                    })
+                    }
+
+        # Create a mock SQS message
+        sqs_message = {
+            "Records": [
+                {
+                    "body": json.dumps(message)
                 }
             ]
         }

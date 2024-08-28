@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 from datetime import datetime
 
 # Assuming the script is named 'forwarding_lambda.py'
-from forwarding_lambda import forward_lambda_handler, process_csv_to_fhir, get_environment
+from forwarding_lambda import forward_lambda_handler, forward_request_to_api, get_environment
 
 
 class TestForwardingLambda(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestForwardingLambda(unittest.TestCase):
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
-    def test_process_csv_to_fhir_new_success(self, mock_api, mock_s3):
+    def test_forward_request_to_api_new_success(self, mock_api, mock_s3):
         # Mock LastModified as a datetime object
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
         mock_api.create_immunization.return_value = ('', 201)
@@ -35,7 +35,7 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            process_csv_to_fhir('source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
+            forward_request_to_api('source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
             # Check that the data_rows function was called with success status and formatted datetime
             mock_data_rows.assert_called_with(True, '20240821T10153000')
             # Verify that the create_immunization API was called exactly once
@@ -43,60 +43,60 @@ class TestForwardingLambda(unittest.TestCase):
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
-    def test_process_csv_to_fhir_update_failure(self, mock_api, mock_s3):
+    def test_forward_request_to_api_update_failure(self, mock_api, mock_s3):
         # Mock LastModified as a datetime object
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
         mock_api.update_immunization.return_value = (None, 400)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            process_csv_to_fhir('source-bucket', 'file.csv', 'update', {"resourceType": "immunization"}, 'ack-bucket',
-                                'imms_id', 'v1')
+            forward_request_to_api('source-bucket', 'file.csv', 'update', {"resourceType": "immunization"},
+                                   'ack-bucket', 'imms_id', 'v1')
             mock_data_rows.assert_called_with(False, '20240821T10153000')
             mock_api.update_immunization.assert_called_once_with('imms_id', 'v1',
                                                                  {'resourceType': 'immunization', 'id': 'imms_id'})
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
-    def test_process_csv_to_fhir_update_failure_imms_id_none(self, mock_api, mock_s3):
+    def test_forward_request_to_api_update_failure_imms_id_none(self, mock_api, mock_s3):
         # Mock LastModified as a datetime object
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
         mock_api.update_immunization.return_value = (None, 400)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            process_csv_to_fhir('source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'None', 'None')
+            forward_request_to_api('source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'None', 'None')
             mock_data_rows.assert_called_with(False, '20240821T10153000')
             mock_api.update_immunization.assert_not_called
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
-    def test_process_csv_to_fhir_delete_failure_imms_id_none(self, mock_api, mock_s3):
+    def test_forward_request_to_api_delete_failure_imms_id_none(self, mock_api, mock_s3):
         # Mock LastModified as a datetime object
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
         mock_api.update_immunization.return_value = (None, 400)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            process_csv_to_fhir('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'None', 'None')
+            forward_request_to_api('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'None', 'None')
             mock_data_rows.assert_called_with(False, '20240821T10153000')
             mock_api.delete_immunization.assert_not_called
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
-    def test_process_csv_to_fhir_delete_success(self, mock_api, mock_s3):
+    def test_forward_request_to_api_delete_success(self, mock_api, mock_s3):
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
         mock_api.delete_immunization.return_value = (None, 204)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            process_csv_to_fhir('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'imms_id', None)
+            forward_request_to_api('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'imms_id', None)
             mock_data_rows.assert_called_with(True, '20240821T10153000')
             mock_api.delete_immunization.assert_called_once_with('imms_id', '{}')
 
-    @patch('forwarding_lambda.process_csv_to_fhir')
+    @patch('forwarding_lambda.forward_request_to_api')
     @patch('forwarding_lambda.get_environment')
-    def test_forward_lambda_handler(self, mock_get_environment, mock_process_csv_to_fhir):
+    def test_forward_lambda_handler(self, mock_get_environment, mock_forward_request_to_api):
         mock_get_environment.return_value = 'internal-dev'
         event = {
             'Records': [
@@ -110,7 +110,7 @@ class TestForwardingLambda(unittest.TestCase):
             ]
         }
         forward_lambda_handler(event, None)
-        mock_process_csv_to_fhir.assert_called_once_with(
+        mock_forward_request_to_api.assert_called_once_with(
             'immunisation-batch-internal-dev-batch-data-source',
             'test_file.csv',
             'new',
@@ -120,9 +120,9 @@ class TestForwardingLambda(unittest.TestCase):
             None
         )
 
-    @patch('forwarding_lambda.process_csv_to_fhir')
+    @patch('forwarding_lambda.forward_request_to_api')
     @patch('forwarding_lambda.get_environment')
-    def test_forward_lambda_handler_update(self, mock_get_environment, mock_process_csv_to_fhir):
+    def test_forward_lambda_handler_update(self, mock_get_environment, mock_forward_request_to_api):
         mock_get_environment.return_value = 'internal-dev'
         event = {
             'Records': [
@@ -138,7 +138,7 @@ class TestForwardingLambda(unittest.TestCase):
             ]
         }
         forward_lambda_handler(event, None)
-        mock_process_csv_to_fhir.assert_called_once_with(
+        mock_forward_request_to_api.assert_called_once_with(
             'immunisation-batch-internal-dev-batch-data-source',
             'test_file.csv',
             'update',

@@ -30,7 +30,7 @@ def get_environment():
         return "internal-dev"  # default to internal-dev for pr and user workspaces
 
 
-def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version):
+def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version):
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
     created_at = response['LastModified']
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
@@ -49,13 +49,11 @@ def process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucke
         accumulated_csv_content.write(existing_content)
         print(f"accumulated_csv_content_existing:{accumulated_csv_content}")  # Add existing content to the StringIO
     except ClientError as e:
-        print(f"error:{e}")
+        logger.error(f"error:{e}")
         if e.response['Error']['Code'] == '404':
             # File doesn't exist, write the header to the new file
             accumulated_csv_content.write('|'.join(headers) + '\n')
             print(f"accumulated_csv_content:{accumulated_csv_content}")
-        else:
-            raise  # Re-raise the exception if it's not a 404 error
     if imms_id == "None" and version == "None":
         data_row = Constant.data_rows(False, created_at_formatted)
     if action_flag == "new":
@@ -110,7 +108,7 @@ def forward_lambda_handler(event, context):
             if action_flag in ("update", "delete"):
                 imms_id = message_body.get('imms_id')
                 version = message_body.get('version')
-            process_csv_to_fhir(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version)
+            forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version)
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")

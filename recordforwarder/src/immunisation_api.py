@@ -51,23 +51,16 @@ class ImmunizationApi:
         access_token = self.authenticator.get_access_token()
         logger.debug(f"Access token obtained: {access_token}")
         print(f"access_token:{access_token}")
+        request_headers = {
+            'Authorization': f'Bearer {access_token}',
+            'X-Request-ID': str(uuid.uuid4()),
+            'X-Correlation-ID': str(uuid.uuid4()),
+            "Content-Type": "application/fhir+json",
+            "Accept": "application/fhir+json",
+        }
+        # Conditionally add the "E-Tag" header if version_id is present
         if version_id:
-            request_headers = {
-                'Authorization': f'Bearer {access_token}',
-                'X-Request-ID': str(uuid.uuid4()),
-                'X-Correlation-ID': str(uuid.uuid4()),
-                "Content-Type": "application/fhir+json",
-                "Accept": "application/fhir+json",
-                "E-Tag": str(version_id)
-                }
-        else:
-            request_headers = {
-                'Authorization': f'Bearer {access_token}',
-                'X-Request-ID': str(uuid.uuid4()),
-                'X-Correlation-ID': str(uuid.uuid4()),
-                "Content-Type": "application/fhir+json",
-                "Accept": "application/fhir+json",
-            }
+            request_headers["E-Tag"] = str(version_id)
         print(f"request_headers:{request_headers}")
         response = requests.request(
             method=method,
@@ -76,6 +69,6 @@ class ImmunizationApi:
             headers=request_headers,
             timeout=5
         )
-        logger.error(f"response: {response}")
-        logger.error(f"response_json: {response.text}")
+        print(f"response: {response}")
+        print(f"response_json: {response.text}")
         return response.text, response.status_code
