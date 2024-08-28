@@ -390,7 +390,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
                         value1_row2|A2|new
                         value1_row3|A3|delete
-                        value1_row4|A4|tree"""
+                        value1_row4|A4|tree
+                        """
 
         # csv_data = "ACTION_FLAG\nnew\ndelete\n"
 

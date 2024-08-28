@@ -93,7 +93,11 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
     for row in csv_reader:
         print(f"rowvalue:{row}")
         # Extract and process the ACTION_FLAG column
-        action_flag = row.get("ACTION_FLAG", "").split("|")
+        action_flag = row.get("ACTION_FLAG", "")
+
+        if action_flag is None:
+            action_flag = ""
+        action_flag = action_flag.split("|") if action_flag else []
         action_flag = [value.strip('"') if value else "" for value in action_flag]
 
         for flag in action_flag:
@@ -104,7 +108,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
     # Get the allowed permissions for the supplier
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
     allowed_permissions_set = set(allowed_permissions)
-
+    print(f"Allowed_permissionsP: {allowed_permissions}")
     # Check if the supplier has full permissions for the vaccine type
     if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
         logger.info(f"{supplier} has FULL permissions to create, update and delete")
@@ -122,7 +126,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
             f"one of the csv operation permissions required to {csv_operation_request}"
         )
         return True
-
+    print(f"supplier does not have required permissions {csv_operation_request}")
     return False
 
 
