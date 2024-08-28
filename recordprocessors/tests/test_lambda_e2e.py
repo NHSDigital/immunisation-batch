@@ -12,7 +12,6 @@ import csv
 from processing_lambda import (
     process_lambda_handler,
     validate_full_permissions,
-    get_json_from_s3,
 )
 
 
