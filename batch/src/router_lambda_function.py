@@ -104,7 +104,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
             flag = "CREATE" if flag == "new" else flag.upper()
             if flag:
                 unique_permissions.add(flag)
-                print(f"MAPPED PERMISSIONS {unique_permissions}")
+                # print(f"MAPPED PERMISSIONS {unique_permissions}")
     # Get the allowed permissions for the supplier
     allowed_permissions = get_supplier_permissions(supplier, bucket_name)
     allowed_permissions_set = set(allowed_permissions)
