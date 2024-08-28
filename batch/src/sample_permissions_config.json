@@ -16,5 +16,12 @@
     "NORTHERN_IRELAND_DA": [""],
     "SCOTLAND_DA": [""],
     "COVID19_VACCINE_RESOLUTION_SERVICEDESK": [""]
+},
+
+"definitions:": {
+"FULL": "Full permissions to create, update and delete a batch record", 
+"CREATE": "Permission to create a batch record", 
+"UPDATE": "Permission to create a batch record",
+"DELETE":"Permission to delete a batch record"
 }
 }

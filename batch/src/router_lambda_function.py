@@ -77,57 +77,52 @@ def validate_vaccine_type_permissions(bucket_name, supplier, vaccine_type):
 
 def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type):
     """Checks if the ACTION_FLAG values in the CSV match any of the allowed permissions for the specific vaccine type"""
+    # TO DO - COMPLETE SUPPLIER PERMISSION CHECKS
 
+    # Fetch the CSV file from S3
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     body = csv_obj["Body"].read().decode("utf-8")
+
+    # Read the CSV data
     csv_reader = csv.DictReader(StringIO(body), delimiter="|")
-    row_count = 0  # Initialize a counter for rows
 
-    # Stores unique ACTION_FLAG values
+    # Store unique permissions from the CSV
     unique_permissions = set()
-    # Extract the ACTION_FLAG column and deduplicate values
+
+    # Iterate over each row to collect unique permissions
     for row in csv_reader:
-        print(f"raw row:{row}")
-        row_count += 1  # Increment the counter for each row
-        # Split the first column which contains concatenated values
-        row_values = row.get("ACTION_FLAG", "").split("|")
-        # Strip quotes and handle missing values
-        row_values = [value.strip('"') if value else "" for value in row_values]
-        print(f"row_values:{row_values}")
-        action_flag = row_values
-        # action_flag = row.get("ACTION_FLAG", "").strip().replace('"', "").upper()
-        print(f"Processing action flag: {action_flag}")
-        for action_flags in action_flag:
+        print(f"rowvalue:{row}")
+        # Extract and process the ACTION_FLAG column
+        action_flag = row.get("ACTION_FLAG", "").split("|")
+        action_flag = [value.strip('"') if value else "" for value in action_flag]
 
-            action_flags = "CREATE" if action_flags == "new" else action_flags.upper()
-            if action_flags:
-                unique_permissions.add(action_flags)
-            print(f"MAPPED PERMISSIONS {action_flags}")
-            print(f"UNIQUE_PERMISSIONS: {unique_permissions}")
+        for flag in action_flag:
+            flag = "CREATE" if flag == "new" else flag.upper()
+            if flag:
+                unique_permissions.add(flag)
+                print(f"MAPPED PERMISSIONS {unique_permissions}")
+    # Get the allowed permissions for the supplier
+    allowed_permissions = get_supplier_permissions(supplier, bucket_name)
+    allowed_permissions_set = set(allowed_permissions)
 
-        allowed_permissions = get_supplier_permissions(supplier, bucket_name)
-        allowed_permissions_set = set(allowed_permissions)
-        print(f"ALLOWED_PERMS :{allowed_permissions}")
-        # check for _full permissions
-        if f"{vaccine_type}_FULL" in allowed_permissions_set:
-            logger.info(f"Supplier has full permissions for {vaccine_type}")
-            return True
+    # Check if the supplier has full permissions for the vaccine type
+    if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
+        logger.info(f"{supplier} has FULL permissions to create, update and delete")
+        print(f"{supplier} has full permissions to create, update and delete")
+        return True
 
-        csv_operation_request = {
-            f"{vaccine_type}_{perm.upper()}" for perm in unique_permissions
-        }
-        print(f"REQUESTED CSV OPERATIONS: {csv_operation_request}")
-        print(f"SUPPLIER PERMISSIONS:{allowed_permissions_set}")
+    # Check if any of the CSV permissions match the allowed permissions
+    csv_operation_request = {
+        f"{vaccine_type.upper()}_{perm.upper()}" for perm in unique_permissions
+    }
+    print(f"{csv_operation_request}")
+    if csv_operation_request.intersection(allowed_permissions_set):
+        logger.info(
+            f"{supplier} permission {allowed_permissions_set} matches "
+            f"one of the csv operation permissions required to {csv_operation_request}"
+        )
+        return True
 
-        # Check if at least one of the mapped permissions is allowed for the specific vaccine type
-        if csv_operation_request.intersection(allowed_permissions_set):
-            return True
-
-    print(f"No match: {csv_operation_request} vs {allowed_permissions_set}")
-    logger.error(
-        f"Suppliers permissions {allowed_permissions_set} do not match any requested csv operations"
-        f" {unique_permissions} for vaccine type {vaccine_type}."
-    )
     return False
 
 

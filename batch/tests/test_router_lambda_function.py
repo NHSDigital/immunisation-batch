@@ -325,7 +325,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = "ACTION_FLAG\ncreate\ndelete\n"
+        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
+                        value1_row2|A2|new"""
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -355,7 +356,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = "ACTION_FLAG\ncreate\ndelete\n"
+        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
+                        value1_row2|A2|new\nvalue1_row1|A1|update"""
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -385,7 +387,12 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = "ACTION_FLAG\ncreate\ndelete\n"
+        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
+                        value1_row2|A2|new
+                        value1_row3|A3|delete
+                        value1_row4|A4|tree"""
+
+        # csv_data = "ACTION_FLAG\nnew\ndelete\n"
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
