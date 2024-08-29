@@ -17,17 +17,37 @@ class ImmunizationApi:
             else "https://api.service.nhs.uk/immunisation-fhir-api"
         )
 
-    def create_imms(self, imms):
-        print("started")
-        print(f"imms:{imms}")
+    def create_immunization(self, imms):
         return self._send(
             "POST",
             "/Immunization",
-            imms
+            imms,
+            None
+
         )
 
-    def _send(self, method: str, path: str, imms):
+    def update_immunization(self, imms_id, version_id, imms):
+        print(f"imms_id:{imms_id}")
+        print(f"version_id:{version_id}")
+        return self._send(
+            "PUT",
+            f"/Immunization/{imms_id}",
+            imms,
+            version_id
+        )
+
+    def delete_immunization(self, imms_id, imms):
+        print(f"imms_id:{imms_id}")
+        return self._send(
+            "DELETE",
+            f"/Immunization/{imms_id}",
+            imms,
+            None
+        )
+
+    def _send(self, method: str, path: str, imms, version_id):
         print("send_started")
+        print(f"version_id:{version_id}")
         access_token = self.authenticator.get_access_token()
         logger.debug(f"Access token obtained: {access_token}")
         print(f"access_token:{access_token}")
@@ -38,6 +58,9 @@ class ImmunizationApi:
             "Content-Type": "application/fhir+json",
             "Accept": "application/fhir+json",
         }
+        # Conditionally add the "E-Tag" header if version_id is present
+        if version_id:
+            request_headers["E-Tag"] = str(version_id)
         print(f"request_headers:{request_headers}")
         response = requests.request(
             method=method,
@@ -46,10 +69,6 @@ class ImmunizationApi:
             headers=request_headers,
             timeout=5
         )
-        print(f"response:{response}")
-        logger.debug(f"Response received: {response}")
-
-        if response.status_code == 201:
-            return response.text, response.status_code
-        else:
-            return response.text, response.status_code
+        print(f"response: {response}")
+        print(f"response_json: {response.text}")
+        return response.text, response.status_code

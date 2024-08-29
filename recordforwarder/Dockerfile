@@ -12,10 +12,7 @@ RUN poetry install --no-interaction --no-ansi --no-root
 
 COPY src src
 COPY tests tests
-
-ENV DYNAMODB_TABLE_NAME=example_table
 RUN python -m unittest
-
 
 # -----------------------------
 FROM base as build
@@ -23,3 +20,4 @@ FROM base as build
 COPY src .
 RUN chmod 644 $(find . -type f)
 RUN chmod 755 $(find . -type d)
+CMD ["forwarding_lambda.forward_lambda_handler"]
