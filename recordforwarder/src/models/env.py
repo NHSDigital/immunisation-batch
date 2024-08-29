@@ -11,5 +11,5 @@ def get_environment():
         imms_env = "prod"
     else:
         # for temporary envs like pr-xx or user workspaces
-        imms_env = "pr-235"
+        imms_env = "internal-dev"
     return imms_env
