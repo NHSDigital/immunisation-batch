@@ -589,33 +589,33 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("processing_lambda.get_supplier_permissions")
     def test_has_full_permissions(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["COVID19_FULL"]
-        bucket_name = "test-bucket"
+        config_bucket_name = "test-bucket"
         supplier = "test-supplier"
         vaccine_type = "COVID19"
 
-        result = validate_full_permissions(bucket_name, supplier, vaccine_type)
+        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
         self.assertTrue(result)
 
     @patch("processing_lambda.get_supplier_permissions")
     def test_does_not_have_full_permissions(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["FLU_CREATE"]
-        bucket_name = "test-bucket"
+        config_bucket_name = "test-bucket"
         supplier = "test-supplier"
         vaccine_type = "FLU"
 
-        result = validate_full_permissions(bucket_name, supplier, vaccine_type)
+        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
         self.assertFalse(result)
 
     @patch("processing_lambda.get_supplier_permissions")
     def test_no_permissions(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = []
-        bucket_name = "test-bucket"
+        config_bucket_name = "test-bucket"
         supplier = "test-supplier"
         vaccine_type = "COVID19"
 
-        result = validate_full_permissions(bucket_name, supplier, vaccine_type)
+        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
         self.assertFalse(result)
 

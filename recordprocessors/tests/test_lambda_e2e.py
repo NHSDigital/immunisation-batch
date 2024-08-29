@@ -529,29 +529,29 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     def test_validate_full_permissions_end_to_end(self):
         s3 = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "test-bucket"
+        config_bucket_name = "test-bucket"
         s3.create_bucket(
-            Bucket=bucket_name,
+            Bucket=config_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
 
         permissions_data = {"all_permissions": {"DP": ["FLU_FULL"]}}
         s3.put_object(
-            Bucket=bucket_name,
+            Bucket=config_bucket_name,
             Key="permissions.json",
             Body=json.dumps(permissions_data),
         )
 
-        def mock_get_json_from_s3(bucket_name):
+        def mock_get_json_from_s3(config_bucket_name):
             return permissions_data
 
         with patch("processing_lambda.get_json_from_s3", mock_get_json_from_s3):
 
-            result = validate_full_permissions(bucket_name, "DP", "FLU")
+            result = validate_full_permissions(config_bucket_name, "DP", "FLU")
             self.assertTrue(result)
 
             permissions_data["all_permissions"]["DP"] = ["FLU_CREATE"]
-            result = validate_full_permissions(bucket_name, "dp", "FLU")
+            result = validate_full_permissions(config_bucket_name, "dp", "FLU")
             self.assertFalse(result)
 
 

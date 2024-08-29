@@ -10,20 +10,20 @@ _cached_last_modified = None
 json_file_key = "permissions_config.json"
 
 
-def get_json_from_s3(bucket_name):
+def get_json_from_s3(config_bucket_name):
     global _cached_json_data, _cached_last_modified
 
     s3 = boto3.client("s3", region_name="eu-west-2")
 
     try:
         # Fetch the file's metadata to get the LastModified time
-        response = s3.head_object(Bucket=bucket_name, Key=json_file_key)
+        response = s3.head_object(Bucket=config_bucket_name, Key=json_file_key)
         last_modified = response["LastModified"]
 
         # Reload the JSON if the file has been modified
         if _cached_last_modified is None or last_modified > _cached_last_modified:
             print("Fetching updated JSON from S3...")
-            response = s3.get_object(Bucket=bucket_name, Key=json_file_key)
+            response = s3.get_object(Bucket=config_bucket_name, Key=json_file_key)
             json_content = response["Body"].read().decode("utf-8")
             _cached_json_data = json.loads(json_content)
             _cached_last_modified = last_modified

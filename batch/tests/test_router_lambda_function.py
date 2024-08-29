@@ -310,10 +310,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_123"
         vaccine_type = "FLU"
+        config_bucket_name = "config-bucket"
 
         # Call the function
         result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type
+            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
         )
         print(f"TEST_RESULT{result}")
         # Check the result
@@ -341,10 +342,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_123"
         vaccine_type = "FLU"
+        config_bucket_name = "config_bucket"
 
         # Call the function
         result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type
+            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
         )
 
         # Check the result
@@ -372,10 +374,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         file_key = "COVID19_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_test"
         vaccine_type = "COVID19"
+        config_bucket_name = "config-bucket"
 
         # Call the function
         result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type
+            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
         )
 
         # Check the result
@@ -408,10 +411,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         file_key = "COVID19_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_test"
         vaccine_type = "COVID19"
+        config_bucket_name = "config-bucket"
 
         # Call the function
         result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type
+            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
         )
 
         # Check the result

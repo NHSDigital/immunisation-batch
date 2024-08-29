@@ -34,8 +34,8 @@ def get_environment():
         return "internal-dev"  # default to internal-dev for pr and user workspaces
 
 
-def get_supplier_permissions(supplier, bucket_name):
-    supplier_permissions = get_json_from_s3(bucket_name)
+def get_supplier_permissions(supplier, config_bucket_name):
+    supplier_permissions = get_json_from_s3(config_bucket_name)
     print(f"config_perms_check: {supplier_permissions}")
     if supplier_permissions is None:
         return []
@@ -44,8 +44,8 @@ def get_supplier_permissions(supplier, bucket_name):
     return all_permissions.get(supplier, [])
 
 
-def validate_full_permissions(bucket_name, supplier, vaccine_type):
-    allowed_permissions = get_supplier_permissions(supplier, bucket_name)
+def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
+    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
 
     # Check if the supplier has full permissions for the vaccine type
@@ -219,6 +219,10 @@ def process_lambda_handler(event, context):
     ack_bucket_name = os.getenv(
         "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-destination"
     )
+    config_bucket_name = os.getenv(
+        "CONFIG_BUCKET_NAME",
+        f"immunisation-batch-{imms_env}-batch-config",
+    )
 
     for record in event["Records"]:
         try:
@@ -227,7 +231,7 @@ def process_lambda_handler(event, context):
             vaccine_type = message_body.get("vaccine_type")
             supplier = message_body.get("supplier")
             file_key = message_body.get("filename")
-            if validate_full_permissions(bucket_name, supplier, vaccine_type):
+            if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
                 process_csv_to_fhir(
                     bucket_name, file_key, supplier, vaccine_type, ack_bucket_name
                 )

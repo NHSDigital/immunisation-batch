@@ -714,6 +714,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_123"
         vaccine_type = "FLU"
+        config_bucket_name = "config-bucket"
 
         s3_client.create_bucket(
             Bucket=source_bucket_name,
@@ -739,7 +740,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         }
 
         # Mock supplier permissions
-        def mock_get_supplier_permissions(supplier, source_bucket_name):
+        def mock_get_supplier_permissions(supplier, config_bucket_name):
             return ["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"]
 
         original_get_supplier_permissions = (
@@ -752,7 +753,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         try:
             # Call the function
             result = validate_action_flag_permissions(
-                source_bucket_name, file_key, supplier, vaccine_type
+                source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
             )
             print(f"RESULT RESULT: {result}")
             # Check the result
