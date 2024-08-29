@@ -12,7 +12,7 @@ class ImmunizationApi:
         self.authenticator = authenticator
         environment = get_environment()
         self.base_url = (
-            f"https://{environment}.api.service.nhs.uk/immunisation-fhir-api-pr-235"
+            f"https://{environment}.api.service.nhs.uk/immunisation-fhir-api"
             if environment != "prod"
             else "https://api.service.nhs.uk/immunisation-fhir-api"
         )
