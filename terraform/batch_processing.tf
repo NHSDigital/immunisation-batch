@@ -104,13 +104,13 @@ data "aws_iam_policy_document" "batch_config_bucket_policy" {
         local.environment == "prod" ? templatefile("${local.policy_path}/s3_batch_policy_prod.json", {
             "bucket-name" : aws_s3_bucket.batch_config_bucket.bucket
         } ):  templatefile("${local.policy_path}/s3_batch_policy.json", {
-            "bucket-name" : aws_s3_bucket.batch_data_source_bucket.bucket
+            "bucket-name" : aws_s3_bucket.batch_config_bucket.bucket
         } ),
     ]
 }
 
 resource "aws_s3_bucket_policy" "batch_config_bucket_policy" {
-   bucket = aws_s3_bucket.batch_data_source_bucket.id
+   bucket = aws_s3_bucket.batch_config_bucket.id
    policy = data.aws_iam_policy_document.batch_config_bucket_policy.json
 }
 
