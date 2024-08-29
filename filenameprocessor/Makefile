@@ -1,5 +1,5 @@
 build:
-	docker build -t imms-lambda-build -f lambda.Dockerfile .
+	docker build -t imms-lambda-build -f Dockerfile .
 
 package:build
 	mkdir -p build

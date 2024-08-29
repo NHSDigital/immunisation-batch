@@ -130,40 +130,35 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         ):
             fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
             if valid:
-                # identifier_system = val.get('UNIQUE_ID_URI')
-                action_flag = val.get("ACTION_FLAG")
-                # identifier_value = val.get('UNIQUE_ID')
+                identifier_system = val.get('UNIQUE_ID_URI')
+                action_flag = val.get('ACTION_FLAG')
+                identifier_value = val.get('UNIQUE_ID')
                 print(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
-
-                if action_flag in ("new"):
+                if action_flag in ("delete", "update"):
                     flag = False
-                    # Now, call the fetch_imms_id method
-                    response, status_code = immunization_api_instance.create_imms(
-                        fhir_json
-                    )
-                    print(f"status_code:{status_code}, response:{response}")
-                    if status_code == 201:
+                    response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
+                    if response.get("total") == 1 and status_code == 200:
                         flag = True
-
                 if flag:
                     # Prepare the message for SQS
                     if action_flag == "new":
                         message_body = {
-                            "fhir_json": fhir_json,
-                            "action_flag": action_flag,
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'file_name': file_key
                         }
-                    elif action_flag in ("delete", "update"):
+                    if action_flag in ("delete", "update"):
                         entry = response.get("entry", [])[0]
                         imms_id = entry["resource"].get("id")
                         version = entry["resource"].get("meta", {}).get("versionId")
                         message_body = {
-                            "fhir_json": fhir_json,
-                            "action_flag": action_flag,
-                            "imms_id": imms_id,
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'imms_id': imms_id,
                             "version": version,
+                            'file_name': file_key
                         }
-
                     status = send_to_sqs(supplier, message_body)
                     if status:
                         print("create successful")
@@ -174,16 +169,56 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                         data_row = Constant.data_rows(False, created_at_formatted)
 
                 else:
-                    print(f" unprocessible entity :{response} , code:{status_code}")
-                    data_row = Constant.data_rows(False, created_at_formatted)
-
+                    print(f"imms_id not found:{response} and status_code:{status_code}")
+                    message_body = {
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
+                    status = send_to_sqs(supplier, message_body)
+                    if status:
+                        print("create successful imms not found")
+                        logger.info("message sent successfully to SQS")
+                        data_row = Constant.data_rows("None", created_at_formatted)
+                    else:
+                        logger.error("Error sending to SQS imms id not found")
+                        data_row = Constant.data_rows(False, created_at_formatted)
             else:
-                print(f"Invalid FHIR conversion for row: {row}")
-                data_row = Constant.data_rows(False, created_at_formatted)
-
+                logger.error(f"Invalid FHIR conversion for row: {row}")
+                message_body = {
+                            'fhir_json': 'None',
+                            'action_flag': 'None',
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
+                status = send_to_sqs(supplier, message_body)
+                if status:
+                    print("sent successful invalid_json")
+                    logger.info("message sent successfully to SQS")
+                    data_row = Constant.data_rows("None", created_at_formatted)
+                else:
+                    logger.error("Error sending to SQS for invliad json")
+                    data_row = Constant.data_rows(False, created_at_formatted)
         else:
-            print(f"Invalid row format: {row}")
-            data_row = Constant.data_rows(False, created_at_formatted)
+            logger.error(f"Invalid row format: {row}")
+            message_body = {
+                            'fhir_json': 'None',
+                            'action_flag': 'None',
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
+            status = send_to_sqs(supplier, message_body)
+            if status:
+                print("sent successful invalid_json")
+                logger.info("message sent successfully to SQS")
+                data_row = Constant.data_rows("None", created_at_formatted)
+            else:
+                logger.error("Error sending to SQS for invliad json")
+                data_row = Constant.data_rows(False, created_at_formatted)
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
