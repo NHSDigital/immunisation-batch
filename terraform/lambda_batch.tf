@@ -94,6 +94,18 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         Effect   = "Allow"
         Action   = "kms:Decrypt"
         Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${local.prefix}-batch-config",           
+          "arn:aws:s3:::${local.prefix}-batch-config/*"        
+        ]
       }
     ]
   })
