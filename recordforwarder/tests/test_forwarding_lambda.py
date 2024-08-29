@@ -43,6 +43,22 @@ class TestForwardingLambda(unittest.TestCase):
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
+    def test_forward_request_to_api_new_success_duplicate(self, mock_api, mock_s3):
+        # Mock LastModified as a datetime object
+        mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
+        mock_api.create_immunization.return_value = ('', 422)
+        # Simulate the case where the ack file does not exist
+        mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
+
+        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+            forward_request_to_api('source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
+            # Check that the data_rows function was called with success status and formatted datetime
+            mock_data_rows.assert_called_with('duplicate', '20240821T10153000')
+            # Verify that the create_immunization API was called exactly once
+            mock_api.create_immunization.assert_called_once()
+
+    @patch('forwarding_lambda.s3_client')
+    @patch('forwarding_lambda.immunization_api_instance')
     def test_forward_request_to_api_update_failure(self, mock_api, mock_s3):
         # Mock LastModified as a datetime object
         mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}

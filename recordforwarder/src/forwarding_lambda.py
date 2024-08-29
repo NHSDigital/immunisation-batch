@@ -71,6 +71,8 @@ def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bu
         print(f"response:{response},status_code:{status_code}")
         if status_code == 201:
             data_row = Constant.data_rows(True, created_at_formatted)
+        elif status_code == 422:
+            data_row = Constant.data_rows("duplicate", created_at_formatted)
         else:
             data_row = Constant.data_rows(False, created_at_formatted)
     elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
