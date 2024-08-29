@@ -114,7 +114,7 @@ resource "aws_s3_bucket_policy" "batch_config_bucket_policy" {
    policy = data.aws_iam_policy_document.batch_config_bucket_policy.json
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "s3_batch_encryption" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "s3_batch_config_encryption" {
   bucket = aws_s3_bucket.batch_config_bucket.id
 
   rule {
