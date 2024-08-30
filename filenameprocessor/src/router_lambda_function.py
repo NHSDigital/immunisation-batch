@@ -100,7 +100,10 @@ def validate_action_flag_permissions(
         if action_flag is None:
             action_flag = ""
         action_flag = action_flag.split("|") if action_flag else []
-        action_flag = [value.strip('"') if value else "" for value in action_flag]
+        action_flag = [
+            value.strip('"').strip("'").strip() if value else ""
+            for value in action_flag
+        ]
 
         for flag in action_flag:
             flag = "CREATE" if flag == "new" else flag.upper()
@@ -121,8 +124,9 @@ def validate_action_flag_permissions(
     csv_operation_request = {
         f"{vaccine_type.upper()}_{perm.upper()}" for perm in unique_permissions
     }
-    print(f"{csv_operation_request}")
-    if csv_operation_request.intersection(allowed_permissions_set):
+    print(f"CSV FILE PERMISSIONS {csv_operation_request}")
+    print(f"ALLOWED_PERMISSIONS SET {allowed_permissions_set}")
+    if any(operation in csv_operation_request for operation in allowed_permissions_set):
         logger.info(
             f"{supplier} permission {allowed_permissions_set} matches "
             f"one of the csv operation permissions required to {csv_operation_request}"
