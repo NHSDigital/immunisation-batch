@@ -610,7 +610,8 @@ class TestLambdaHandler(unittest.TestCase):
 #         # Mock the CSV data
 #         self.mock_s3_client.get_object.return_value = {
 #             "Body": MagicMock(
-#                 read=lambda: b"NHS_NUMBER|ACTION_FLAG|UNIQUE_ID_URI|UNIQUE_ID\n12345|update|urn:nhs:id|ID12345\n67890|delete|urn:nhs:id|ID67890"
+#                 read=lambda: b"NHS_NUMBER|ACTION_FLAG|UNIQUE_ID_URI|UNIQUE_ID\n12345
+#                   |update|urn:nhs:id|ID12345\n67890|delete|urn:nhs:id|ID67890"
 #             )
 #         }
 
