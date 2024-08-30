@@ -70,7 +70,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
             # Assert process_csv_to_fhir was called with correct arguments
             mock_process_csv_to_fhir.assert_called_once_with(
-                "source-bucket", "testfile.csv", "Pfizer", "COVID19", "ack-bucket"
+                "source-bucket",
+                "testfile.csv",
+                "Pfizer",
+                "COVID19",
+                "ack-bucket",
+                True,
+                set(),
             )
 
     @mock_s3
@@ -134,15 +140,17 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     },
                 }
             ],
-            "total": 1
+            "total": 1,
         }, 200
-        with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+        with patch(
+            "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, "True", ""
             )
 
     @mock_s3
@@ -157,6 +165,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -192,9 +202,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     },
                 }
             ],
-            "total": 1
+            "total": 1,
         }, 200
-        with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+        with patch(
+            "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(
@@ -202,7 +214,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
             )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name,
+                file_key,
+                supplier,
+                "covid19",
+                ack_bucket_name,
+                full_permissions,
+                permission_operations,
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -223,6 +241,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -258,9 +278,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     },
                 }
             ],
-            "total": 1
+            "total": 1,
         }, 200
-        with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+        with patch(
+            "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(
@@ -268,7 +290,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
             )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name,
+                file_key,
+                supplier,
+                "covid19",
+                ack_bucket_name,
+                full_permissions,
+                permission_operations,
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -289,6 +317,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -324,9 +354,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     },
                 }
             ],
-            "total": 1
+            "total": 1,
         }, 200
-        with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+        with patch(
+            "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(
@@ -334,7 +366,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
             )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name,
+                file_key,
+                supplier,
+                "covid19",
+                ack_bucket_name,
+                full_permissions,
+                permission_operations,
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -353,6 +391,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -375,12 +415,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 supplier,
                 Constant.valid_vaccine_type[1],
                 ack_bucket_name,
+                full_permissions,
+                permission_operations,
             )
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
-        content = response['Body'].read().decode('utf-8')
-        self.assertIn('fatal-error', content)
+        content = response["Body"].read().decode("utf-8")
+        self.assertIn("fatal-error", content)
         mock_send_to_sqs.assert_called()
 
     @mock_s3
@@ -395,6 +437,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -419,67 +463,88 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 supplier,
                 Constant.valid_vaccine_type[1],
                 ack_bucket_name,
+                full_permissions,
+                permission_operations,
             )
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
-        content = response['Body'].read().decode('utf-8')
-        self.assertIn('fatal-error', content)
+        content = response["Body"].read().decode("utf-8")
+        self.assertIn("fatal-error", content)
         mock_send_to_sqs.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch('processing_lambda.send_to_sqs')
-    @patch('csv.DictReader')
+    @patch("processing_lambda.send_to_sqs")
+    @patch("csv.DictReader")
     def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_sqs):
-        s3_client = boto3.client('s3', region_name='us-west-2')
-        bucket_name = 'test-bucket'
-        file_key = 'test-file.csv'
-        supplier = 'test'
-        ack_bucket_name = 'ack-bucket'
-        s3_client.create_bucket(Bucket=bucket_name,
-                                CreateBucketConfiguration={
-                                    'LocationConstraint': 'eu-west-2'
-                                })
-        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
-                                    'LocationConstraint': 'eu-west-2'
-                                })
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_id_missing)
+        s3_client = boto3.client("s3", region_name="us-west-2")
+        bucket_name = "test-bucket"
+        file_key = "test-file.csv"
+        supplier = "test"
+        ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
+        s3_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.create_bucket(
+            Bucket=ack_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.put_object(
+            Bucket=bucket_name, Key=file_key, Body=Constant.file_content_id_missing
+        )
         results = {"total": 0}, 400
-        with patch('processing_lambda.convert_to_fhir_json', return_value=({}, True)), \
-             patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+        with patch(
+            "processing_lambda.convert_to_fhir_json", return_value=({}, True)
+        ), patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(
+                Constant.mock_update_request
+            )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name,
+                file_key,
+                supplier,
+                "covid19",
+                ack_bucket_name,
+                full_permissions,
+                permission_operations,
             )
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
-        content = response['Body'].read().decode('utf-8')
-        self.assertIn('fatal-error', content)
+        content = response["Body"].read().decode("utf-8")
+        self.assertIn("fatal-error", content)
         mock_send_to_sqs.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch('processing_lambda.send_to_sqs')
-    @patch('csv.DictReader')
-    def test_process_csv_to_fhir_successful(self, mock_csv_dict_reader, mock_send_to_sqs):
-        s3_client = boto3.client('s3', region_name='us-west-2')
-        bucket_name = 'test-bucket'
-        file_key = 'test-file.csv'
-        supplier = 'test'
-        ack_bucket_name = 'ack-bucket'
+    @patch("processing_lambda.send_to_sqs")
+    @patch("csv.DictReader")
+    def test_process_csv_to_fhir_successful(
+        self, mock_csv_dict_reader, mock_send_to_sqs
+    ):
+        s3_client = boto3.client("s3", region_name="us-west-2")
+        bucket_name = "test-bucket"
+        file_key = "test-file.csv"
+        supplier = "test"
+        ack_bucket_name = "ack-bucket"
+        full_permissions = True
+        permission_operations = set()
         csv_content = Constant.file_content
-        s3_client.create_bucket(Bucket=bucket_name,
-                                CreateBucketConfiguration={
-                                    'LocationConstraint': 'eu-west-2'
-                                })
-        s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
-                                    'LocationConstraint': 'eu-west-2'
-                                })
+        s3_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.create_bucket(
+            Bucket=ack_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_content)
         results = {
             "resourceType": "Bundle",
@@ -491,7 +556,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
                         "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
                         "Immunization?immunization.identifier=https://supplierABC/identifiers/"
                         "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
-                    )
+                    ),
                 }
             ],
             "entry": [
@@ -501,27 +566,37 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     "resource": {
                         "resourceType": "Immunization",
                         "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
-                        "meta": {
-                            "versionId": 1
-                        }
-                    }
+                        "meta": {"versionId": 1},
+                    },
                 }
             ],
-            "total": 1
+            "total": 1,
         }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=results):
+            with patch(
+                "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+            ):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
-                mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+                mock_csv_reader_instance.__iter__.return_value = iter(
+                    Constant.mock_update_request
+                )
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
-                process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name)
+                process_csv_to_fhir(
+                    bucket_name,
+                    file_key,
+                    supplier,
+                    vaccine_type,
+                    ack_bucket_name,
+                    full_permissions,
+                    permission_operations,
+                )
 
-            ack_filename = 'processedFile/test-file_response.csv'
+            ack_filename = "processedFile/test-file_response.csv"
             response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
-            content = response['Body'].read().decode('utf-8')
-            self.assertIn('Success', content)
+            content = response["Body"].read().decode("utf-8")
+            self.assertIn("Success", content)
             mock_send_to_sqs.assert_called()
 
     def test_get_environment(self):
