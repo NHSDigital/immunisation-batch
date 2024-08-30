@@ -70,7 +70,8 @@ class TestForwardingLambda(unittest.TestCase):
                                    'ack-bucket', 'imms_id', 'v1')
             mock_data_rows.assert_called_with(False, '20240821T10153000')
             mock_api.update_immunization.assert_called_once_with('imms_id', 'v1',
-                                                                 {'resourceType': 'immunization', 'id': 'imms_id'})
+                                                                 {'resourceType': 'immunization', 'id': 'imms_id'},
+                                                                 None)
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
@@ -108,7 +109,7 @@ class TestForwardingLambda(unittest.TestCase):
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
             forward_request_to_api('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'imms_id', None)
             mock_data_rows.assert_called_with(True, '20240821T10153000')
-            mock_api.delete_immunization.assert_called_once_with('imms_id', '{}')
+            mock_api.delete_immunization.assert_called_once_with('imms_id', '{}', None)
 
     @patch('forwarding_lambda.forward_request_to_api')
     @patch('forwarding_lambda.get_environment')

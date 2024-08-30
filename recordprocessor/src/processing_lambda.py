@@ -13,6 +13,7 @@ from botocore.config import Config
 from constants import Constant
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
+from permissions_checker import get_json_from_s3
 
 s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
 sqs_client = boto3.client("sqs", config=Config(region_name="eu-west-2"))
@@ -31,6 +32,29 @@ def get_environment():
         return "prod"
     else:
         return "internal-dev"  # default to internal-dev for pr and user workspaces
+
+
+def get_supplier_permissions(supplier, config_bucket_name):
+    supplier_permissions = get_json_from_s3(config_bucket_name)
+    print(f"config_perms_check: {supplier_permissions}")
+    if supplier_permissions is None:
+        return []
+    all_permissions = supplier_permissions.get("all_permissions", {})
+    print(f"ALL_PERMISSIONS:{all_permissions}")
+    return all_permissions.get(supplier, [])
+
+
+def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
+    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
+    allowed_permissions_set = set(allowed_permissions)
+
+    # Check if the supplier has full permissions for the vaccine type
+    if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
+        logger.info(f"{supplier} has FULL permissions to create, update and delete")
+        print(f"{supplier} has full permissions to create, update and delete")
+        return True
+    print(f"{supplier} does not have full permissions to create, update and delete")
+    return False
 
 
 def send_to_sqs(supplier, message_body):
@@ -56,7 +80,7 @@ def send_to_sqs(supplier, message_body):
         logger.error(f"queue {queue_url} does not exist")
         return False
     except ClientError as e:
-        if e.response['Error']['Code'] == 'AccessDenied':
+        if e.response["Error"]["Code"] == "AccessDenied":
             logger.error(f"Access denied when sending message to queue {queue_url}")
         else:
             logger.error(f"Unexpected error: {e}")
@@ -66,22 +90,26 @@ def send_to_sqs(supplier, message_body):
 
 def fetch_file_from_s3(bucket_name, file_key):
     response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    return response['Body'].read().decode('utf-8')
+    return response["Body"].read().decode("utf-8")
 
 
 def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name):
     csv_data = fetch_file_from_s3(bucket_name, file_key)
-    csv_reader = csv.DictReader(StringIO(csv_data), delimiter='|')
+    csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-    created_at = response['LastModified']
+    created_at = response["LastModified"]
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
 
     headers = Constant.header
-    parts = file_key.split('.')
+    parts = file_key.split(".")
     ack_filename = f"processedFile/{parts[0]}_response.csv"
 
-    accumulated_csv_content = StringIO()  # Initialize a variable to accumulate CSV content
-    accumulated_csv_content.write('|'.join(headers) + '\n')  # Write the header once at the start
+    accumulated_csv_content = (
+        StringIO()
+    )  # Initialize a variable to accumulate CSV content
+    accumulated_csv_content.write(
+        "|".join(headers) + "\n"
+    )  # Write the header once at the start
 
     row_count = 0  # Initialize a counter for rows
 
@@ -89,13 +117,17 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         print(f"row:{row}")
         row_count += 1  # Increment the counter for each row
         # Split the first column which contains concatenated values
-        row_values = row.get('NHS_NUMBER', '').split('|')
+        row_values = row.get("NHS_NUMBER", "").split("|")
         # Strip quotes and handle missing values
-        row_values = [value.strip('"') if value else '' for value in row_values]
+        row_values = [value.strip('"') if value else "" for value in row_values]
         print(f"row_values:{row_values}")
         val = dict_formation(row_values)
         print(f"parsed_row:{val}")
-        if val.get('ACTION_FLAG') in {"new", "update", "delete"} and val.get('UNIQUE_ID_URI') and val.get('UNIQUE_ID'):
+        if (
+            val.get("ACTION_FLAG") in {"new", "update", "delete"}
+            and val.get("UNIQUE_ID_URI")
+            and val.get("UNIQUE_ID")
+        ):
             fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
             if valid:
                 identifier_system = val.get('UNIQUE_ID_URI')
@@ -190,10 +222,12 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
-        cleaned_row = '|'.join(data_row_str).replace(' |', '|').replace('| ', '|').strip()
+        cleaned_row = (
+            "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
+        )
 
         # Write the cleaned and aligned data row to the accumulated CSV content
-        accumulated_csv_content.write(cleaned_row + '\n')
+        accumulated_csv_content.write(cleaned_row + "\n")
 
         # Write the data row to the accumulated CSV content
         # accumulated_csv_content.write('|'.join(data_row_str) + '\n')
@@ -201,30 +235,47 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         # Upload to S3 after processing this row
         # csv_bytes = BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
         print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
-        csv_file_like_object = io.BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
+        csv_file_like_object = io.BytesIO(
+            accumulated_csv_content.getvalue().encode("utf-8")
+        )
         s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
         logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
 
-    logger.info(f"Total rows processed: {row_count}")  # logger the total number of rows processed
+    logger.info(
+        f"Total rows processed: {row_count}"
+    )  # logger the total number of rows processed
 
 
 def process_lambda_handler(event, context):
     imms_env = get_environment()
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-source')
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f'immunisation-batch-{imms_env}-batch-data-destination')
+    bucket_name = os.getenv(
+        "SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-source"
+    )
+    ack_bucket_name = os.getenv(
+        "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-destination"
+    )
+    config_bucket_name = os.getenv(
+        "CONFIG_BUCKET_NAME",
+        f"immunisation-batch-{imms_env}-batch-config",
+    )
 
-    for record in event['Records']:
+    for record in event["Records"]:
         try:
             print(f"Records:{record}")
-            message_body = json.loads(record['body'])
-            vaccine_type = message_body.get('vaccine_type')
-            supplier = message_body.get('supplier')
-            file_key = message_body.get('filename')
-            process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name)
+            message_body = json.loads(record["body"])
+            vaccine_type = message_body.get("vaccine_type")
+            supplier = message_body.get("supplier")
+            file_key = message_body.get("filename")
+            if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
+                process_csv_to_fhir(
+                    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name
+                )
+            else:
+                logger.info(f"{supplier} does not have full_permissions")
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
 
 
 if __name__ == "__main__":
-    process_lambda_handler({'Records': []}, {})
+    process_lambda_handler({"Records": []}, {})

@@ -1,5 +1,6 @@
 import boto3
 import unittest
+
 import json
 from unittest.mock import patch, MagicMock
 from moto import mock_s3, mock_sqs
@@ -7,7 +8,8 @@ from src.constants import Constant
 
 
 from router_lambda_function import (
-    lambda_handler,  # Import lambda_handler for end-to-end test
+    lambda_handler,
+    validate_action_flag_permissions,
 )
 
 
@@ -16,9 +18,20 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.sqs_client")
     @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.get_supplier_permissions")
     def test_lambda_handler(
-        self, mock_validate_csv_column_count, mock_sqs_client, mock_s3_client
+        self,
+        mock_get_supplier_permissions,
+        mock_validate_csv_column_count,
+        mock_sqs_client,
+        mock_s3_client,
     ):
+
+        # Mock permissions configuration
+        mock_get_supplier_permissions.return_value = {
+            "all_permissions": {"EMIS": ["FLU_FULL"]}
+        }
+
         # Mock an S3 event
         event = {
             "Records": [
@@ -78,11 +91,12 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
 
 
 class TestLambdaHandler(unittest.TestCase):
-
     @mock_s3
     @mock_sqs
-    def test_lambda_handler(self):
+    @patch("router_lambda_function.get_supplier_permissions")
+    def test_lambda_handler(self, mock_get_supplier_permissions):
         """Tests lambda function end to end"""
+
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
@@ -100,28 +114,17 @@ class TestLambdaHandler(unittest.TestCase):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
 
-        print(f"Source Bucket: {source_bucket_name}")
-        print(f"Destination Bucket: {destination_bucket_name}")
-        print(f"Region: {s3_client.meta.region_name}")
-        # check if bucket exists
-        response = s3_client.list_buckets()
-        buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        print(f"allBuckets: {buckets}")
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
-        self.assertIn(
-            destination_bucket_name,
-            buckets,
-            f"Bucket {destination_bucket_name} not found",
-        )
-
-        # Upload a test file
+        # Upload a test file to the source bucket
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        test_file_content = "example content"
+        test_file_content = "ACTION_FLAG\nupdate\n"
         s3_client.put_object(
             Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
         )
+
+        # Mock permissions configuration
+        mock_get_supplier_permissions.return_value = [
+            "FLU_FULL",
+        ]
 
         # Set up SQS
         sqs_client = boto3.client("sqs", region_name="eu-west-2")
@@ -145,7 +148,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Mock the validate_csv_column_count function
         with patch(
             "router_lambda_function.validate_csv_column_count",
-            return_value=(True, False),
+            return_value=True,
         ):
             # Call the lambda_handler function
             response = lambda_handler(event, None)
@@ -153,20 +156,20 @@ class TestLambdaHandler(unittest.TestCase):
         # Assertions
         self.assertEqual(response["statusCode"], 200)
 
-        # Check if the acknowledgment file is created in the S3 bucket
+        # Check if the acknowledgment file is created in the destination S3 bucket
         ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
         self.assertIn(ack_file_key, ack_file_keys)
 
-        # # Check if the message was sent to the SQS queue
+        # Check if the message was sent to the SQS queue
         messages = sqs_client.receive_message(
             QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1
         )
-        # print(f"RRRdmssge:{messages}")
         self.assertIn("Messages", messages)
         received_message = json.loads(messages["Messages"][0]["Body"])
-        # print(f"R2D2:{received_message}")
+
+        # Validate message content
         self.assertEqual(received_message["vaccine_type"], "Flu")
         self.assertEqual(received_message["supplier"], "EMIS")
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
@@ -178,8 +181,14 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     @mock_sqs
     @patch("router_lambda_function.send_to_supplier_queue")
-    def test_lambda_invalid(self, mock_send_to_supplier_queue):
+    @patch("router_lambda_function.get_supplier_permissions")
+    def test_lambda_invalid(
+        self, mock_send_to_supplier_queue, mock_get_supplier_permissions
+    ):
         """tests SQS queue is not called when file validation failed"""
+        # Mock permissions configuration
+        mock_get_supplier_permissions.return_value = ["FLUFULL"]
+
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
@@ -694,5 +703,62 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn(ack_file_key, ack_file_keys)
 
 
-if __name__ == '__main__':
-    unittest.main()
+class TestValidateActionFlagPermissions(unittest.TestCase):
+
+    @mock_s3
+    def test_validate_action_flag_permissions_end_to_end(self):
+        # Define test parameters
+        s3_client = boto3.client("s3", region_name="eu-west-2")
+        csv_data = "ACTION_FLAG\nnew\nupdate\ndelete\n"
+        source_bucket_name = "test-bucket"
+        file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
+        supplier = "supplier_123"
+        vaccine_type = "FLU"
+        config_bucket_name = "config-bucket"
+
+        s3_client.create_bucket(
+            Bucket=source_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+            Body=csv_data,
+        )
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+            Body=csv_data,
+        )
+
+        # Mock the permissions configuration
+        Constant.action_flag_mapping = {
+            "NEW": "CREATE",
+            "UPDATE": "UPDATE",
+            "DELETE": "DELETE",
+        }
+
+        # Mock supplier permissions
+        def mock_get_supplier_permissions(supplier, config_bucket_name):
+            return ["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"]
+
+        original_get_supplier_permissions = (
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"]
+        )
+        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+            mock_get_supplier_permissions
+        )
+
+        try:
+            # Call the function
+            result = validate_action_flag_permissions(
+                source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
+            )
+            print(f"RESULT RESULT: {result}")
+            # Check the result
+            self.assertTrue(result)
+        finally:
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+                original_get_supplier_permissions
+            )

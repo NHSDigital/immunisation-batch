@@ -94,6 +94,18 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         Effect   = "Allow"
         Action   = "kms:Decrypt"
         Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${local.prefix}-batch-config",           
+          "arn:aws:s3:::${local.prefix}-batch-config/*"        
+        ]
       }
     ]
   })
@@ -147,6 +159,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
       LOCAL_ACCOUNT_ID = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
       PROD_ACCOUNT_ID   = local.account_id
+      CONFIG_BUCKET_NAME = "${local.prefix}-batch-config"
     }
   }
 }
