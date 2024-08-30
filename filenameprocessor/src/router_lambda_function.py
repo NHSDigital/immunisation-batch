@@ -126,7 +126,7 @@ def validate_action_flag_permissions(
     }
     print(f"CSV FILE PERMISSIONS {csv_operation_request}")
     print(f"ALLOWED_PERMISSIONS SET {allowed_permissions_set}")
-    if any(operation in csv_operation_request for operation in allowed_permissions_set):
+    if any(operation in allowed_permissions_set for operation in csv_operation_request):
         logger.info(
             f"{supplier} permission {allowed_permissions_set} matches "
             f"one of the csv operation permissions required to {csv_operation_request}"
