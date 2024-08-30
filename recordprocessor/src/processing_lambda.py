@@ -47,14 +47,21 @@ def get_supplier_permissions(supplier, config_bucket_name):
 def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
+    return f"{vaccine_type.upper()}_FULL" in allowed_permissions_set
 
-    # Check if the supplier has full permissions for the vaccine type
-    if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
-        logger.info(f"{supplier} has FULL permissions to create, update and delete")
-        print(f"{supplier} has full permissions to create, update and delete")
-        return True
-    print(f"{supplier} does not have full permissions to create, update and delete")
-    return False
+
+def get_permission_operations(supplier, config_bucket_name, vaccine_type):
+    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
+    permission_operations = {
+        perm.split("_")[1]
+        for perm in allowed_permissions
+        if perm.startswith(vaccine_type.upper())
+    }
+    if "CREATE" in permission_operations and "new" in permission_operations:
+        permission_operations.remove("new")
+    print(f"PERMISSION_OPERATIONS: {permission_operations}")
+
+    return permission_operations
 
 
 def send_to_sqs(supplier, message_body):
@@ -93,7 +100,15 @@ def fetch_file_from_s3(bucket_name, file_key):
     return response["Body"].read().decode("utf-8")
 
 
-def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name):
+def process_csv_to_fhir(
+    bucket_name,
+    file_key,
+    supplier,
+    vaccine_type,
+    ack_bucket_name,
+    full_permissions,
+    permission_operations,
+):
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
@@ -127,37 +142,43 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
             val.get("ACTION_FLAG") in {"new", "update", "delete"}
             and val.get("UNIQUE_ID_URI")
             and val.get("UNIQUE_ID")
+            and (
+                full_permissions
+                or val.get("ACTION_FLAG", "").upper() in permission_operations
+            )
         ):
             fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
             if valid:
-                identifier_system = val.get('UNIQUE_ID_URI')
-                action_flag = val.get('ACTION_FLAG')
-                identifier_value = val.get('UNIQUE_ID')
+                identifier_system = val.get("UNIQUE_ID_URI")
+                action_flag = val.get("ACTION_FLAG")
+                identifier_value = val.get("UNIQUE_ID")
                 print(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
                 if action_flag in ("delete", "update"):
                     flag = False
-                    response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
+                    response, status_code = immunization_api_instance.get_imms_id(
+                        identifier_system, identifier_value
+                    )
                     if response.get("total") == 1 and status_code == 200:
                         flag = True
                 if flag:
                     # Prepare the message for SQS
                     if action_flag == "new":
                         message_body = {
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                            'file_name': file_key
+                            "fhir_json": fhir_json,
+                            "action_flag": action_flag,
+                            "file_name": file_key,
                         }
                     if action_flag in ("delete", "update"):
                         entry = response.get("entry", [])[0]
                         imms_id = entry["resource"].get("id")
                         version = entry["resource"].get("meta", {}).get("versionId")
                         message_body = {
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                            'imms_id': imms_id,
+                            "fhir_json": fhir_json,
+                            "action_flag": action_flag,
+                            "imms_id": imms_id,
                             "version": version,
-                            'file_name': file_key
+                            "file_name": file_key,
                         }
                     status = send_to_sqs(supplier, message_body)
                     if status:
@@ -171,12 +192,12 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                            'imms_id': 'None',
-                            'version': 'None',
-                            'file_name': file_key
-                        }
+                        "fhir_json": fhir_json,
+                        "action_flag": action_flag,
+                        "imms_id": "None",
+                        "version": "None",
+                        "file_name": file_key,
+                    }
                     status = send_to_sqs(supplier, message_body)
                     if status:
                         print("create successful imms not found")
@@ -188,12 +209,12 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
-                            'fhir_json': 'None',
-                            'action_flag': 'None',
-                            'imms_id': 'None',
-                            'version': 'None',
-                            'file_name': file_key
-                        }
+                    "fhir_json": "None",
+                    "action_flag": "None",
+                    "imms_id": "None",
+                    "version": "None",
+                    "file_name": file_key,
+                }
                 status = send_to_sqs(supplier, message_body)
                 if status:
                     print("sent successful invalid_json")
@@ -205,12 +226,12 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         else:
             logger.error(f"Invalid row format: {row}")
             message_body = {
-                            'fhir_json': 'None',
-                            'action_flag': 'None',
-                            'imms_id': 'None',
-                            'version': 'None',
-                            'file_name': file_key
-                        }
+                "fhir_json": "None",
+                "action_flag": "None",
+                "imms_id": "None",
+                "version": "None",
+                "file_name": file_key,
+            }
             status = send_to_sqs(supplier, message_body)
             if status:
                 print("sent successful invalid_json")
@@ -266,12 +287,24 @@ def process_lambda_handler(event, context):
             vaccine_type = message_body.get("vaccine_type")
             supplier = message_body.get("supplier")
             file_key = message_body.get("filename")
-            if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-                process_csv_to_fhir(
-                    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name
-                )
-            else:
-                logger.info(f"{supplier} does not have full_permissions")
+
+            # Get permissions and determine processing logic
+            full_permissions = validate_full_permissions(
+                config_bucket_name, supplier, vaccine_type
+            )
+            permission_operations = get_permission_operations(
+                supplier, config_bucket_name, vaccine_type
+            )
+
+            process_csv_to_fhir(
+                bucket_name,
+                file_key,
+                supplier,
+                vaccine_type,
+                ack_bucket_name,
+                full_permissions,
+                permission_operations,
+            )
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")

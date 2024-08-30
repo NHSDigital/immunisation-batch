@@ -122,12 +122,13 @@ def validate_action_flag_permissions(
         f"{vaccine_type.upper()}_{perm.upper()}" for perm in unique_permissions
     }
     print(f"{csv_operation_request}")
-    if csv_operation_request.intersection(allowed_permissions_set):
-        logger.info(
-            f"{supplier} permission {allowed_permissions_set} matches "
-            f"one of the csv operation permissions required to {csv_operation_request}"
-        )
-        return True
+    for perm in csv_operation_request:
+        if perm in allowed_permissions_set:
+            logger.info(
+                f"{supplier} permission {allowed_permissions_set} matches "
+                f"one of the csv operation permissions required to {csv_operation_request}"
+            )
+            return True
     print(f"supplier does not have required permissions {csv_operation_request}")
     return False
 
