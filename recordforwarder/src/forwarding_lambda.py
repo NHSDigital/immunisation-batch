@@ -107,8 +107,8 @@ def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bu
 
 def forward_lambda_handler(event, context):
     imms_env = get_environment()
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-source")
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-destination")
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
 
     for record in event["Records"]:
         try:

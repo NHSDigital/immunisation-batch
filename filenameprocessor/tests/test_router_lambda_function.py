@@ -137,7 +137,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     @patch("router_lambda_function.s3_client")
     def test_create_ack_file(self, mock_s3_client):
         """tests whether ack file is created"""
-        ack_bucket_name = "immunisation-batch-internal-dev-batch-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         validation_passed = True
         created_at_formatted = "20240725T12510700"
         create_ack_file(
