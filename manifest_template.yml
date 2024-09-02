@@ -25,8 +25,9 @@ APIGEE_ENVIRONMENTS:
   # - name: sandbox
   #   display_name: Sandbox
   #   product_visibility: private
-  # - name: int
-  #   display_name: Integration Testing
+  - name: int
+    display_name: Integration Testing
+    has_mock_auth: false
 ---
 meta:
   api:
