@@ -34,14 +34,14 @@ extends:
       - environment: internal-dev
         post_deploy:
           - template: ./templates/post-deploy.yml
-      #- environment: manual-approval
-      #  manual_approval_prod: true
-      #- environment: ref
-      #  depends_on:
-      #      - internal_dev
-      #      - manual_approval
-      #  post_deploy:
-      #      - template: ./templates/post-deploy.yml
+      - environment: manual-approval
+        manual_approval_prod: true
+      - environment: ref
+        depends_on:
+          - internal_dev
+          - manual_approval
+        post_deploy:
+          - template: ./templates/post-deploy.yml
       - environment: int
         depends_on:
           - internal_dev
