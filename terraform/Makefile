@@ -5,8 +5,8 @@ interactionId=$(environment)
 aws_profile = apim-dev
 tf_cmd = AWS_PROFILE=$(aws_profile) terraform
 
-project_name = immunisation
-project_short_name = imms
+project_name = immunisation-batch
+project_short_name = imms-batch
 state_bucket = $(project_name)-terraform-state
 tf_state= -backend-config="bucket=$(state_bucket)"
 
