@@ -24,9 +24,9 @@ locals {
     root_domain = "dev.api.platform.nhs.uk"
 }
 
-locals {
-    project_domain_name = data.aws_route53_zone.project_zone.name
-}
+#locals {
+#    project_domain_name = data.aws_route53_zone.project_zone.name
+#}
 
 
 locals {
