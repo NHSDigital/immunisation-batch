@@ -72,8 +72,8 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-batch-data-source",           
-          "arn:aws:s3:::${local.prefix}-batch-data-source/*"        
+          "arn:aws:s3:::${local.prefix}-data-source",           
+          "arn:aws:s3:::${local.prefix}-data-source/*"        
         ]
       },
       {
@@ -84,8 +84,8 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-batch-data-destination",       
-          "arn:aws:s3:::${local.prefix}-batch-data-destination/*"        
+          "arn:aws:s3:::${local.prefix}-data-destination",       
+          "arn:aws:s3:::${local.prefix}-data-destination/*"        
         ]
       },
       {
@@ -106,8 +106,8 @@ resource "aws_iam_policy" "processor_lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-batch-config",           
-          "arn:aws:s3:::${local.prefix}-batch-config/*"        
+          "arn:aws:s3:::${local.prefix}-config",           
+          "arn:aws:s3:::${local.prefix}-config/*"        
         ]
       }
     ]
@@ -173,13 +173,13 @@ resource "aws_lambda_function" "file_transforming_lambda" {
 
   environment {
     variables = {
-      SOURCE_BUCKET_NAME = "${local.prefix}-batch-data-source"
-      ACK_BUCKET_NAME    = "${local.prefix}-batch-data-destination"
+      SOURCE_BUCKET_NAME = "${local.prefix}-data-source"
+      ACK_BUCKET_NAME    = "${local.prefix}-data-destination"
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
       PROD_ACCOUNT_ID    = local.account_id
-      CONFIG_BUCKET_NAME = "${local.prefix}-batch-config"
+      CONFIG_BUCKET_NAME = "${local.prefix}-config"
     }
   
   }  

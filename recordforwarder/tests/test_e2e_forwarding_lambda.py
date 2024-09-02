@@ -15,8 +15,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_create_success(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,
@@ -66,8 +66,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,
@@ -117,8 +117,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_create_failed(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,
@@ -168,8 +168,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_update_success(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,
@@ -218,8 +218,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_update_failed(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,
@@ -269,8 +269,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_delete_success(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,
@@ -320,8 +320,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_delete_failed(self, mock_api):
         # Setup mock S3
         s3_client = boto3.client('s3', region_name='eu-west-2')
-        source_bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
-        ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+        source_bucket_name = 'immunisation-batch-internal-dev-data-source'
+        ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
         s3_client.create_bucket(Bucket=source_bucket_name,
                                 CreateBucketConfiguration={'LocationConstraint': 'eu-west-2'})
         s3_client.create_bucket(Bucket=ack_bucket_name,

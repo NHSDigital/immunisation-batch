@@ -153,7 +153,7 @@ def initial_file_validation(file_key, bucket_name):
     imms_env = get_environment()
     config_bucket_name = os.getenv(
         "CONFIG_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-batch-config",
+        f"immunisation-batch-{imms_env}-config",
     )
 
     if vaccine_type not in Constant.valid_vaccine_type:
@@ -291,7 +291,7 @@ def lambda_handler(event, context):
     imms_env = get_environment()
     ack_bucket_name = os.getenv(
         "ACK_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-batch-data-destination",
+        f"immunisation-batch-{imms_env}-data-destination",
     )
 
     for record in event["Records"]:
