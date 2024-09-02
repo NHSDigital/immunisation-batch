@@ -1,9 +1,9 @@
 variable "project_name" {
-    default = "immunisations"
+    default = "immunisation-batch"
 }
 
 variable "project_short_name" {
-    default = "imms"
+    default = "imms-batch"
 }
 
 variable "service" {
@@ -24,17 +24,17 @@ locals {
     root_domain = "dev.api.platform.nhs.uk"
 }
 
-locals {
-    project_domain_name = data.aws_route53_zone.project_zone.name
-}
+#locals {
+#    project_domain_name = data.aws_route53_zone.project_zone.name
+#}
 
 
 locals {
     environment         = terraform.workspace
-    prefix              = "${var.project_name}-${var.service}-${local.environment}"
+    prefix              = "${var.project_name}-${local.environment}"
     short_prefix        = "${var.project_short_name}-${local.environment}"
-    short_queue_prefix  = "${var.project_short_name}-${var.service}-${local.environment}"
-    service_domain_name = "${local.environment}.${local.project_domain_name}"
+    short_queue_prefix  = "${var.project_short_name}-${local.environment}"
+    #service_domain_name = "${local.environment}.${local.project_domain_name}"
 
     tags = {
         Project     = var.project_name

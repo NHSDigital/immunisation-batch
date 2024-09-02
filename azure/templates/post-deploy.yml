@@ -67,9 +67,6 @@ steps:
 
         make init
         make apply aws_account_no=${aws_account_no} environment=$workspace
-
-        AWS_DOMAIN_NAME=$(make -s output name=service_domain_name) 
-        echo "##vso[task.setvariable variable=AWS_DOMAIN_NAME]$AWS_DOMAIN_NAME"
       fi
     displayName: Apply Terraform
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
