@@ -34,7 +34,7 @@ locals {
     prefix              = "${var.project_name}-${local.environment}"
     short_prefix        = "${var.project_short_name}-${local.environment}"
     short_queue_prefix  = "${var.project_short_name}-${local.environment}"
-    service_domain_name = "${local.environment}.${local.project_domain_name}"
+    #service_domain_name = "${local.environment}.${local.project_domain_name}"
 
     tags = {
         Project     = var.project_name
