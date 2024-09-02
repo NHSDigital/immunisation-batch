@@ -31,9 +31,9 @@ locals {
 
 locals {
     environment         = terraform.workspace
-    prefix              = "${var.project_name}-${var.service}-${local.environment}"
+    prefix              = "${var.project_name}-${local.environment}"
     short_prefix        = "${var.project_short_name}-${local.environment}"
-    short_queue_prefix  = "${var.project_short_name}-${var.service}-${local.environment}"
+    short_queue_prefix  = "${var.project_short_name}-${local.environment}"
     service_domain_name = "${local.environment}.${local.project_domain_name}"
 
     tags = {
