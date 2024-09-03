@@ -95,7 +95,11 @@ def validate_action_flag_permissions(
     for row in csv_reader:
         print(f"rowvalue:{row}")
         # Extract and process the ACTION_FLAG column
-        action_flag = row.get("ACTION_FLAG", "")
+        row_value = row.get("NHS_NUMBER", "").split("|")
+        # Strip quotes and handle missing values
+        row_values = [value.strip('"') if value else "" for value in row_value]
+        val = {'ACTION_FLAG': row_values[11] if len(row_values) > 11 else ''}
+        action_flag = val.get("ACTION_FLAG", "")
 
         if action_flag is None:
             action_flag = ""
