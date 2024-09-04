@@ -40,14 +40,14 @@ def get_supplier_permissions(supplier, config_bucket_name):
     if supplier_permissions is None:
         return []
     all_permissions = supplier_permissions.get("all_permissions", {})
-    print(f"SUPPLIER_PERMISSIONS:{all_permissions}")
+    print(f"Extracted All Supplier permissions:{all_permissions}")
     return all_permissions.get(supplier, [])
 
 
 def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
-    print(f"FULL_PERMISSIONS: {allowed_permissions_set}")
+    print(f"Supplier Allowed Permissions: {allowed_permissions_set}")
     return f"{vaccine_type.upper()}_FULL" in allowed_permissions_set
 
 
@@ -60,7 +60,7 @@ def get_permission_operations(supplier, config_bucket_name, vaccine_type):
     }
     if "CREATE" in permission_operations:
         permission_operations.add("NEW")
-    print(f"PERMISSION_OPERATIONS: {permission_operations}")
+    print(f"Supplier Allowed Operation Permissions: {permission_operations}")
 
     return permission_operations
 
@@ -140,13 +140,13 @@ def process_csv_to_fhir(
         val = dict_formation(row_values)
         print(f"parsed_row:{val}")
         print(f"PERMISSINS OPERATIONS__: {permission_operations}")
-
-        if not (
-            full_permissions
-            or val.get("ACTION_FLAG", "").upper() in permission_operations
-        ):
+        action_flag_perms = val.get("ACTION_FLAG", "").upper()
+        if not (full_permissions or action_flag_perms in permission_operations):
             logger.info(
                 f"Skipping row as supplier does not have permissions for this csv operation {row}"
+            )
+            print(
+                f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
             )
             continue
         if (

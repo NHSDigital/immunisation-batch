@@ -66,10 +66,9 @@ def validate_vaccine_type_permissions(config_bucket_name, supplier, vaccine_type
     print(f"VACCINE TYPE 1:{vaccine_type}")
     print(f"supplier:{supplier}")
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
-    print(f"config_check: {allowed_permissions}")
+    print(f"Config Supplier Allowed Permissions: {allowed_permissions}")
     for permissions in allowed_permissions:
         if vaccine_type.upper() in permissions:
-            # if permissions.startswith(vaccine_type):
             return True
     logger.error(f"vaccine type permission issue {vaccine_type}")
     return False
@@ -79,7 +78,6 @@ def validate_action_flag_permissions(
     bucket_name, file_key, supplier, vaccine_type, config_bucket_name
 ):
     """Checks if the ACTION_FLAG values in the CSV match any of the allowed permissions for the specific vaccine type"""
-    # TO DO - COMPLETE SUPPLIER PERMISSION CHECKS
 
     # Fetch the CSV file from S3
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
@@ -114,7 +112,7 @@ def validate_action_flag_permissions(
     # Get the allowed permissions for the supplier
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
-    print(f"Allowed_permissionsP: {allowed_permissions}")
+    print(f"Allowed_permissions: {allowed_permissions}")
     # Check if the supplier has full permissions for the vaccine type
     if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
         logger.info(f"{supplier} has FULL permissions to create, update and delete")
@@ -184,14 +182,16 @@ def initial_file_validation(file_key, bucket_name):
     if not validate_vaccine_type_permissions(
         config_bucket_name, supplier, vaccine_type
     ):
-        logger.error(f"vaccine type permissions issue {supplier}")
+        logger.info(f"{supplier} does not have permissions for {vaccine_type}")
         return False
 
     # Validate the ACTION_FLAG column for permissions - if none reject
     if not validate_action_flag_permissions(
         bucket_name, file_key, supplier, vaccine_type, config_bucket_name
     ):
-        logger.error(f"action flag permission issue {supplier}")
+        logger.info(
+            f"{supplier} does not have permissions for any csv ACTION_FLAG operations"
+        )
         return False
 
     return True
