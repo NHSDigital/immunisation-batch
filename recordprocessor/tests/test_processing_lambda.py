@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import boto3
-from io import BytesIO
+
+# from io import BytesIO
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 import json

@@ -141,14 +141,18 @@ def process_csv_to_fhir(
         print(f"parsed_row:{val}")
         print(f"PERMISSINS OPERATIONS__: {permission_operations}")
 
+        if not (
+            full_permissions
+            or val.get("ACTION_FLAG", "").upper() in permission_operations
+        ):
+            logger.info(
+                f"Skipping row as supplier does not have permissions for this csv operation {row}"
+            )
+            continue
         if (
             val.get("ACTION_FLAG") in {"new", "update", "delete"}
             and val.get("UNIQUE_ID_URI")
             and val.get("UNIQUE_ID")
-            and (
-                full_permissions
-                or val.get("ACTION_FLAG", "").upper() in permission_operations
-            )
         ):
             fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
             if valid:
