@@ -40,13 +40,14 @@ def get_supplier_permissions(supplier, config_bucket_name):
     if supplier_permissions is None:
         return []
     all_permissions = supplier_permissions.get("all_permissions", {})
-    print(f"ALL_PERMISSIONS:{all_permissions}")
+    print(f"SUPPLIER_PERMISSIONS:{all_permissions}")
     return all_permissions.get(supplier, [])
 
 
 def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
+    print(f"FULL_PERMISSIONS: {allowed_permissions_set}")
     return f"{vaccine_type.upper()}_FULL" in allowed_permissions_set
 
 
@@ -138,6 +139,7 @@ def process_csv_to_fhir(
         print(f"row_values:{row_values}")
         val = dict_formation(row_values)
         print(f"parsed_row:{val}")
+        print(f"PERMISSINS OPERATIONS__: {permission_operations}")
         if (
             val.get("ACTION_FLAG") in {"new", "update", "delete"}
             and val.get("UNIQUE_ID_URI")
@@ -295,16 +297,15 @@ def process_lambda_handler(event, context):
             permission_operations = get_permission_operations(
                 supplier, config_bucket_name, vaccine_type
             )
-            if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-                process_csv_to_fhir(
-                    bucket_name,
-                    file_key,
-                    supplier,
-                    vaccine_type,
-                    ack_bucket_name,
-                    full_permissions,
-                    permission_operations,
-                )
+            process_csv_to_fhir(
+                bucket_name,
+                file_key,
+                supplier,
+                vaccine_type,
+                ack_bucket_name,
+                full_permissions,
+                permission_operations,
+            )
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
