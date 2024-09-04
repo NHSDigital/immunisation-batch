@@ -100,9 +100,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -192,9 +190,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -255,9 +251,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -331,9 +325,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -394,9 +386,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -460,9 +450,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -523,9 +511,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -586,9 +572,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -649,9 +633,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -706,10 +688,10 @@ class TestLambdaHandler(unittest.TestCase):
 class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @mock_s3
-    def test_validate_action_flag_permissions_end_to_end(self):
+    @patch("csv.DictReader")
+    def test_validate_action_flag_permissions_end_to_end(self, mock_csv_dict_reader):
         # Define test parameters
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        csv_data = "ACTION_FLAG\nnew\nupdate\ndelete\n"
         source_bucket_name = "test-bucket"
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_123"
@@ -724,12 +706,10 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         s3_client.put_object(
             Bucket=source_bucket_name,
             Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
-            Body=csv_data,
         )
         s3_client.put_object(
             Bucket=source_bucket_name,
             Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
-            Body=csv_data,
         )
 
         # Mock the permissions configuration
@@ -749,6 +729,9 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
             mock_get_supplier_permissions
         )
+        mock_csv_reader_instance = MagicMock()
+        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
         try:
             # Call the function
