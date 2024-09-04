@@ -58,8 +58,8 @@ def get_permission_operations(supplier, config_bucket_name, vaccine_type):
         for perm in allowed_permissions
         if perm.startswith(vaccine_type.upper())
     }
-    if "CREATE" in permission_operations and "new" in permission_operations:
-        permission_operations.remove("new")
+    if "CREATE" in permission_operations:
+        permission_operations.add("NEW")
     print(f"PERMISSION_OPERATIONS: {permission_operations}")
 
     return permission_operations

@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import boto3
+from io import BytesIO
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 import json
@@ -646,6 +647,73 @@ class TestProcessLambdaFunction(unittest.TestCase):
         result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
         self.assertFalse(result)
+
+
+#     @patch("processing_lambda.s3_client")
+#     @patch("processing_lambda.convert_to_fhir_json")
+#     @patch("processing_lambda.immunization_api_instance.get_imms_id")
+#     @patch("processing_lambda.send_to_sqs")
+#     def test_process_csv_to_fhir_valid_permissions(
+#         self,
+#         mock_send_to_sqs,
+#         mock_get_imms_id,
+#         mock_convert_to_fhir_json,
+#         mock_s3_client,
+#     ):
+#         # Mock S3 response for fetching CSV
+#         csv_content = """NHS_NUMBER|ACTION_FLAG|UNIQUE_ID_URI|UNIQUE_ID
+# 1234567890|delete|uri:example1|ID123
+# 9876543210|new|uri:example2|ID456
+# 5555555555|update|uri:example3|ID789
+# """
+#         mock_s3_client.get_object.return_value = {
+#             "Body": BytesIO(csv_content.encode("utf-8"))
+#         }
+
+#         # Mock other required S3 head object call
+#         mock_s3_client.head_object.return_value = {"LastModified": MagicMock()}
+
+#         # Mock FHIR JSON conversion
+#         mock_convert_to_fhir_json.return_value = ({"mocked_fhir_json": "data"}, True)
+
+#         # Mock immunization API response
+#         mock_get_imms_id.return_value = (
+#             {
+#                 "total": 1,
+#                 "entry": [{"resource": {"id": "mock_id", "meta": {"versionId": "1"}}}],
+#             },
+#             200,
+#         )
+
+#         process_csv_to_fhir(
+#             bucket_name="mock_bucket",
+#             file_key="mock_file.csv",
+#             supplier="Supplier_X",
+#             vaccine_type="flu",
+#             ack_bucket_name="mock_ack_bucket",
+#             full_permissions=False,
+#             permission_operations={"CREATE", "UPDATE"},
+#         )
+
+#         # Ensure 'new' action was processed
+#         mock_send_to_sqs.assert_any_call(
+#             {
+#                 "fhir_json": {"mocked_fhir_json": "data"},
+#                 "action_flag": "new",
+#                 "file_name": "mock_file.csv",
+#             },
+#         )
+
+#         # Ensure 'update' action was processed
+#         mock_send_to_sqs.assert_any_call(
+#             {
+#                 "fhir_json": {"mocked_fhir_json": "data"},
+#                 "action_flag": "update",
+#                 "imms_id": "mock_id",
+#                 "version": "1",
+#                 "file_name": "mock_file.csv",
+#             },
+#         )
 
 
 if __name__ == "__main__":
