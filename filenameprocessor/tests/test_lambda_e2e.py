@@ -99,9 +99,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -191,9 +191,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -254,9 +254,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -330,9 +330,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -393,9 +393,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -459,9 +459,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -522,9 +522,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -585,9 +585,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets
@@ -648,9 +648,9 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        source_bucket_name = "immunisation-batch-internal-dev-data-source"
         destination_bucket_name = (
-            "immunisation-batch-internal-dev-batch-data-destination"
+            "immunisation-batch-internal-dev-data-destination"
         )
 
         # Create source and destination buckets

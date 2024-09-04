@@ -31,7 +31,8 @@ locals {
         "kms:ScheduleKeyDeletion",
         "kms:CancelKeyDeletion",
         "kms:GenerateDataKey*",
-        "kms:Decrypt"
+        "kms:Decrypt",
+        "kms:Tag*"
         ],
         "Resource": "*"
     },
@@ -59,7 +60,7 @@ resource "aws_kms_alias" "shared_key" {
 }
 
 resource "aws_s3_bucket" "batch_data_source_bucket" {
-    bucket        = "${local.prefix}-batch-data-source"
+    bucket        = "${local.prefix}-data-source"
     force_destroy = local.is_temp
 }
 
@@ -90,6 +91,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "s3_batch_encrypti
 }
 
 resource "aws_s3_bucket" "batch_data_destination_bucket" {
-    bucket        = "${local.prefix}-batch-data-destination"
+    bucket        = "${local.prefix}-data-destination"
     force_destroy = local.is_temp
 }

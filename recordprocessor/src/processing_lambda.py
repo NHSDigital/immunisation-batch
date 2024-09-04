@@ -270,14 +270,14 @@ def process_csv_to_fhir(
 def process_lambda_handler(event, context):
     imms_env = get_environment()
     bucket_name = os.getenv(
-        "SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-source"
+        "SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source"
     )
     ack_bucket_name = os.getenv(
-        "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-batch-data-destination"
+        "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination"
     )
     config_bucket_name = os.getenv(
         "CONFIG_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-batch-config",
+        f"immunisation-batch-{imms_env}-config",
     )
 
     for record in event["Records"]:

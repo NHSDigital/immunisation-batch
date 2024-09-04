@@ -32,12 +32,12 @@ class TestLambdaHandler(unittest.TestCase):
     ):
         # Mock S3 and SQS setup
         s3 = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-source"
         s3.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        ack_bucket_name = "immunisation-batch-internal-dev-batch-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         s3.create_bucket(
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -171,12 +171,12 @@ class TestLambdaHandler(unittest.TestCase):
     ):
         # Mock S3 and SQS setup
         s3 = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-source"
         s3.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        ack_bucket_name = "immunisation-batch-internal-dev-batch-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         s3.create_bucket(
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -313,12 +313,12 @@ class TestLambdaHandler(unittest.TestCase):
     ):
         # Mock S3 and SQS setup
         s3 = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-batch-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-source"
         s3.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        ack_bucket_name = "immunisation-batch-internal-dev-batch-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         s3.create_bucket(
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -449,11 +449,11 @@ class TestLambdaHandler(unittest.TestCase):
     # mock_delete_message):
     #     # Set up the S3 environment
     #     s3 = boto3.client('s3', region_name='eu-west-2')
-    #     bucket_name = 'immunisation-batch-internal-dev-batch-data-source'
+    #     bucket_name = 'immunisation-batch-internal-dev-data-source'
     #     s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
     #         'LocationConstraint': 'eu-west-2'
     #     })
-    #     ack_bucket_name = 'immunisation-batch-internal-dev-batch-data-destination'
+    #     ack_bucket_name = 'immunisation-batch-internal-dev-data-destination'
     #     s3.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={
     #         'LocationConstraint': 'eu-west-2'
     #     })
@@ -516,7 +516,7 @@ class TestLambdaHandler(unittest.TestCase):
     #                         process_lambda_handler(event, {})
 
     #                     # Verify that the acknowledgment file has been created in S3
-    #                     ack_bucket = 'immunisation-batch-internal-dev-batch-data-destination'
+    #                     ack_bucket = 'immunisation-batch-internal-dev-data-destination'
     #                     ack_key = (
     #                                     f'processedFile/{vaccine_type}_Vaccinations_v5_'
     #                                     f'{ods_code}_20210730T12000000_response.csv'
