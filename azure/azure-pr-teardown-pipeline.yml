@@ -17,7 +17,7 @@ variables:
 jobs:
   - job: teardown
     displayName: PR Teardown
-    timeoutInMinutes: 30
+    timeoutInMinutes: 25
     pool:
       name: 'AWS-ECS'
       vmImage: 'ubuntu-latest'
