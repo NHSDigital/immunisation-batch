@@ -13,7 +13,6 @@ from processing_lambda import (
     get_environment,
     validate_full_permissions,
     get_supplier_permissions,
-    validate_full_permissions,
     get_permission_operations,
 )
 
