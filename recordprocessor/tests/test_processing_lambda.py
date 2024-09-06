@@ -12,6 +12,9 @@ from processing_lambda import (
     process_csv_to_fhir,
     get_environment,
     validate_full_permissions,
+    get_supplier_permissions,
+    validate_full_permissions,
+    get_permission_operations,
 )
 
 
@@ -603,6 +606,156 @@ class TestProcessLambdaFunction(unittest.TestCase):
             self.assertIn("Success", content)
             mock_send_to_sqs.assert_called()
 
+    @mock_s3
+    @mock_sqs
+    @patch("processing_lambda.send_to_sqs")
+    @patch("csv.DictReader")
+    def test_process_csv_to_fhir_successful_permissions(
+        self, mock_csv_dict_reader, mock_send_to_sqs
+    ):
+        s3_client = boto3.client("s3", region_name="us-west-2")
+        bucket_name = "test-bucket"
+        file_key = "test_file.csv"
+        supplier = "test"
+        ack_bucket_name = "ack-bucket"
+        full_permissions = None
+        permission_operations = {"CREATE", "NEW", "UPDATE"}
+        csv_content = Constant.file_content_all_operations
+        s3_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.create_bucket(
+            Bucket=ack_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_content)
+        results = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "link": [
+                {
+                    "relation": "self",
+                    "url": (
+                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+                    ),
+                }
+            ],
+            "entry": [
+                {
+                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+                    "resource": {
+                        "resourceType": "Immunization",
+                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
+                        "meta": {"versionId": 1},
+                    },
+                }
+            ],
+            "total": 1,
+        }, 200
+        vaccine_types = Constant.valid_vaccine_type
+        for vaccine_type in vaccine_types:
+            with patch(
+                "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+            ):
+                mock_csv_reader_instance = MagicMock()
+                mock_csv_reader_instance = MagicMock()
+                mock_csv_reader_instance.__iter__.return_value = iter(
+                    Constant.mock_update_request
+                )
+                mock_csv_dict_reader.return_value = mock_csv_reader_instance
+                process_csv_to_fhir(
+                    bucket_name,
+                    file_key,
+                    supplier,
+                    vaccine_type,
+                    ack_bucket_name,
+                    full_permissions,
+                    permission_operations,
+                )
+
+            ack_filename = "processedFile/test_file_response.csv"
+            response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
+            content = response["Body"].read().decode("utf-8")
+            self.assertIn("Success", content)
+            mock_send_to_sqs.assert_called()
+
+    @mock_s3
+    @mock_sqs
+    @patch("processing_lambda.send_to_sqs")
+    @patch("csv.DictReader")
+    def test_process_csv_to_fhir_incorrect_permissions(
+        self, mock_csv_dict_reader, mock_send_to_sqs
+    ):
+        s3_client = boto3.client("s3", region_name="us-west-2")
+        bucket_name = "test-bucket"
+        file_key = "test_file.csv"
+        supplier = "test"
+        ack_bucket_name = "ack-bucket"
+        full_permissions = None
+        permission_operations = {"DELETE"}
+        csv_content = Constant.file_content
+        s3_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.create_bucket(
+            Bucket=ack_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_content)
+        results = {
+            "resourceType": "Bundle",
+            "type": "searchset",
+            "link": [
+                {
+                    "relation": "self",
+                    "url": (
+                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+                    ),
+                }
+            ],
+            "entry": [
+                {
+                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+                    "resource": {
+                        "resourceType": "Immunization",
+                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
+                        "meta": {"versionId": 1},
+                    },
+                }
+            ],
+            "total": 1,
+        }, 200
+        vaccine_types = Constant.valid_vaccine_type
+        for vaccine_type in vaccine_types:
+            with patch(
+                "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+            ):
+                mock_csv_reader_instance = MagicMock()
+                mock_csv_reader_instance = MagicMock()
+                mock_csv_reader_instance.__iter__.return_value = iter(
+                    Constant.mock_update_request
+                )
+                mock_csv_dict_reader.return_value = mock_csv_reader_instance
+                process_csv_to_fhir(
+                    bucket_name,
+                    file_key,
+                    supplier,
+                    vaccine_type,
+                    ack_bucket_name,
+                    full_permissions,
+                    permission_operations,
+                )
+
+            mock_send_to_sqs.assert_not_called()
+
     def test_get_environment(self):
         with patch("processing_lambda.os.getenv", return_value="internal-dev"):
             env = get_environment()
@@ -617,104 +770,98 @@ class TestProcessLambdaFunction(unittest.TestCase):
             self.assertEqual(env, "internal-dev")
 
     @patch("processing_lambda.get_supplier_permissions")
-    def test_has_full_permissions(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = ["COVID19_FULL"]
+    def test_no_permissions(self, mock_get_supplier_permissions):
+        mock_get_supplier_permissions.return_value = [""]
         config_bucket_name = "test-bucket"
         supplier = "test-supplier"
         vaccine_type = "COVID19"
+
+        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
+
+        self.assertFalse(result)
+
+    @patch("processing_lambda.get_json_from_s3")
+    def test_get_supplier_permissions_success(self, mock_get_json_from_s3):
+        # Mock S3 response
+        mock_get_json_from_s3.return_value = Constant.test_permissions_config_file
+
+        supplier = "SUPPLIER1"
+        config_bucket_name = "test-config-bucket"
+
+        permissions = get_supplier_permissions(supplier, config_bucket_name)
+
+        self.assertEqual(
+            permissions, ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"]
+        )
+
+    @patch("processing_lambda.get_json_from_s3")
+    def test_get_supplier_permissions_no_permissions(self, mock_get_json_from_s3):
+        mock_get_json_from_s3.return_value = Constant.test_permissions_config_file
+
+        supplier = "SUPPLIER4"
+        config_bucket_name = "test-config-bucket"
+
+        permissions = get_supplier_permissions(supplier, config_bucket_name)
+
+        self.assertEqual(permissions, [""])
+
+    @patch("processing_lambda.get_supplier_permissions")
+    def test_validate_full_permissions_valid(self, mock_get_supplier_permissions):
+        mock_get_supplier_permissions.return_value = ["FLU_FULL", "MMR_CREATE"]
+
+        supplier = "supplier1"
+        config_bucket_name = "test-config-bucket"
+        vaccine_type = "FLU"
 
         result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
         self.assertTrue(result)
 
     @patch("processing_lambda.get_supplier_permissions")
-    def test_does_not_have_full_permissions(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = ["FLU_CREATE"]
-        config_bucket_name = "test-bucket"
-        supplier = "test-supplier"
-        vaccine_type = "FLU"
+    def test_validate_full_permissions_invalid(self, mock_get_supplier_permissions):
+        mock_get_supplier_permissions.return_value = ["COVID19_CREATE"]
 
-        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-
-        self.assertFalse(result)
-
-    @patch("processing_lambda.get_supplier_permissions")
-    def test_no_permissions(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = []
-        config_bucket_name = "test-bucket"
-        supplier = "test-supplier"
+        supplier = "supplier1"
+        config_bucket_name = "test-config-bucket"
         vaccine_type = "COVID19"
 
         result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
         self.assertFalse(result)
 
+    @patch("processing_lambda.get_supplier_permissions")
+    def test_get_permission_operations_success(self, mock_get_supplier_permissions):
+        mock_get_supplier_permissions.return_value = [
+            "MMR_FULL",
+            "FLU_CREATE",
+            "FLU_UPDATE",
+        ]
 
-#     @patch("processing_lambda.s3_client")
-#     @patch("processing_lambda.convert_to_fhir_json")
-#     @patch("processing_lambda.immunization_api_instance.get_imms_id")
-#     @patch("processing_lambda.send_to_sqs")
-#     def test_process_csv_to_fhir_valid_permissions(
-#         self,
-#         mock_send_to_sqs,
-#         mock_get_imms_id,
-#         mock_convert_to_fhir_json,
-#         mock_s3_client,
-#     ):
-#         # Mock S3 response for fetching CSV
-#         csv_content = """NHS_NUMBER|ACTION_FLAG|UNIQUE_ID_URI|UNIQUE_ID
-# 1234567890|delete|uri:example1|ID123
-# 9876543210|new|uri:example2|ID456
-# 5555555555|update|uri:example3|ID789
-# """
-#         mock_s3_client.get_object.return_value = {
-#             "Body": BytesIO(csv_content.encode("utf-8"))
-#         }
+        supplier = "supplier1"
+        config_bucket_name = "test-config-bucket"
+        vaccine_type = "FLU"
 
-#         # Mock other required S3 head object call
-#         mock_s3_client.head_object.return_value = {"LastModified": MagicMock()}
+        operations = get_permission_operations(
+            supplier, config_bucket_name, vaccine_type
+        )
 
-#         # Mock FHIR JSON conversion
-#         mock_convert_to_fhir_json.return_value = ({"mocked_fhir_json": "data"}, True)
+        self.assertEqual(operations, {"CREATE", "UPDATE", "NEW"})
 
-#         # Mock immunization API response
-#         mock_get_imms_id.return_value = (
-#             {
-#                 "total": 1,
-#                 "entry": [{"resource": {"id": "mock_id", "meta": {"versionId": "1"}}}],
-#             },
-#             200,
-#         )
+    @patch("processing_lambda.get_supplier_permissions")
+    def test_get_permission_operations_one_permission(
+        self, mock_get_supplier_permissions
+    ):
+        mock_get_supplier_permissions.return_value = ["MMR_UPDATE"]
 
-#         process_csv_to_fhir(
-#             bucket_name="mock_bucket",
-#             file_key="mock_file.csv",
-#             supplier="Supplier_X",
-#             vaccine_type="flu",
-#             ack_bucket_name="mock_ack_bucket",
-#             full_permissions=False,
-#             permission_operations={"CREATE", "UPDATE"},
-#         )
+        supplier = "supplier1"
+        config_bucket_name = "test-config-bucket"
+        vaccine_type = "MMR"
 
-#         # Ensure 'new' action was processed
-#         mock_send_to_sqs.assert_any_call(
-#             {
-#                 "fhir_json": {"mocked_fhir_json": "data"},
-#                 "action_flag": "new",
-#                 "file_name": "mock_file.csv",
-#             },
-#         )
+        operations = get_permission_operations(
+            supplier, config_bucket_name, vaccine_type
+        )
 
-#         # Ensure 'update' action was processed
-#         mock_send_to_sqs.assert_any_call(
-#             {
-#                 "fhir_json": {"mocked_fhir_json": "data"},
-#                 "action_flag": "update",
-#                 "imms_id": "mock_id",
-#                 "version": "1",
-#                 "file_name": "mock_file.csv",
-#             },
-#         )
+        self.assertEqual(operations, {"UPDATE"})
 
 
 if __name__ == "__main__":

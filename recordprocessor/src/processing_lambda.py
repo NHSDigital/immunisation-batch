@@ -139,12 +139,9 @@ def process_csv_to_fhir(
         print(f"row_values:{row_values}")
         val = dict_formation(row_values)
         print(f"parsed_row:{val}")
-        print(f"PERMISSINS OPERATIONS__: {permission_operations}")
+        print(f"Supplier permitted operations: {permission_operations}")
         action_flag_perms = val.get("ACTION_FLAG", "").upper()
         if not (full_permissions or action_flag_perms in permission_operations):
-            logger.info(
-                f"Skipping row as supplier does not have permissions for this csv operation {row}"
-            )
             print(
                 f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
             )

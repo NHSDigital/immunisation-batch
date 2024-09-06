@@ -474,3 +474,20 @@ class Constant:
                 False,
             ]
             return data_row
+
+    test_permissions_config_file = {
+        "all_permissions": {
+            "DPFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+            "DPREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+            "SUPPLIER1": ["COVID19_CREATE", "COVID19_DELETE", "FLU_UPDATE"],
+            "SUPPLIER2": [""],
+            "SUPPLIER3": ["FLU_CREATE", "FLU_DELETE"],
+            "SUPPLIER4": [""],
+        },
+        "definitions:": {
+            "_FULL": "Full permissions to create, update and delete a batch record",
+            "_CREATE": "Permission to create a batch record",
+            "_UPDATE": "Permission to update a batch record",
+            "_DELETE": "Permission to delete a batch record",
+        },
+    }
