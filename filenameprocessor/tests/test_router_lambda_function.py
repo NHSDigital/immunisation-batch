@@ -16,7 +16,6 @@ from router_lambda_function import (
     validate_vaccine_type_permissions,
     validate_action_flag_permissions,
 )
-from src.constants import Constant
 
 
 class TestRouterLambdaFunctions(unittest.TestCase):
@@ -288,9 +287,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    @patch("csv.DictReader")
     def test_validate_action_flag_permissions(
-        self, mock_csv_dict_reader, mock_get_supplier_permissions, mock_s3_client
+        self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
         csv_data = "ACTION_FLAG\nupdate\nnew\ndelete\n"
@@ -313,11 +311,6 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_123"
         vaccine_type = "FLU"
         config_bucket_name = "config-bucket"
-        mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(
-                            Constant.mock_request
-                        )
-        mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
         # Call the function
         result = validate_action_flag_permissions(
@@ -393,9 +386,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    @patch("csv.DictReader")
     def test_validate_action_flag_permissions_with_one_permission(
-        self, mock_csv_dict_reader, mock_get_supplier_permissions, mock_s3_client
+        self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
         csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
@@ -420,11 +412,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_test"
         vaccine_type = "COVID19"
         config_bucket_name = "config-bucket"
-        mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(
-                            Constant.mock_request
-                        )
-        mock_csv_dict_reader.return_value = mock_csv_reader_instance
+
         # Call the function
         result = validate_action_flag_permissions(
             bucket_name, file_key, supplier, vaccine_type, config_bucket_name
