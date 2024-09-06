@@ -170,6 +170,9 @@ class Constant:
             data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
                         '20007', 'Duplicate Message received', created_at_formatted, 'TBC', 'DPS', False]
             return data_row
+        if status == "None":
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'failed in json conversion', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
+            return data_row
         if status is False:
             data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20009', 'Payload validation failure', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
             return data_row
