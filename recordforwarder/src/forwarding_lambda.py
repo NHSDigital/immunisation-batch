@@ -64,10 +64,8 @@ def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bu
             accumulated_csv_content.write("|".join(headers) + "\n")
             print(f"accumulated_csv_content:{accumulated_csv_content}")
     if imms_id == "None" and version == "None":
-        print("1")
         data_row = Constant.data_rows(False, created_at_formatted)
     supplier_system = identify_supplier(file_key)
-    print("3")
     if action_flag == "new":
         response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
         print(f"response:{response},status_code:{status_code}")
@@ -121,7 +119,7 @@ def forward_lambda_handler(event, context):
             file_key = message_body.get("file_name")
             imms_id = None
             version = None
-            if action_flag in ("update", "delete"):
+            if action_flag in ("update", "delete", "None"):
                 imms_id = message_body.get("imms_id")
                 version = message_body.get("version")
             forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version)
