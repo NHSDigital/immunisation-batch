@@ -171,7 +171,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
-                            'fhir_json': 'None',
+                            'fhir_json': fhir_json,
                             'action_flag': 'None',
                             'imms_id': 'None',
                             'version': 'None',
@@ -188,7 +188,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
-                            'fhir_json': 'None',
+                            'fhir_json': fhir_json,
                             'action_flag': 'None',
                             'imms_id': 'None',
                             'version': 'None',
