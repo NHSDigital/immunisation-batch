@@ -93,21 +93,21 @@ def validate_action_flag_permissions(
     for row in csv_reader:
         print(f"rowvalue:{row}")
         # Extract and process the ACTION_FLAG column
-        row_value = row.get("NHS_NUMBER", "").split("|")
-        # Strip quotes and handle missing values
-        row_values = [value.strip('"') if value else "" for value in row_value]
-        val = {"ACTION_FLAG": row_values[11] if len(row_values) > 11 else ""}
-        action_flag = val.get("ACTION_FLAG", "")
-
+        # row_value = row.get("NHS_NUMBER", "").split("|")
+        # # Strip quotes and handle missing values
+        # row_values = [value.strip('"') if value else "" for value in row_value]
+        # val = {"ACTION_FLAG": row_values[11] if len(row_values) > 11 else ""}
+        action_flag = row.get("ACTION_FLAG", "")
+        print(f"ACTION FLAG {action_flag}")
         if action_flag is None:
             action_flag = ""
-        action_flag = action_flag.split("|") if action_flag else []
-        action_flag = [value.strip('"') if value else "" for value in action_flag]
+        # action_flag = action_flag.split("|") if action_flag else []
+        # action_flag = [value.strip('"') if value else "" for value in action_flag]
 
-        for flag in action_flag:
-            flag = "CREATE" if flag == "new" else flag.upper()
-            if flag:
-                unique_permissions.add(flag)
+        if action_flag:
+            action_flag = "CREATE" if action_flag == "new" else action_flag.upper()
+            if action_flag:
+                unique_permissions.add(action_flag)
                 # print(f"MAPPED PERMISSIONS {unique_permissions}")
     # Get the allowed permissions for the supplier
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
@@ -123,9 +123,11 @@ def validate_action_flag_permissions(
     csv_operation_request = {
         f"{vaccine_type.upper()}_{perm.upper()}" for perm in unique_permissions
     }
-    print(f"{csv_operation_request}")
+    print(
+        f"CSV OPERATION REQUEST {csv_operation_request} AND UNIQUE PERMISSIONS {allowed_permissions_set}"
+    )
     if csv_operation_request.intersection(allowed_permissions_set):
-        logger.info(
+        print(
             f"{supplier} permission {allowed_permissions_set} matches "
             f"one of the csv operation permissions required to {csv_operation_request}"
         )
