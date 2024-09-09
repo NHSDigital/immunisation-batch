@@ -138,13 +138,11 @@ def process_csv_to_fhir(
         # row_values = [value.strip('"') if value else "" for value in row_values]
         # print(f"row_values:{row_values}")
         # val = dict_formation(row_values)
-        print(f"parsed_row:{row}")
-        # print(f"Supplier permitted operations: {permission_operations}")
+        # print(f"parsed_row:{row}")
         action_flag_perms = row.get("ACTION_FLAG", "")
         print(f"ACTION FLAG PERMISSIONS:  {action_flag_perms}")
         if action_flag_perms is None:
             action_flag_perms = ""
-            print(f"ACTION FLAG PERMISSIONS:  {action_flag_perms}")
             print(
                 f"FULL PERMISSIONS: {full_permissions} AND PERMISSIONS OPERATIONS {permission_operations}"
             )

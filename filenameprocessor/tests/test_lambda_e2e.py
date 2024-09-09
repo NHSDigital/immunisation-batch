@@ -1,13 +1,11 @@
 import boto3
 import unittest
 
-import io
 import json
 from unittest.mock import patch, MagicMock
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 
-import csv
 
 from router_lambda_function import lambda_handler, validate_action_flag_permissions
 
@@ -93,7 +91,7 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     @mock_sqs
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_lambda_handler(self, mock_get_supplier_permissions):
+    def test_lambda_handler_full_permissions(self, mock_get_supplier_permissions):
         """Tests lambda function end to end"""
 
         # Set up S3
@@ -737,8 +735,6 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
             result = validate_action_flag_permissions(
                 source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
             )
-            print(f"RESULT RESULT: {result}")
-            # Check the result
             self.assertTrue(result)
         finally:
             validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
@@ -794,7 +790,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
             result = validate_action_flag_permissions(
                 source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
             )
-            print(f"RESULT RESULT: {result}")
+            # print(f"RESULT: {result}")
             self.assertFalse(result)
         finally:
             validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (

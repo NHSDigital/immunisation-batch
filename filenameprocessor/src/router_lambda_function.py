@@ -91,7 +91,7 @@ def validate_action_flag_permissions(
 
     # Iterate over each row to collect unique permissions
     for row in csv_reader:
-        print(f"rowvalue:{row}")
+        # print(f"rowvalue:{row}")
         # Extract and process the ACTION_FLAG column
         # row_value = row.get("NHS_NUMBER", "").split("|")
         # # Strip quotes and handle missing values
