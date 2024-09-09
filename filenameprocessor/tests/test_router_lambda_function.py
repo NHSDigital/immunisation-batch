@@ -389,7 +389,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_full_permissions(
+    def test_validate_action_flag_permissions_with_no_permissions(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data

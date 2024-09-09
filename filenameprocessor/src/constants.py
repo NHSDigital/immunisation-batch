@@ -501,16 +501,22 @@ class Constant:
         "SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|"
         "ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|"
         "LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
-        '"9732928395"|"PHYLIS"|"PEEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|"https://fhir.nhs.uk/Id/ods-organization-code"|'
-        '"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"OReilly"|"20240904T183325"|'
+        '"9732928395"|"PHYLIS"|"PEEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|'
+        '"https://fhir.nhs.uk/Id/ods-organization-code"|'
+        '"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|'
+        '"new"|"Ellena"|"OReilly"|"20240904T183325"|'
         '"TRUE"|"956951000000104"|"RSV vaccination in pregnancy (procedure)"|"1"|"42223111000001107"|'
         '"Quadrivalent influenza vaccine (split virion)"|"Sanofi Pasteur"|'
-        '"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|"0.3"|"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
+        '"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|"0.3"|'
+        '"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
         '"RJC02"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
-        '"9732928395"|"PHIL"|"PEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|"https://fhir.nhs.uk/Id/ods-organization-code"|'
-        '"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|"delete"|"Ellena"|"OReilly"|"20240904T183325"|'
+        '"9732928395"|"PHIL"|"PEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|'
+        '"https://fhir.nhs.uk/Id/ods-organization-code"|'
+        '"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|'
+        '"delete"|"Ellena"|"OReilly"|"20240904T183325"|'
         '"TRUE"|"956951000000104"|"RSV vaccination in pregnancy (procedure)"|"1"|"42223111000001107"|'
         '"Quadrivalent influenza vaccine (split virion)"|"Sanofi Pasteur"|'
-        '"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|"0.3"|"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
+        '"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|"0.3"|'
+        '"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
         '"RJC02"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
     )
