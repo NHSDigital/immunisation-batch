@@ -1,17 +1,15 @@
 import boto3
 import unittest
 
-# import io
+import io
 import json
 from unittest.mock import patch, MagicMock
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 
-# import csv
+import csv
 
-from router_lambda_function import (
-    lambda_handler,
-)
+from router_lambda_function import lambda_handler, validate_action_flag_permissions
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
@@ -686,152 +684,119 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn(ack_file_key, ack_file_keys)
 
 
-# class TestValidateActionFlagPermissions(unittest.TestCase):
+class TestValidateActionFlagPermissions(unittest.TestCase):
 
-#     @mock_s3
-#     @patch("csv.DictReader")
-#     def test_validate_action_flag_permissions_end_to_end(self, mock_csv_dict_reader):
-#         # Define test parameters
-#         s3_client = boto3.client("s3", region_name="eu-west-2")
-#         source_bucket_name = "test-bucket"
-#         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
-#         supplier = "supplier_123"
-#         vaccine_type = "FLU"
-#         config_bucket_name = "config-bucket"
+    @mock_s3
+    @patch("csv.DictReader")
+    def test_validate_action_flag_permissions_end_to_end(self, mock_csv_dict_reader):
+        # Define test parameters
+        s3_client = boto3.client("s3", region_name="eu-west-2")
+        source_bucket_name = "test-bucket"
+        file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
+        supplier = "supplier_123"
+        vaccine_type = "FLU"
+        config_bucket_name = "config-bucket"
 
-#         s3_client.create_bucket(
-#             Bucket=source_bucket_name,
-#             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-#         )
+        s3_client.create_bucket(
+            Bucket=source_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
 
-#         s3_client.put_object(
-#             Bucket=source_bucket_name,
-#             Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
-#         )
-#         s3_client.put_object(
-#             Bucket=source_bucket_name,
-#             Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
-#         )
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+        )
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+        )
 
-#         # Mock the permissions configuration
-#         Constant.action_flag_mapping = {
-#             "NEW": "CREATE",
-#             "UPDATE": "UPDATE",
-#             "DELETE": "DELETE",
-#         }
+        # Mock the permissions configuration
+        Constant.action_flag_mapping = {
+            "NEW": "CREATE",
+            "UPDATE": "UPDATE",
+            "DELETE": "DELETE",
+        }
 
-#         # Mock supplier permissions
-#         def mock_get_supplier_permissions(supplier, config_bucket_name):
-#             return {"FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"}
+        # Mock supplier permissions
+        def mock_get_supplier_permissions(supplier, config_bucket_name):
+            return {"FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"}
 
-#         original_get_supplier_permissions = (
-#             validate_action_flag_permissions.__globals__["get_supplier_permissions"]
-#         )
-#         validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
-#             mock_get_supplier_permissions
-#         )
-#         mock_csv_reader_instance = MagicMock()
-#         mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
-#         mock_csv_dict_reader.return_value = mock_csv_reader_instance
+        original_get_supplier_permissions = (
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"]
+        )
+        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+            mock_get_supplier_permissions
+        )
+        mock_csv_reader_instance = MagicMock()
+        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
-#         try:
-#             # Call the function
-#             result = validate_action_flag_permissions(
-#                 source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-#             )
-#             print(f"RESULT RESULT: {result}")
-#             # Check the result
-#             self.assertTrue(result)
-#         finally:
-#             validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
-#                 original_get_supplier_permissions
-#             )
+        try:
+            # Call the function
+            result = validate_action_flag_permissions(
+                source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
+            )
+            print(f"RESULT RESULT: {result}")
+            # Check the result
+            self.assertTrue(result)
+        finally:
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+                original_get_supplier_permissions
+            )
 
+    @mock_s3
+    @patch("csv.DictReader")
+    def test_validate_action_flag_no_permissions_end_to_end(self, mock_csv_dict_reader):
+        s3_client = boto3.client("s3", region_name="eu-west-2")
+        source_bucket_name = "test-bucket"
+        file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
+        supplier = "supplier_123"
+        vaccine_type = "FLU"
+        config_bucket_name = "config-bucket"
 
-# class TestValidateActionFlagiPermissions(unittest.TestCase):
-#     @mock_s3
-#     @patch("csv.DictReader")
-#     def test_validate_action_flag_permissions_end_to_end(self, mock_csv_dict_reader):
+        s3_client.create_bucket(
+            Bucket=source_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
 
-#         # Initialize S3 client
-#         s3_client = boto3.client("s3", region_name="eu-west-2")
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+        )
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+        )
 
-#         # Define test parameters
-#         source_bucket_name = "test-bucket"
-#         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
-#         supplier = "supplier_123"
-#         vaccine_type = "FLU"
-#         config_bucket_name = "config-bucket"
+        # Mock the permissions configuration
+        Constant.action_flag_mapping = {
+            "NEW": "CREATE",
+            "UPDATE": "UPDATE",
+            "DELETE": "DELETE",
+        }
 
-#         # Create S3 bucket
-#         s3_client.create_bucket(
-#             Bucket=source_bucket_name,
-#             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-#         )
+        # Mock supplier permissions
+        def mock_get_supplier_permissions(supplier, config_bucket_name):
+            return {""}
 
-#         # Sample CSV data
-# csv_data = """NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|
-# DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|
-# PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|
-# PRIMARY_SOURCE|VACCINATION_PROCEDURE_CODE|VACCINATION_PROCEDURE_TERM|DOSE_SEQUENCE|
-# VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|
-# SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|
-# ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|
-# LOCATION_CODE|LOCATION_CODE_TYPE_URI
-# "9732928395"|"PHYLIS"|"PEEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|
-# "https://fhir.nhs.uk/Id/ods-organization-code"|
-# "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|"new"|
-# "Ellena"|"OReilly"|"20240904T183325"|
-# "TRUE"|"956951000000104"|"RSV vaccination in pregnancy (procedure)"|"1"|"42223111000001107"|
-# "Quadrivalent influenza vaccine (split virion)"|
-# "Sanofi Pasteur"|"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|
-# "0.3"|"2622896019"|"Inhalation - unit of product usage"|
-# "1037351000000105"|"RJC02"|"https://fhir.nhs.uk/Id/ods-organization-code"
-# """
+        original_get_supplier_permissions = (
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"]
+        )
+        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+            mock_get_supplier_permissions
+        )
+        mock_csv_reader_instance = MagicMock()
+        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
-#         # Upload CSV file to S3
-#         s3_client.put_object(
-#             Bucket=source_bucket_name, Key=file_key, Body=csv_data.encode("utf-8")
-#         )
-
-#         # Mock the permissions configuration
-#         Constant.action_flag_mapping = {
-#             "new": "CREATE",
-#             "update": "UPDATE",
-#             "delete": "DELETE",
-#         }
-
-#         # Mock supplier permissions
-#         def mock_get_supplier_permissions(supplier, config_bucket_name):
-#             return {"FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"}
-
-#         original_get_supplier_permissions = (
-#             validate_action_flag_permissions.__globals__["get_supplier_permissions"]
-#         )
-
-#         validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
-#             mock_get_supplier_permissions
-#         )
-
-#         # Mock CSV reader
-#         mock_csv_reader_instance = MagicMock()
-#         mock_csv_reader_instance.__iter__.return_value = csv.DictReader(
-#             io.StringIO(csv_data), delimiter="|"
-#         )
-#         mock_csv_dict_reader.return_value = mock_csv_reader_instance
-
-#         try:
-#             # Call the function
-#             result = validate_action_flag_permissions(
-#                 source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-#             )
-#             print(f"RESULT RESULT: {result}")
-
-#             # Check the result
-#             self.assertTrue(result)
-
-#         finally:
-#             # Restore the original function
-#             validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
-#                 original_get_supplier_permissions
-#             )
+        try:
+            result = validate_action_flag_permissions(
+                source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
+            )
+            print(f"RESULT RESULT: {result}")
+            self.assertFalse(result)
+        finally:
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+                original_get_supplier_permissions
+            )
