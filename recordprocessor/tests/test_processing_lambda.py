@@ -619,7 +619,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         ack_bucket_name = "ack-bucket"
         full_permissions = None
         permission_operations = {"CREATE", "NEW", "UPDATE"}
-        csv_content = Constant.file_content_all_operations
+        csv_content = Constant.file_content_operations
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
