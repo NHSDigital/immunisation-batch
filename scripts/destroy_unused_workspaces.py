@@ -73,29 +73,35 @@ def destroy_workspace(workspace_name, project_name, project_short_name):
     try:
         # Command: terraform workspace select
         print(command_select)
-        return_code_select, stdout_select, stderr_select = execute_terraform_command(
-            command_select
+        return_code_select, stdout_select, stderr_select = (
+            execute_terraform_command(command_select)
         )
         if return_code_select != 0:
-            print(f"Error executing select command for workspace {workspace_name}")
+            print(
+                f"Error executing select command for workspace {workspace_name}"
+            )
             return return_code_select, stdout_select, stderr_select
 
         # Command: terraform destroy
         print(command_destroy)
-        return_code_destroy, stdout_destroy, stderr_destroy = execute_terraform_command(
-            command_destroy
+        return_code_destroy, stdout_destroy, stderr_destroy = (
+            execute_terraform_command(command_destroy)
         )
         if return_code_destroy != 0:
-            print(f"Error executing destroy command for workspace {workspace_name}")
+            print(
+                f"Error executing destroy command for workspace {workspace_name}"
+            )
             return return_code_destroy, stdout_destroy, stderr_destroy
 
         # Command: terraform workspace delete
         print(command_delete)
-        return_code_delete, stdout_delete, stderr_delete = execute_terraform_command(
-            command_delete
+        return_code_delete, stdout_delete, stderr_delete = (
+            execute_terraform_command(command_delete)
         )
         if return_code_delete != 0:
-            print(f"Error executing delete command for workspace {workspace_name}")
+            print(
+                f"Error executing delete command for workspace {workspace_name}"
+            )
             return return_code_delete, stdout_delete, stderr_delete
         else:
             print(f"Workspace {workspace_name} successfully deleted")
@@ -115,7 +121,9 @@ def destroy_workspace_wrapper(workspace_name, project_name, project_short_name):
             if return_code == 0:
                 return workspace_name, "Destroyed successfully"
             else:
-                print(f"Retrying destroy command for workspace: {workspace_name}")
+                print(
+                    f"Retrying destroy command for workspace: {workspace_name}"
+                )
         return workspace_name, stderr
     except Exception as e:
         return workspace_name, str(e)
@@ -146,4 +154,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
