@@ -156,6 +156,7 @@ def process_csv_to_fhir(
                 "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
             )
             accumulated_csv_content.write(cleaned_row + "\n")
+            print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
 
             continue
         if (
