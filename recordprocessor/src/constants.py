@@ -622,6 +622,21 @@ class Constant:
                 True,
             ]  # noqa: E501
             return data_row
+        elif status == "no permissions":
+            data_row = [
+                "TBC",
+                "fatal-error",
+                "error",
+                "error",
+                "business",
+                "20005",
+                "No permissions for operation",
+                created_at_formatted,
+                "TBC",
+                "DPS",
+                False,
+            ]
+            return data_row
         else:
             data_row = [
                 "TBC",

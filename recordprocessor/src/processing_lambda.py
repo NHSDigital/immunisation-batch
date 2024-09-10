@@ -150,6 +150,13 @@ def process_csv_to_fhir(
             print(
                 f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
             )
+            data_row = Constant.data_rows("no permissions", created_at_formatted)
+            data_row_str = [str(item) for item in data_row]
+            cleaned_row = (
+                "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
+            )
+            accumulated_csv_content.write(cleaned_row + "\n")
+
             continue
         if (
             row.get("ACTION_FLAG") in {"new", "update", "delete"}
