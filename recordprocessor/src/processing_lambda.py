@@ -4,7 +4,7 @@ import json
 from io import StringIO
 import io
 import os
-from convert_fhir_json import convert_to_fhir_json, dict_formation
+from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
 import logging
 from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
@@ -116,23 +116,23 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
     for row in csv_reader:
         print(f"row:{row}")
         row_count += 1  # Increment the counter for each row
-        # Split the first column which contains concatenated values
-        row_values = row.get("NHS_NUMBER", "").split("|")
-        # Strip quotes and handle missing values
-        row_values = [value.strip('"') if value else "" for value in row_values]
-        print(f"row_values:{row_values}")
-        val = dict_formation(row_values)
-        print(f"parsed_row:{val}")
+        # # Split the first column which contains concatenated values
+        # # row_values = row.get("NHS_NUMBER", "").split("|")
+        # # Strip quotes and handle missing values
+        # row_values = [value.strip('"') if value else "" for value in row.values()]
+        # print(f"row_values:{row_values}")
+        # val = dict_formation(row_values)
+        print(f"parsed_row:{row}")
         if (
-            val.get("ACTION_FLAG") in {"new", "update", "delete"}
-            and val.get("UNIQUE_ID_URI")
-            and val.get("UNIQUE_ID")
+            row.get("ACTION_FLAG") in {"new", "update", "delete"}
+            and row.get("UNIQUE_ID_URI")
+            and row.get("UNIQUE_ID")
         ):
-            fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
+            fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
             if valid:
-                identifier_system = val.get('UNIQUE_ID_URI')
-                action_flag = val.get('ACTION_FLAG')
-                identifier_value = val.get('UNIQUE_ID')
+                identifier_system = row.get('UNIQUE_ID_URI')
+                action_flag = row.get('ACTION_FLAG')
+                identifier_value = row.get('UNIQUE_ID')
                 print(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
                 if action_flag in ("delete", "update"):
@@ -172,7 +172,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
                             'fhir_json': fhir_json,
-                            'action_flag': action_flag,
+                            'action_flag': 'None',
                             'imms_id': 'None',
                             'version': 'None',
                             'file_name': file_key
@@ -188,7 +188,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
-                            'fhir_json': 'None',
+                            'fhir_json': fhir_json,
                             'action_flag': 'None',
                             'imms_id': 'None',
                             'version': 'None',
