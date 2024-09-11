@@ -4,7 +4,7 @@ import json
 from io import StringIO
 import io
 import os
-from convert_fhir_json import convert_to_fhir_json, dict_formation
+from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
 import logging
 from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
@@ -93,7 +93,7 @@ def fetch_file_from_s3(bucket_name, file_key):
     return response["Body"].read().decode("utf-8")
 
 
-def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name):
+def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id):
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
@@ -115,24 +115,26 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
     for row in csv_reader:
         print(f"row:{row}")
-        row_count += 1  # Increment the counter for each row
-        # Split the first column which contains concatenated values
-        row_values = row.get("NHS_NUMBER", "").split("|")
-        # Strip quotes and handle missing values
-        row_values = [value.strip('"') if value else "" for value in row_values]
-        print(f"row_values:{row_values}")
-        val = dict_formation(row_values)
-        print(f"parsed_row:{val}")
+        row_count += 1
+        message_header = f"{message_id}#{row_count}"  # Increment the counter for each row
+        print(f"messageheader : {message_header}")
+        # # Split the first column which contains concatenated values
+        # # row_values = row.get("NHS_NUMBER", "").split("|")
+        # # Strip quotes and handle missing values
+        # row_values = [value.strip('"') if value else "" for value in row.values()]
+        # print(f"row_values:{row_values}")
+        # val = dict_formation(row_values)
+        print(f"parsed_row:{row}")
         if (
-            val.get("ACTION_FLAG") in {"new", "update", "delete"}
-            and val.get("UNIQUE_ID_URI")
-            and val.get("UNIQUE_ID")
+            row.get("ACTION_FLAG") in {"new", "update", "delete"}
+            and row.get("UNIQUE_ID_URI")
+            and row.get("UNIQUE_ID")
         ):
-            fhir_json, valid = convert_to_fhir_json(val, vaccine_type)
+            fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
             if valid:
-                identifier_system = val.get('UNIQUE_ID_URI')
-                action_flag = val.get('ACTION_FLAG')
-                identifier_value = val.get('UNIQUE_ID')
+                identifier_system = row.get('UNIQUE_ID_URI')
+                action_flag = row.get('ACTION_FLAG')
+                identifier_value = row.get('UNIQUE_ID')
                 print(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
                 if action_flag in ("delete", "update"):
@@ -144,6 +146,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     # Prepare the message for SQS
                     if action_flag == "new":
                         message_body = {
+                            'message_id': message_header,
                             'fhir_json': fhir_json,
                             'action_flag': action_flag,
                             'file_name': file_key
@@ -153,6 +156,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                         imms_id = entry["resource"].get("id")
                         version = entry["resource"].get("meta", {}).get("versionId")
                         message_body = {
+                            'message_id': message_header,
                             'fhir_json': fhir_json,
                             'action_flag': action_flag,
                             'imms_id': imms_id,
@@ -163,16 +167,17 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     if status:
                         print("create successful")
                         logger.info("message sent successfully to SQS")
-                        data_row = Constant.data_rows(True, created_at_formatted)
+                        data_row = Constant.data_rows(True, created_at_formatted, message_header)
                     else:
                         logger.error("Error sending to SQS")
-                        data_row = Constant.data_rows(False, created_at_formatted)
+                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
+                            'message_id': message_header,
                             'fhir_json': fhir_json,
-                            'action_flag': action_flag,
+                            'action_flag': 'None',
                             'imms_id': 'None',
                             'version': 'None',
                             'file_name': file_key
@@ -181,14 +186,15 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     if status:
                         print("create successful imms not found")
                         logger.info("message sent successfully to SQS")
-                        data_row = Constant.data_rows("None", created_at_formatted)
+                        data_row = Constant.data_rows("None", created_at_formatted, message_header)
                     else:
                         logger.error("Error sending to SQS imms id not found")
-                        data_row = Constant.data_rows(False, created_at_formatted)
+                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
-                            'fhir_json': 'None',
+                            'message_id': message_header,
+                            'fhir_json': fhir_json,
                             'action_flag': 'None',
                             'imms_id': 'None',
                             'version': 'None',
@@ -198,13 +204,14 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                 if status:
                     print("sent successful invalid_json")
                     logger.info("message sent successfully to SQS")
-                    data_row = Constant.data_rows("None", created_at_formatted)
+                    data_row = Constant.data_rows("None", created_at_formatted, message_header)
                 else:
                     logger.error("Error sending to SQS for invliad json")
-                    data_row = Constant.data_rows(False, created_at_formatted)
+                    data_row = Constant.data_rows(False, created_at_formatted, message_header)
         else:
             logger.error(f"Invalid row format: {row}")
             message_body = {
+                            'message_id': message_header,
                             'fhir_json': 'None',
                             'action_flag': 'None',
                             'imms_id': 'None',
@@ -215,10 +222,10 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
             if status:
                 print("sent successful invalid_json")
                 logger.info("message sent successfully to SQS")
-                data_row = Constant.data_rows("None", created_at_formatted)
+                data_row = Constant.data_rows("None", created_at_formatted, message_header)
             else:
                 logger.error("Error sending to SQS for invliad json")
-                data_row = Constant.data_rows(False, created_at_formatted)
+                data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
@@ -263,12 +270,13 @@ def process_lambda_handler(event, context):
         try:
             print(f"Records:{record}")
             message_body = json.loads(record["body"])
+            message_id = message_body.get("message_id")
             vaccine_type = message_body.get("vaccine_type")
             supplier = message_body.get("supplier")
             file_key = message_body.get("filename")
             if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
                 process_csv_to_fhir(
-                    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name
+                    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id
                 )
             else:
                 logger.info(f"{supplier} does not have full_permissions")
