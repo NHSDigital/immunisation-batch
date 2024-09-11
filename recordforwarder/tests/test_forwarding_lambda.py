@@ -35,9 +35,9 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            forward_request_to_api('source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
+            forward_request_to_api(None, 'source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
             # Check that the data_rows function was called with success status and formatted datetime
-            mock_data_rows.assert_called_with(True, '20240821T10153000')
+            mock_data_rows.assert_called_with(True, '20240821T10153000', None)
             # Verify that the create_immunization API was called exactly once
             mock_api.create_immunization.assert_called_once()
 
@@ -49,7 +49,7 @@ class TestForwardingLambda(unittest.TestCase):
         # Simulate the case where the ack file does not exist
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        forward_request_to_api('source-bucket', 'file.csv', 'None', 'None', 'ack-bucket', 'None', 'None')
+        forward_request_to_api(None, 'source-bucket', 'file.csv', 'None', 'None', 'ack-bucket', 'None', 'None')
         # Check that the data_rows function was called with success status and formatted datetime
         # Verify that the create_immunization API was called exactly once
         mock_api.create_immunization.assert_not_called()
@@ -66,9 +66,9 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            forward_request_to_api('source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
+            forward_request_to_api(None, 'source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
             # Check that the data_rows function was called with success status and formatted datetime
-            mock_data_rows.assert_called_with('duplicate', '20240821T10153000')
+            mock_data_rows.assert_called_with('duplicate', '20240821T10153000', None)
             # Verify that the create_immunization API was called exactly once
             mock_api.create_immunization.assert_called_once()
 
@@ -81,9 +81,9 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            forward_request_to_api('source-bucket', 'file.csv', 'update', {"resourceType": "immunization"},
+            forward_request_to_api(None, 'source-bucket', 'file.csv', 'update', {"resourceType": "immunization"},
                                    'ack-bucket', 'imms_id', 'v1')
-            mock_data_rows.assert_called_with(False, '20240821T10153000')
+            mock_data_rows.assert_called_with(False, '20240821T10153000', None)
             mock_api.update_immunization.assert_called_once_with('imms_id', 'v1',
                                                                  {'resourceType': 'immunization', 'id': 'imms_id'},
                                                                  None)
@@ -97,8 +97,8 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            forward_request_to_api('source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'None', 'None')
-            mock_data_rows.assert_called_with(False, '20240821T10153000')
+            forward_request_to_api(None, 'source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'None', 'None')
+            mock_data_rows.assert_called_with('None', '20240821T10153000', None)
             mock_api.update_immunization.assert_not_called
 
     @patch('forwarding_lambda.s3_client')
@@ -110,8 +110,8 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            forward_request_to_api('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'None', 'None')
-            mock_data_rows.assert_called_with(False, '20240821T10153000')
+            forward_request_to_api(None, 'source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'None', 'None')
+            mock_data_rows.assert_called_with("None", '20240821T10153000', None)
             mock_api.delete_immunization.assert_not_called
 
     @patch('forwarding_lambda.s3_client')
@@ -122,8 +122,8 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
         with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
-            forward_request_to_api('source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'imms_id', None)
-            mock_data_rows.assert_called_with(True, '20240821T10153000')
+            forward_request_to_api(None, 'source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'imms_id', None)
+            mock_data_rows.assert_called_with(True, '20240821T10153000', None)
             mock_api.delete_immunization.assert_called_once_with('imms_id', '{}', None)
 
     @patch('forwarding_lambda.forward_request_to_api')
@@ -143,6 +143,7 @@ class TestForwardingLambda(unittest.TestCase):
         }
         forward_lambda_handler(event, None)
         mock_forward_request_to_api.assert_called_once_with(
+            None,
             'immunisation-batch-internal-dev-data-source',
             'test_file.csv',
             'new',
@@ -171,6 +172,7 @@ class TestForwardingLambda(unittest.TestCase):
         }
         forward_lambda_handler(event, None)
         mock_forward_request_to_api.assert_called_once_with(
+            None,
             'immunisation-batch-internal-dev-data-source',
             'test_file.csv',
             'update',

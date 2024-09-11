@@ -160,19 +160,19 @@ class Constant:
         ]
     }
 
-    def data_rows(status, created_at_formatted):
+    def data_rows(status, created_at_formatted, message_header):
 
         if status is True:
-            data_row = ['TBC', 'ok', 'information', 'informational', 'business',
+            data_row = [message_header, 'ok', 'information', 'informational', 'business',
                         '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
             return data_row
         elif status == "duplicate":
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business',
+            data_row = [message_header, 'fatal-error', 'error', 'error', 'business',
                         '20007', 'Duplicate Message received', created_at_formatted, 'TBC', 'DPS', False]
             return data_row
         if status == "None":
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'failed in json conversion', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
+            data_row = [message_header, 'fatal-error', 'error', 'error', 'business', '20005', 'failed in json conversion', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
             return data_row
         if status is False:
-            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20009', 'Payload validation failure', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
+            data_row = [message_header, 'fatal-error', 'error', 'error', 'business', '20009', 'Payload validation failure', created_at_formatted, 'TBC', 'DPS', False]  # noqa: E501
             return data_row
