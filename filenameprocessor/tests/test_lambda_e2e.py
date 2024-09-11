@@ -7,10 +7,7 @@ from moto import mock_s3, mock_sqs
 from src.constants import Constant
 
 
-from router_lambda_function import (
-    lambda_handler,
-    validate_action_flag_permissions,
-)
+from router_lambda_function import lambda_handler, validate_action_flag_permissions
 
 
 class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
@@ -20,17 +17,11 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
     @patch("router_lambda_function.validate_csv_column_count")
     @patch("router_lambda_function.get_supplier_permissions")
     def test_lambda_handler(
-        self,
-        mock_get_supplier_permissions,
-        mock_validate_csv_column_count,
-        mock_sqs_client,
-        mock_s3_client,
+        self, mock_get_supplier_permissions, mock_validate_csv_column_count, mock_sqs_client, mock_s3_client
     ):
 
         # Mock permissions configuration
-        mock_get_supplier_permissions.return_value = {
-            "all_permissions": {"EMIS": ["FLU_FULL"]}
-        }
+        mock_get_supplier_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
 
         # Mock an S3 event
         event = {
@@ -76,16 +67,12 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
         mock_validate_csv_column_count.return_value = (True, [])
 
         # Mock initial_file_validation function
-        with patch(
-            "router_lambda_function.initial_file_validation", return_value=(True, False)
-        ) as mock_validation:
+        with patch("router_lambda_function.initial_file_validation", return_value=(True, False)) as mock_validation:
             # Invoke Lambda function
             lambda_handler(event, None)
 
             # Assertions
-            mock_validation.assert_called_once_with(
-                "FLU_Vaccinations_v5_YGM41_20240708T12130100.csv", "test-bucket"
-            )
+            mock_validation.assert_called_once_with("FLU_Vaccinations_v5_YGM41_20240708T12130100.csv", "test-bucket")
             mock_s3_client.upload_fileobj.assert_called_once()
             mock_sqs_client.send_message.assert_called_once()
 
@@ -100,31 +87,23 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
-            Bucket=source_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+            Bucket=source_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
         s3_client.create_bucket(
-            Bucket=destination_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+            Bucket=destination_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
 
         # Upload a test file to the source bucket
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         test_file_content = "ACTION_FLAG\nupdate\n"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Mock permissions configuration
-        mock_get_supplier_permissions.return_value = [
-            "FLU_FULL",
-        ]
+        mock_get_supplier_permissions.return_value = ["FLU_FULL"]
 
         # Set up SQS
         sqs_client = boto3.client("sqs", region_name="eu-west-2")
@@ -146,10 +125,7 @@ class TestLambdaHandler(unittest.TestCase):
         }
 
         # Mock the validate_csv_column_count function
-        with patch(
-            "router_lambda_function.validate_csv_column_count",
-            return_value=True,
-        ):
+        with patch("router_lambda_function.validate_csv_column_count", return_value=True):
             # Call the lambda_handler function
             response = lambda_handler(event, None)
 
@@ -163,9 +139,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn(ack_file_key, ack_file_keys)
 
         # Check if the message was sent to the SQS queue
-        messages = sqs_client.receive_message(
-            QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1
-        )
+        messages = sqs_client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1)
         self.assertIn("Messages", messages)
         received_message = json.loads(messages["Messages"][0]["Body"])
 
@@ -173,18 +147,13 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(received_message["vaccine_type"], "Flu")
         self.assertEqual(received_message["supplier"], "EMIS")
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
-        self.assertEqual(
-            received_message["filename"],
-            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
-        )
+        self.assertEqual(received_message["filename"], "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv")
 
     @mock_s3
     @mock_sqs
     @patch("router_lambda_function.send_to_supplier_queue")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_lambda_invalid(
-        self, mock_send_to_supplier_queue, mock_get_supplier_permissions
-    ):
+    def test_lambda_invalid(self, mock_send_to_supplier_queue, mock_get_supplier_permissions):
         """tests SQS queue is not called when file validation failed"""
         # Mock permissions configuration
         mock_get_supplier_permissions.return_value = ["FLUFULL"]
@@ -192,37 +161,25 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
-            Bucket=source_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+            Bucket=source_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
         s3_client.create_bucket(
-            Bucket=destination_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+            Bucket=destination_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
 
         # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
-        self.assertIn(
-            destination_bucket_name,
-            buckets,
-            f"Bucket {destination_bucket_name} not found",
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
+        self.assertIn(destination_bucket_name, buckets, f"Bucket {destination_bucket_name} not found")
         # Upload a test file
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event
         event = {
@@ -255,9 +212,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -272,21 +227,11 @@ class TestLambdaHandler(unittest.TestCase):
         # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
-        self.assertIn(
-            destination_bucket_name,
-            buckets,
-            f"Bucket {destination_bucket_name} not found",
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
+        self.assertIn(destination_bucket_name, buckets, f"Bucket {destination_bucket_name} not found")
         # Upload a test file with an invalid header
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        s3_client.put_object(
-            Bucket=source_bucket_name,
-            Key=test_file_key,
-            Body=Constant.invalid_csv_content,
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=Constant.invalid_csv_content)
 
         # Prepare the event
         event = {
@@ -313,14 +258,10 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn(ack_file_key, ack_file_keys)
 
         # Validate the content of the ack file to ensure it reports an error due to invalid headers
-        ack_file_obj = s3_client.get_object(
-            Bucket=destination_bucket_name, Key=ack_file_key
-        )
+        ack_file_obj = s3_client.get_object(Bucket=destination_bucket_name, Key=ack_file_key)
         ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
-        self.assertIn("error", ack_file_content)
-        self.assertIn(
-            "Unsupported file type received as an attachment", ack_file_content
-        )
+        self.assertIn("Fatal Error", ack_file_content)
+        self.assertIn("Infrastructure Level Response Value - Processing Error", ack_file_content)
 
     @mock_s3
     @mock_sqs
@@ -331,9 +272,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -348,9 +287,7 @@ class TestLambdaHandler(unittest.TestCase):
         # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
         self.assertIn(
             destination_bucket_name,
             buckets,
@@ -359,9 +296,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Upload a test file
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event.
         event = {
@@ -394,9 +329,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -412,9 +345,7 @@ class TestLambdaHandler(unittest.TestCase):
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
 
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
         self.assertIn(
             destination_bucket_name,
             buckets,
@@ -423,9 +354,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Upload a test file
         test_file_key = "Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event
         event = {
@@ -444,9 +373,7 @@ class TestLambdaHandler(unittest.TestCase):
         # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
         # Check if the acknowledgment file is created in the S3 bucket
-        ack_file_key = (
-            "ack/Invalid_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
-        )
+        ack_file_key = "ack/Invalid_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
         self.assertIn(ack_file_key, ack_file_keys)
@@ -460,9 +387,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -477,9 +402,7 @@ class TestLambdaHandler(unittest.TestCase):
         # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
         self.assertIn(
             destination_bucket_name,
             buckets,
@@ -488,9 +411,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Upload a test file
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event
         event = {
@@ -523,9 +444,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -540,9 +459,7 @@ class TestLambdaHandler(unittest.TestCase):
         # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
         self.assertIn(
             destination_bucket_name,
             buckets,
@@ -551,9 +468,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Upload a test file
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event
         event = {
@@ -586,9 +501,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -604,9 +517,7 @@ class TestLambdaHandler(unittest.TestCase):
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
 
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
         self.assertIn(
             destination_bucket_name,
             buckets,
@@ -615,9 +526,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Upload a test file
         test_file_key = "Flu_Vaccinations_v5_YGMs41_20240708T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event
         event = {
@@ -649,9 +558,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
 
         # Create source and destination buckets
         s3_client.create_bucket(
@@ -666,9 +573,7 @@ class TestLambdaHandler(unittest.TestCase):
         # check if bucket exists
         response = s3_client.list_buckets()
         buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(
-            source_bucket_name, buckets, f"Bucket {source_bucket_name} not found"
-        )
+        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
         self.assertIn(
             destination_bucket_name,
             buckets,
@@ -677,9 +582,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Upload a test file
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240732T12130100.csv"
         test_file_content = "example content"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
 
         # Prepare the event
         event = {
@@ -743,12 +646,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         def mock_get_supplier_permissions(supplier, config_bucket_name):
             return ["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"]
 
-        original_get_supplier_permissions = (
-            validate_action_flag_permissions.__globals__["get_supplier_permissions"]
-        )
-        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
-            mock_get_supplier_permissions
-        )
+        original_get_supplier_permissions = validate_action_flag_permissions.__globals__["get_supplier_permissions"]
+        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = mock_get_supplier_permissions
 
         try:
             # Call the function
@@ -759,6 +658,4 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
             # Check the result
             self.assertTrue(result)
         finally:
-            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
-                original_get_supplier_permissions
-            )
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = original_get_supplier_permissions
