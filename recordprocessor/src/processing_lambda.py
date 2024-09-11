@@ -117,6 +117,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         print(f"row:{row}")
         row_count += 1
         message_header = f"{message_id}#{row_count}"  # Increment the counter for each row
+        print(f"messageheader : {message_header}")
         # # Split the first column which contains concatenated values
         # # row_values = row.get("NHS_NUMBER", "").split("|")
         # # Strip quotes and handle missing values
