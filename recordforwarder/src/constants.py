@@ -179,7 +179,7 @@ class Constant:
                 "error",
                 "business",
                 "20005",
-                "No permissions for operation",
+                "Skipped As No permissions for operation",
                 created_at_formatted,
                 "TBC",
                 "DPS",

@@ -156,7 +156,17 @@ def process_csv_to_fhir(
                 "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
             )
             accumulated_csv_content.write(cleaned_row + "\n")
+
             print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
+
+            message_body = {
+                "fhir_json": "No_Permissions",
+                "action_flag": "None",
+                "imms_id": "None",
+                "version": "None",
+                "file_name": file_key,
+            }
+            status = send_to_sqs(supplier, message_body)
 
             continue
         if (
