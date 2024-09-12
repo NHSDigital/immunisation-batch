@@ -238,425 +238,570 @@ class Constant:
     )
     mock_request_positive_string = [
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'new',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': 'test',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": "9732928395",
+            "PERSON_FORENAME": "PHYLIS",
+            "PERSON_SURNAME": "PEEL",
+            "PERSON_DOB": "20080217",
+            "PERSON_GENDER_CODE": "0",
+            "PERSON_POSTCODE": "WD25 0DZ",
+            "DATE_AND_TIME": "20240904T183325",
+            "SITE_CODE": "RVVKC",
+            "SITE_CODE_TYPE_URI": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "UNIQUE_ID": "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057",
+            "UNIQUE_ID_URI": "https://www.ravs.england.nhs.uk/",
+            "ACTION_FLAG": "new",
+            "PERFORMING_PROFESSIONAL_FORENAME": "Ellena",
+            "PERFORMING_PROFESSIONAL_SURNAME": "O'Reilly",
+            "RECORDED_DATE": "20240904",
+            "PRIMARY_SOURCE": "TRUE",
+            "VACCINATION_PROCEDURE_CODE": "956951000000104",
+            "VACCINATION_PROCEDURE_TERM": "RSV vaccination in pregnancy (procedure)",
+            "DOSE_SEQUENCE": "test",
+            "VACCINE_PRODUCT_CODE": "42223111000001107",
+            "VACCINE_PRODUCT_TERM": "Quadrivalent influenza vaccine (split virion, inactivated)",
+            "VACCINE_MANUFACTURER": "Sanofi Pasteur",
+            "BATCH_NUMBER": "BN92478105653",
+            "EXPIRY_DATE": "20240915",
+            "SITE_OF_VACCINATION_CODE": "368209003",
+            "SITE_OF_VACCINATION_TERM": "Right arm",
+            "ROUTE_OF_VACCINATION_CODE": "1210999013",
+            "ROUTE_OF_VACCINATION_TERM": "Intradermal use",
+            "DOSE_AMOUNT": "0.3",
+            "DOSE_UNIT_CODE": "2622896019",
+            "DOSE_UNIT_TERM": "Inhalation - unit of product usage",
+            "INDICATION_CODE": "1037351000000105",
+            "LOCATION_CODE": "RJC02",
+            "LOCATION_CODE_TYPE_URI": "https://fhir.nhs.uk/Id/ods-organization-code",
         }
     ]
 
     mock_request_only_mandatory = [
         {
-            'NHS_NUMBER': '',
-            'PERSON_FORENAME': 'SABINA',
-            'PERSON_SURNAME': 'GREIR',
-            'PERSON_DOB': '20190131',
-            'PERSON_GENDER_CODE': '2',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'new',
-            'PERFORMING_PROFESSIONAL_FORENAME': '',
-            'PERFORMING_PROFESSIONAL_SURNAME': '',
-            'RECORDED_DATE': '20240904T183325',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': '',
-            'DOSE_SEQUENCE': '',
-            'VACCINE_PRODUCT_CODE': '',
-            'VACCINE_PRODUCT_TERM': '',
-            'VACCINE_MANUFACTURER': '',
-            'BATCH_NUMBER': '',
-            'EXPIRY_DATE': '',
-            'SITE_OF_VACCINATION_CODE': '',
-            'SITE_OF_VACCINATION_TERM': '',
-            'ROUTE_OF_VACCINATION_CODE': '',
-            'ROUTE_OF_VACCINATION_TERM': '',
-            'DOSE_AMOUNT': '',
-            'DOSE_UNIT_CODE': '',
-            'DOSE_UNIT_TERM': '',
-            'INDICATION_CODE': '',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '|”SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"B0C4P"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|'
+                '"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|"https://www.ravs.england.nhs.uk/"|"new"|||'
+                '"20240610T183325"|"TRUE"|'
+                '"1303503001"||||||||||||||||"B0C4P”|”https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         }
     ]
     mock_request_positive_string_missing = [
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         }
     ]
     mock_request = [
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         },
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"update"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
+        },
+        {
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"delete"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
+        },
+    ]
+
+    mock_create_request = [
+        {
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         }
     ]
 
     mock_request_params_missing = [
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': '',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"||"Ellena"|"O\'Reilly"|"20240610T183325"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         },
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"||'
+                '"https://www.ravs.england.nhs.uk/"|"update"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         },
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': '',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '|"delete"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         },
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'create',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
-        }
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"create"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|"Intramuscular route (qualifier value)"|"0.5"|'
+                '"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
+        },
     ]
     mock_update_request = [
         {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
+            "NHS_NUMBER": (
+                '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+                '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+                '"https://www.ravs.england.nhs.uk/"|"update"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|"1303503001"|'
+                '"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+                '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials '
+                '(Pfizer Ltd) (product) "|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body '
+                'structure)"|"78421000"|'
+                '"Intramuscular route (qualifier value)"|"0.5"|"258773002|"Milliliter (qualifier '
+                'value)"||"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+            ),
+            "PERSON_FORENAME": None,
+            "PERSON_SURNAME": None,
+            "PERSON_DOB": None,
+            "PERSON_GENDER_CODE": None,
+            "PERSON_POSTCODE": None,
+            "DATE_AND_TIME": None,
+            "SITE_CODE": None,
+            "SITE_CODE_TYPE_URI": None,
+            "UNIQUE_ID": None,
+            "UNIQUE_ID_URI": None,
+            "ACTION_FLAG": None,
+            "PERFORMING_PROFESSIONAL_FORENAME": None,
+            "PERFORMING_PROFESSIONAL_SURNAME": None,
+            "RECORDED_DATE": None,
+            "PRIMARY_SOURCE": None,
+            "VACCINATION_PROCEDURE_CODE": None,
+            "VACCINATION_PROCEDURE_TERM": None,
+            "DOSE_SEQUENCE": None,
+            "VACCINE_PRODUCT_CODE": None,
+            "VACCINE_PRODUCT_TERM": None,
+            "VACCINE_MANUFACTURER": None,
+            "BATCH_NUMBER": None,
+            "EXPIRY_DATE": None,
+            "SITE_OF_VACCINATION_CODE": None,
+            "SITE_OF_VACCINATION_TERM": None,
+            "ROUTE_OF_VACCINATION_CODE": None,
+            "ROUTE_OF_VACCINATION_TERM": None,
+            "DOSE_AMOUNT": None,
+            "DOSE_UNIT_CODE": None,
+            "DOSE_UNIT_TERM": None,
+            "INDICATION_CODE": None,
+            "LOCATION_CODE": None,
+            "LOCATION_CODE_TYPE_URI": None,
         }
     ]
-    request = {
-            'NHS_NUMBER': '9732928395',
-            'PERSON_FORENAME': 'PHYLIS',
-            'PERSON_SURNAME': 'PEEL',
-            'PERSON_DOB': '20080217',
-            'PERSON_GENDER_CODE': '0',
-            'PERSON_POSTCODE': 'WD25 0DZ',
-            'DATE_AND_TIME': '20240904T183325',
-            'SITE_CODE': 'RVVKC',
-            'SITE_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code',
-            'UNIQUE_ID': '0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057',
-            'UNIQUE_ID_URI': 'https://www.ravs.england.nhs.uk/',
-            'ACTION_FLAG': 'update',
-            'PERFORMING_PROFESSIONAL_FORENAME': 'Ellena',
-            'PERFORMING_PROFESSIONAL_SURNAME': "O'Reilly",
-            'RECORDED_DATE': '20240904',
-            'PRIMARY_SOURCE': 'TRUE',
-            'VACCINATION_PROCEDURE_CODE': '956951000000104',
-            'VACCINATION_PROCEDURE_TERM': 'RSV vaccination in pregnancy (procedure)',
-            'DOSE_SEQUENCE': '1',
-            'VACCINE_PRODUCT_CODE': '42223111000001107',
-            'VACCINE_PRODUCT_TERM': 'Quadrivalent influenza vaccine (split virion, inactivated)',
-            'VACCINE_MANUFACTURER': 'Sanofi Pasteur',
-            'BATCH_NUMBER': 'BN92478105653',
-            'EXPIRY_DATE': '20240915',
-            'SITE_OF_VACCINATION_CODE': '368209003',
-            'SITE_OF_VACCINATION_TERM': 'Right arm',
-            'ROUTE_OF_VACCINATION_CODE': '1210999013',
-            'ROUTE_OF_VACCINATION_TERM': 'Intradermal use',
-            'DOSE_AMOUNT': '0.3',
-            'DOSE_UNIT_CODE': '2622896019',
-            'DOSE_UNIT_TERM': 'Inhalation - unit of product usage',
-            'INDICATION_CODE': '1037351000000105',
-            'LOCATION_CODE': 'RJC02',
-            'LOCATION_CODE_TYPE_URI': 'https://fhir.nhs.uk/Id/ods-organization-code'
-    }
 
     action_flag_mapping = {"NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
 
     def data_rows(status, created_at_formatted, message_header):
 
         if status is True:
-            data_row = [message_header, 'ok', 'information', 'informational', 'business',
+            data_row = ['TBC', 'ok', 'information', 'informational', 'business',
                         '20013', 'Success', created_at_formatted, 'TBC', 'DPS', True]
             return data_row
         elif status == "None":
-            data_row = [message_header, 'fatal-error', 'error', 'error', 'business', '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS', True]  # noqa: E501
+            data_row = ['TBC', 'fatal-error', 'error', 'error', 'business', '20005', 'Unsupported file type received as an attachment', created_at_formatted, 'TBC', 'DPS', True]  # noqa: E501
             return data_row
         else:
             data_row = [
@@ -673,3 +818,49 @@ class Constant:
                 False,
             ]  # noqa: E501
             return data_row
+
+    test_permissions_config_file = {
+        "all_permissions": {
+            "DPFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+            "DPREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+            "SUPPLIER1": ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"],
+            "SUPPLIER2": ["FLU_CREATE"],
+            "EMIS": ["FLU_CREATE", "FLU_DELETE"],
+            "SUPPLIER4": [""],
+        },
+        "definitions:": {
+            "_FULL": "Full permissions to create, update and delete a batch record",
+            "_CREATE": "Permission to create a batch record",
+            "_UPDATE": "Permission to update a batch record",
+            "_DELETE": "Permission to delete a batch record",
+        },
+    }
+
+    file_content_operations = (
+        "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
+        "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"
+        "PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|"
+        "PRIMARY_SOURCE|VACCINATION_PROCEDURE_CODE|VACCINATION_PROCEDURE_TERM|DOSE_SEQUENCE|"
+        "VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|"
+        "SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|"
+        "ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|"
+        "LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
+        '"9732928395"|"PHYLIS"|"PEEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|'
+        '"https://fhir.nhs.uk/Id/ods-organization-code"|'
+        '"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|'
+        '"new"|"Ellena"|"OReilly"|"20240904T183325"|'
+        '"TRUE"|"956951000000104"|"RSV vaccination in pregnancy (procedure)"|"1"|"42223111000001107"|'
+        '"Quadrivalent influenza vaccine (split virion)"|"Sanofi Pasteur"|'
+        '"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|"0.3"|'
+        '"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
+        '"RJC02"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
+        '"9732928395"|"PHIL"|"PEL"|"20080217"|"0"|"WD25 0DZ"|"20240904T183325"|"RVVKC"|'
+        '"https://fhir.nhs.uk/Id/ods-organization-code"|'
+        '"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057"|"https://www.ravs.england.nhs.uk/"|'
+        '"delete"|"Ellena"|"OReilly"|"20240904T183325"|'
+        '"TRUE"|"956951000000104"|"RSV vaccination in pregnancy (procedure)"|"1"|"42223111000001107"|'
+        '"Quadrivalent influenza vaccine (split virion)"|"Sanofi Pasteur"|'
+        '"BN92478105653"|"20240915"|"368209003"|"Right arm"|"1210999013"|"Intradermal use"|"0.3"|'
+        '"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
+        '"RJC02"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
+    )

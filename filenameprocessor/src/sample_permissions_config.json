@@ -4,11 +4,11 @@
     "DPSREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
     "EMIS": [""],
     "PINNACLE": [""],
-    "SONAR": [""],
+    "SONAR": ["FLU_CREATE", "FLU_DELETE"],
     "TPP": [""],
     "AGEM-NIVS": [""],
     "NIMS": [""],
-    "EVA": [""],
+    "EVA": ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"],
     "RAVS": [""],
     "MEDICAL_DIRECTOR": [""],
     "WELSH_DA_1": [""],
@@ -19,9 +19,9 @@
 },
 
 "definitions:": {
-"FULL": "Full permissions to create, update and delete a batch record", 
-"CREATE": "Permission to create a batch record", 
-"UPDATE": "Permission to update a batch record",
-"DELETE":"Permission to delete a batch record"
+"_FULL": "Full permissions to create, update and delete a batch record", 
+"_CREATE": "Permission to create a batch record", 
+"_UPDATE": "Permission to update a batch record",
+"_DELETE":"Permission to delete a batch record"
 }
 }

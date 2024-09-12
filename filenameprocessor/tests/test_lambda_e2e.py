@@ -81,7 +81,7 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     @mock_sqs
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_lambda_handler(self, mock_get_supplier_permissions):
+    def test_lambda_handler_full_permissions(self, mock_get_supplier_permissions):
         """Tests lambda function end to end"""
 
         # Set up S3
@@ -609,10 +609,10 @@ class TestLambdaHandler(unittest.TestCase):
 class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @mock_s3
-    def test_validate_action_flag_permissions_end_to_end(self):
+    @patch("csv.DictReader")
+    def test_validate_action_flag_permissions_end_to_end(self, mock_csv_dict_reader):
         # Define test parameters
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        csv_data = "ACTION_FLAG\nnew\nupdate\ndelete\n"
         source_bucket_name = "test-bucket"
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
         supplier = "supplier_123"
@@ -627,12 +627,10 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         s3_client.put_object(
             Bucket=source_bucket_name,
             Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
-            Body=csv_data,
         )
         s3_client.put_object(
             Bucket=source_bucket_name,
             Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
-            Body=csv_data,
         )
 
         # Mock the permissions configuration
@@ -644,18 +642,81 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
         # Mock supplier permissions
         def mock_get_supplier_permissions(supplier, config_bucket_name):
-            return ["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"]
+            return {"FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"}
 
-        original_get_supplier_permissions = validate_action_flag_permissions.__globals__["get_supplier_permissions"]
-        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = mock_get_supplier_permissions
+        original_get_supplier_permissions = (
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"]
+        )
+        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+            mock_get_supplier_permissions
+        )
+        mock_csv_reader_instance = MagicMock()
+        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
         try:
             # Call the function
             result = validate_action_flag_permissions(
                 source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
             )
-            print(f"RESULT RESULT: {result}")
-            # Check the result
             self.assertTrue(result)
         finally:
-            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = original_get_supplier_permissions
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+                original_get_supplier_permissions
+            )
+
+    @mock_s3
+    @patch("csv.DictReader")
+    def test_validate_action_flag_no_permissions_end_to_end(self, mock_csv_dict_reader):
+        s3_client = boto3.client("s3", region_name="eu-west-2")
+        source_bucket_name = "test-bucket"
+        file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
+        supplier = "supplier_123"
+        vaccine_type = "FLU"
+        config_bucket_name = "config-bucket"
+
+        s3_client.create_bucket(
+            Bucket=source_bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+        )
+        s3_client.put_object(
+            Bucket=source_bucket_name,
+            Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+        )
+
+        # Mock the permissions configuration
+        Constant.action_flag_mapping = {
+            "NEW": "CREATE",
+            "UPDATE": "UPDATE",
+            "DELETE": "DELETE",
+        }
+
+        # Mock supplier permissions
+        def mock_get_supplier_permissions(supplier, config_bucket_name):
+            return {""}
+
+        original_get_supplier_permissions = (
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"]
+        )
+        validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+            mock_get_supplier_permissions
+        )
+        mock_csv_reader_instance = MagicMock()
+        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        mock_csv_dict_reader.return_value = mock_csv_reader_instance
+
+        try:
+            result = validate_action_flag_permissions(
+                source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
+            )
+            # print(f"RESULT: {result}")
+            self.assertFalse(result)
+        finally:
+            validate_action_flag_permissions.__globals__["get_supplier_permissions"] = (
+                original_get_supplier_permissions
+            )
