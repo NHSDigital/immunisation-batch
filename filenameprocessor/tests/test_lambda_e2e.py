@@ -320,7 +320,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn("error", ack_file_content)
         self.assertIn(
             "Unsupported file type received as an attachment", ack_file_content
-        )    
+        )
 
     @mock_s3
     @mock_sqs
