@@ -3,6 +3,13 @@ resource "aws_ecs_cluster" "ecs_cluster" {
   name = "${local.prefix}-ecs-cluster"
 }
 
+locals {
+  processing_lambda_dir     = abspath(path.root .. "/../recordprocessor")
+  processing_lambda_files   = fileset(local.processing_lambda_dir, "**")
+  processing_lambda_dir_sha = sha1(join("", [for f in local.processing_lambda_files : filesha1(local.processing_lambda_dir .. "/" .. f)]))
+}
+
+
 # Build and Push Docker Image to ECR (Reusing the existing module)
 module "processing_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
@@ -169,7 +176,7 @@ resource "aws_ecs_service" "ecs_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = length(var.subnets) > 0 ? var.subnets : data.aws_subnet_ids.default.ids
+    subnets         = length(var.subnets) > 0 ? var.subnets : data.aws_subnets.default.ids
     assign_public_ip = true
     security_groups = [aws_security_group.ecs_security_group.id]
   }
@@ -188,7 +195,7 @@ locals {
   new_stream_arns = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
 }
 
-data "aws_subnet_ids" "default" {
+data "aws_subnets" "default" {
   vpc_id = data.aws_vpc.default.id
 }
 
@@ -208,4 +215,10 @@ variable "vpc_id" {
 variable "aws_region" {
   description = "AWS Region"
   default     = "eu-west-2"
+}
+
+variable "default_shard_count" {
+  description = "Default shard count for Kinesis streams"
+  type        = number
+  default     = 1
 }
