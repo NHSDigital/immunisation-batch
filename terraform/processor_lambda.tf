@@ -3,6 +3,7 @@ resource "aws_ecs_cluster" "ecs_cluster" {
   name = "${local.prefix}-ecs-cluster"
 }
 
+# Locals for Lambda processing paths and hash
 locals {
   processing_lambda_dir     = abspath("${path.root}/../recordprocessor")
   processing_lambda_files   = fileset(local.processing_lambda_dir, "**")
@@ -42,7 +43,7 @@ resource "aws_iam_role" "ecs_task_exec_role" {
   })
 }
 
-# Attach the necessary policies for ECS task execution (logs, ECR pull, S3, KMS, Secrets Manager, Kinesis)
+# Attach necessary policies for ECS task execution (logs, ECR pull, S3, KMS, Secrets Manager, Kinesis)
 resource "aws_iam_policy" "ecs_task_exec_policy" {
   name   = "${local.prefix}-ecs-task-exec-policy"
   policy = jsonencode({
@@ -176,7 +177,7 @@ resource "aws_ecs_service" "ecs_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = length(var.subnets) > 0 ? var.subnets : data.aws_subnets.default.ids
+    subnets         = length(var.subnets) > 0 ? var.subnets : data.aws_subnet_ids.default.ids
     assign_public_ip = true
     security_groups = [aws_security_group.ecs_security_group.id]
   }
@@ -190,12 +191,14 @@ data "aws_kinesis_stream" "processingstreams" {
   depends_on = [aws_kinesis_stream.processor_streams]
 }
 
+# Create a list of Kinesis Stream ARNs for use elsewhere
 locals {
-  # Creating a list of Kinesis Stream ARNs for use elsewhere
+
   new_stream_arns = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
 }
 
-data "aws_subnets" "default" {
+# Correct subnet data source
+data "aws_subnet_ids" "default" {
   vpc_id = data.aws_vpc.default.id
 }
 
