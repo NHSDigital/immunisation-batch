@@ -150,23 +150,31 @@ def process_csv_to_fhir(
             print(
                 f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
             )
+
+            message_body = {
+                "fhir_json": "No_Permissions",
+                "action_flag": "No_Permissions",
+                "imms_id": "No_Permissions",
+                "version": "No_Permissions",
+                "file_name": file_key,
+            }
+            status = send_to_sqs(supplier, message_body)
+
             data_row = Constant.data_rows("no permissions", created_at_formatted)
             data_row_str = [str(item) for item in data_row]
             cleaned_row = (
                 "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
             )
             accumulated_csv_content.write(cleaned_row + "\n")
-
-            print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
-
-            message_body = {
-                "fhir_json": "No_Permissions",
-                "action_flag": "None",
-                "imms_id": "None",
-                "version": "None",
-                "file_name": file_key,
-            }
-            status = send_to_sqs(supplier, message_body)
+            csv_file_like_object = io.BytesIO(
+                accumulated_csv_content.getvalue().encode("utf-8")
+            )
+            s3_client.upload_fileobj(
+                csv_file_like_object, ack_bucket_name, ack_filename
+            )
+            print(
+                f"CSV content before upload with perms:\n{accumulated_csv_content.getvalue()}"
+            )
 
             continue
         if (
