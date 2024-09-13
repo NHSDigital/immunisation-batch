@@ -69,16 +69,17 @@ def forward_request_to_api(
             # File doesn't exist, write the header to the new file
             accumulated_csv_content.write("|".join(headers) + "\n")
             print(f"accumulated_csv_content:{accumulated_csv_content}")
+    # if fhir_json == "No_Permissions":
+    #     data_row = Constant.data_rows("no permissions", created_at_formatted)
+    #     data_row_str = [str(item) for item in data_row]
+    #     cleaned_row = (
+    #         "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
+    #     )
+    #     accumulated_csv_content.write(cleaned_row + "\n")
+    #     print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
+    #     return
     if fhir_json == "No_Permissions":
         data_row = Constant.data_rows("no permissions", created_at_formatted)
-        data_row_str = [str(item) for item in data_row]
-        cleaned_row = (
-            "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
-        )
-        accumulated_csv_content.write(cleaned_row + "\n")
-        print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
-        return
-
     if imms_id == "None" and version == "None":
         data_row = Constant.data_rows(False, created_at_formatted)
     supplier_system = identify_supplier(file_key)
