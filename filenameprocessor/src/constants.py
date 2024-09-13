@@ -119,7 +119,7 @@ class Constant:
         "INVALID_HEADER31,INVALID_HEADER32,INVALID_HEADER33,INVALID_HEADER34"
     )
 
-    file_content = (
+    valid_file_content = (
         "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
         "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"
         "PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|"
@@ -587,6 +587,39 @@ class Constant:
             "LOCATION_CODE_TYPE_URI": "https://fhir.nhs.uk/Id/ods-organization-code",
         }
     ]
+
+    event = {
+        "Records": [
+            {
+                "eventVersion": "2.1",
+                "eventSource": "aws:s3",
+                "awsRegion": "eu-west-2",
+                "eventTime": "2024-07-09T12:00:00Z",
+                "eventName": "ObjectCreated:Put",
+                "userIdentity": {"principalId": "AWS:123456789012:user/Admin"},
+                "requestParameters": {"sourceIPAddress": "127.0.0.1"},
+                "responseElements": {
+                    "x-amz-request-id": "EXAMPLE123456789",
+                    "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
+                },
+                "s3": {
+                    "s3SchemaVersion": "1.0",
+                    "configurationId": "testConfigRule",
+                    "bucket": {
+                        "name": "test-bucket",
+                        "ownerIdentity": {"principalId": "EXAMPLE"},
+                        "arn": "arn:aws:s3:::example-bucket",
+                    },
+                    "object": {
+                        "key": "FLU_Vaccinations_v5_YGM41_20240708T12130100.csv",
+                        "size": 1024,
+                        "eTag": "5",
+                        "sequencer": "0A1B2C3D4E5F678901",
+                    },
+                },
+            }
+        ]
+    }
 
     action_flag_mapping = {"NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
 

@@ -10,67 +10,6 @@ from src.constants import Constant
 from router_lambda_function import lambda_handler, validate_action_flag_permissions
 
 
-class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
-
-    @patch("router_lambda_function.s3_client")
-    @patch("router_lambda_function.sqs_client")
-    @patch("router_lambda_function.get_supplier_permissions")
-    def test_lambda_handler(self, mock_get_supplier_permissions, mock_sqs_client, mock_s3_client):
-
-        # Mock permissions configuration
-        mock_get_supplier_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
-
-        # Mock an S3 event
-        event = {
-            "Records": [
-                {
-                    "eventVersion": "2.1",
-                    "eventSource": "aws:s3",
-                    "awsRegion": "eu-west-2",
-                    "eventTime": "2024-07-09T12:00:00Z",
-                    "eventName": "ObjectCreated:Put",
-                    "userIdentity": {"principalId": "AWS:123456789012:user/Admin"},
-                    "requestParameters": {"sourceIPAddress": "127.0.0.1"},
-                    "responseElements": {
-                        "x-amz-request-id": "EXAMPLE123456789",
-                        "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
-                    },
-                    "s3": {
-                        "s3SchemaVersion": "1.0",
-                        "configurationId": "testConfigRule",
-                        "bucket": {
-                            "name": "test-bucket",
-                            "ownerIdentity": {"principalId": "EXAMPLE"},
-                            "arn": "arn:aws:s3:::example-bucket",
-                        },
-                        "object": {
-                            "key": "FLU_Vaccinations_v5_YGM41_20240708T12130100.csv",
-                            "size": 1024,
-                            "eTag": "5",
-                            "sequencer": "0A1B2C3D4E5F678901",
-                        },
-                    },
-                }
-            ]
-        }
-
-        # Mock S3 client upload_fileobj
-        mock_s3_client.upload_fileobj = MagicMock()
-
-        # Mock SQS client send_message
-        mock_sqs_client.send_message = MagicMock()
-
-        # Mock initial_file_validation function
-        with patch("router_lambda_function.initial_file_validation", return_value=True) as mock_validation:
-            # Invoke Lambda function
-            lambda_handler(event, None)
-
-        # Assertions
-        mock_validation.assert_called_once_with("FLU_Vaccinations_v5_YGM41_20240708T12130100.csv", "test-bucket")
-        mock_s3_client.upload_fileobj.assert_called_once()
-        mock_sqs_client.send_message.assert_called_once()
-
-
 class TestLambdaHandler(unittest.TestCase):
 
     def setUp(self):
@@ -78,7 +17,6 @@ class TestLambdaHandler(unittest.TestCase):
         self.destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
         self.test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         self.ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
-        self.valid_file_content = Constant.file_content
 
     def set_up_s3_buckets_and_upload_file(
         self, test_file_key="FLU_Vaccinations_v5_YGM41_20240708T12130100.csv", test_file_content="example content"
@@ -138,7 +76,7 @@ class TestLambdaHandler(unittest.TestCase):
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(
-            test_file_key=test_file_key, test_file_content=self.valid_file_content
+            test_file_key=test_file_key, test_file_content=Constant.valid_file_content
         )
 
         # Set up SQS
@@ -168,7 +106,6 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(received_message["filename"], "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv")
 
     @mock_s3
-    @mock_sqs
     def test_lambda_invalid(self):
         """tests SQS queue is not called when file validation failed"""
         s3_client = self.set_up_s3_buckets_and_upload_file(
@@ -187,12 +124,11 @@ class TestLambdaHandler(unittest.TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, self.ack_file_key)
 
     @mock_s3
-    @mock_sqs
-    @patch("router_lambda_function.send_to_supplier_queue")
-    def test_lambda_invalid_csv_header(self, mock_send_to_supplier_queue):
-        """tests SQS queue is not called when CSV headers are invalid"""
+    def test_lambda_invalid_csv_header(self):
+        """tests SQS queue is not called when CSV headers are invalid due to misspelled header"""
         s3_client = self.set_up_s3_buckets_and_upload_file(
-            test_file_key=self.test_file_key, test_file_content=Constant.invalid_csv_content
+            test_file_key=self.test_file_key,
+            test_file_content=Constant.valid_file_content.replace("PERSON_DOB", "PERON_DOB"),
         )
 
         # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
@@ -213,73 +149,35 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn("Infrastructure Level Response Value - Processing Error", ack_file_content)
 
     @mock_s3
-    @mock_sqs
-    @patch("router_lambda_function.send_to_supplier_queue")
-    def test_lambda_invalid_columns_header_count(self, mock_send_to_supplier_queue):
-        """tests SQS queue is not called when file validation failed"""
-
-        # Set up S3
-        s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = "immunisation-batch-internal-dev-data-destination"
-
-        # Create source and destination buckets
-        s3_client.create_bucket(
-            Bucket=source_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-        )
-        s3_client.create_bucket(
-            Bucket=destination_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+    def test_lambda_invalid_columns_header_count(self):
+        """tests SQS queue is not called when CSV headers are invalid due to missing header"""
+        s3_client = self.set_up_s3_buckets_and_upload_file(
+            test_file_key=self.test_file_key,
+            test_file_content=Constant.valid_file_content.replace("PERSON_DOB|", ""),
         )
 
-        # check if bucket exists
-        response = s3_client.list_buckets()
-        buckets = [bucket["Name"] for bucket in response["Buckets"]]
-        self.assertIn(source_bucket_name, buckets, f"Bucket {source_bucket_name} not found")
-        self.assertIn(
-            destination_bucket_name,
-            buckets,
-            f"Bucket {destination_bucket_name} not found",
-        )
-        # Upload a test file
-        test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        test_file_content = "example content"
-        s3_client.put_object(Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content)
+        # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
+        with (
+            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
+            # Call the lambda_handler function
+            lambda_handler(event=self.make_event(self.test_file_key), context=None)
 
-        # Prepare the event.
-        event = {
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": source_bucket_name},
-                        "object": {"key": test_file_key},
-                    }
-                }
-            ]
-        }
-
-        # Call the lambda_handler function.
-        lambda_handler(event, None)
-        # check no message was sent
         mock_send_to_supplier_queue.assert_not_called()
-        # Check if the acknowledgment file is created in the S3 bucket.
-        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
-        ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
-        ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
-        self.assertIn(ack_file_key, ack_file_keys)
+        self.assert_ack_file_in_destination_s3_bucket(s3_client, self.ack_file_key)
 
     @mock_s3
-    @mock_sqs
     def test_lambda_invalid_vaccine_type(self):
-        """tests SQS queue is not called when file validation failed"""
+        """tests SQS queue is not called when file key includes invalid vaccine type"""
         test_file_key = "InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100.csv"
         ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
-        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_key=test_file_key)
+        s3_client = self.set_up_s3_buckets_and_upload_file(
+            test_file_key=test_file_key, test_file_content=Constant.valid_file_content
+        )
 
-        # Mock the validate_csv_column_count, get_supplier_permissions functions and send_to_supplier_queue functions
+        # Mock the get_supplier_permissionsand send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.validate_csv_column_count", return_value=True),
             patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -290,16 +188,16 @@ class TestLambdaHandler(unittest.TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    @mock_sqs
     def test_lambda_invalid_vaccination(self):
-        """tests SQS queue is not called when file validation failed"""
+        """tests SQS queue is not called when file key does not include 'Vaccinations'"""
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
         ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_response.csv"
-        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_key=test_file_key)
+        s3_client = self.set_up_s3_buckets_and_upload_file(
+            test_file_key=test_file_key, test_file_content=Constant.valid_file_content
+        )
 
-        # Mock the validate_csv_column_count, get_supplier_permissions functions and send_to_supplier_queue functions
+        # Mock the get_supplier_permissions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.validate_csv_column_count", return_value=True),
             patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -310,16 +208,16 @@ class TestLambdaHandler(unittest.TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    @mock_sqs
     def test_lambda_invalid_version(self):
-        """tests SQS queue is not called when file validation failed"""
+        """tests SQS queue is not called when file key includes invalid version"""
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"
         ack_file_key = "ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_response.csv"
-        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_key=test_file_key)
+        s3_client = self.set_up_s3_buckets_and_upload_file(
+            test_file_key=test_file_key, test_file_content=Constant.valid_file_content
+        )
 
-        # Mock the validate_csv_column_count, get_supplier_permissions functions and send_to_supplier_queue functions
+        # Mock the get_supplier_permissions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.validate_csv_column_count", return_value=True),
             patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -330,16 +228,16 @@ class TestLambdaHandler(unittest.TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    @mock_sqs
     def test_lambda_invalid_odscode(self):
-        """tests SQS queue is not called when file validation failed"""
+        """tests SQS queue is not called when file key includes invalid ods code"""
         test_file_key = "Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100.csv"
         ack_file_key = "ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_response.csv"
-        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_key=test_file_key)
+        s3_client = self.set_up_s3_buckets_and_upload_file(
+            test_file_key=test_file_key, test_file_content=Constant.valid_file_content
+        )
 
-        # Mock the validate_csv_column_count, get_supplier_permissions functions and send_to_supplier_queue functions
+        # Mock the get_supplier_permissions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.validate_csv_column_count", return_value=True),
             patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -350,16 +248,15 @@ class TestLambdaHandler(unittest.TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    @mock_sqs
     def test_lambda_invalid_datetime(self):
-        """tests SQS queue is not called when file validation failed"""
+        """tests SQS queue is not called when file key includes invalid dateTime"""
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240732T12130100.csv"
         ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_response.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(
-            test_file_key=test_file_key, test_file_content=self.valid_file_content
+            test_file_key=test_file_key, test_file_content=Constant.valid_file_content
         )
 
-        # Mock the validate_csv_column_count, get_supplier_permissions functions and send_to_supplier_queue functions
+        # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
         with (
             patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
@@ -399,11 +296,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         )
 
         # Mock the permissions configuration
-        Constant.action_flag_mapping = {
-            "NEW": "CREATE",
-            "UPDATE": "UPDATE",
-            "DELETE": "DELETE",
-        }
+        Constant.action_flag_mapping = {"NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
 
         # Mock supplier permissions
         def mock_get_supplier_permissions(supplier, config_bucket_name):

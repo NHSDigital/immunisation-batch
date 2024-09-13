@@ -119,12 +119,8 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
         return True
 
     # Check if any of the CSV permissions match the allowed permissions
-    csv_operation_request = {
-        f"{vaccine_type.upper()}_{perm.upper()}" for perm in unique_permissions
-    }
-    print(
-        f"CSV OPERATION REQUEST {csv_operation_request} AND UNIQUE PERMISSIONS {allowed_permissions_set}"
-    )
+    csv_operation_request = {f"{vaccine_type.upper()}_{perm.upper()}" for perm in unique_permissions}
+    print(f"CSV OPERATION REQUEST {csv_operation_request} AND UNIQUE PERMISSIONS {allowed_permissions_set}")
     if csv_operation_request.intersection(allowed_permissions_set):
         print(
             f"{supplier} permission {allowed_permissions_set} matches "
@@ -180,19 +176,13 @@ def initial_file_validation(file_key, bucket_name):
         return False
 
     # Validate if has the vaccine_type permissions
-    if not validate_vaccine_type_permissions(
-        config_bucket_name, supplier, vaccine_type
-    ):
+    if not validate_vaccine_type_permissions(config_bucket_name, supplier, vaccine_type):
         logger.info(f"{supplier} does not have permissions for {vaccine_type}")
         return False
 
     # Validate the ACTION_FLAG column for permissions - if none reject
-    if not validate_action_flag_permissions(
-        bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-    ):
-        logger.info(
-            f"{supplier} does not have permissions for any csv ACTION_FLAG operations"
-        )
+    if not validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name):
+        logger.info(f"{supplier} does not have permissions for any csv ACTION_FLAG operations")
         return False
 
     return True
@@ -302,7 +292,7 @@ def lambda_handler(event, context):
         )
 
     if error_files:
-        logger.error("Processing errors occurred for the following files: %s", ', '.join(error_files))
+        logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))
 
     logger.info("Completed processing all file metadata in current batch")
     return {"statusCode": 200, "body": json.dumps("File processing for S3 bucket completed")}
