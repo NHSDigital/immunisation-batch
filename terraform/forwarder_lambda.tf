@@ -1,14 +1,14 @@
 locals {
-  forwarder_lambda_dir = abspath("${path.root}/../recordforwarder")
-  forwarder_lambda_files         = fileset(local.forwarder_lambda_dir, "**")
-  forwarding_lambda_dir_sha       = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
+  forwarder_lambda_dir      = abspath("${path.root}/../recordforwarder")
+  forwarder_lambda_files    = fileset(local.forwarder_lambda_dir, "**")
+  forwarding_lambda_dir_sha = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
 }
 
 module "forwarding_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
-  create_ecr_repo = true
-  ecr_repo        = "${local.prefix}-forwarding-repo"
+  create_ecr_repo          = true
+  ecr_repo                 = "${local.prefix}-forwarding-repo"
   ecr_repo_lifecycle_policy = jsonencode({
     rules = [
       {
@@ -50,7 +50,7 @@ resource "aws_iam_role" "forwarding_lambda_exec_role" {
   })
 }
 
-# Policy for Lambda execution role to interact with logs, S3, and KMS.
+# Policy for Lambda execution role to interact with logs, S3, KMS, and Kinesis.
 resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
   name   = "${local.prefix}-forwarding-lambda-exec-policy"
   policy = jsonencode({
@@ -98,43 +98,17 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         Action   = "secretsmanager:GetSecretValue"
         Resource = "*"
       },
-            {
+      {
         Effect   = "Allow"
         Action   = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket"
+          "kinesis:GetRecords",
+          "kinesis:GetShardIterator",
+          "kinesis:DescribeStream",
+          "kinesis:ListStreams"
         ]
-        Resource = [
-          "arn:aws:s3:::${local.prefix}-config",           
-          "arn:aws:s3:::${local.prefix}-config/*"        
-        ]
+        Resource = [for stream in local.new_stream_arns : stream]
       }
     ]
-  })
-}
-
-locals {
-  new_sqs_arn_map = { for i, key in tolist(var.suppliers) : key => data.aws_sqs_queue.processingqueues[key].arn }
-}
-
-# Policy for Lambda to interact with existing SQS FIFO Queues
-resource "aws_iam_policy" "forwarding_lambda_sqs_policy" {
-  name = "${local.prefix}-forwarding-lambda-sqs-policy"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect   = "Allow"
-      Action   = [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:SendMessage",
-        "kms:Decrypt"
-      ]
-      Resource = [for queue in local.new_sqs_arn_map : queue]
-    }]
   })
 }
 
@@ -142,22 +116,6 @@ resource "aws_iam_policy" "forwarding_lambda_sqs_policy" {
 resource "aws_iam_role_policy_attachment" "forwarding_lambda_exec_policy_attachment" {
   role       = aws_iam_role.forwarding_lambda_exec_role.name
   policy_arn = aws_iam_policy.forwarding_lambda_exec_policy.arn
-}
-
-# Attach the SQS policy to the Lambda role
-resource "aws_iam_role_policy_attachment" "forwarding_lambda_sqs_policy_attachment" {
-  role       = aws_iam_role.forwarding_lambda_exec_role.name
-  policy_arn = aws_iam_policy.forwarding_lambda_sqs_policy.arn
-}
-
-# Permission for SQS to invoke Lambda function
-resource "aws_lambda_permission" "allow_sqs_invoke_forwarder_lambda" {
-  for_each      = local.new_sqs_arn_map
-  statement_id  = "AllowSQSInvoke${each.key}"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.forwarding_lambda.arn
-  principal     = "sqs.amazonaws.com"
-  source_arn    = each.value
 }
 
 # Lambda Function
@@ -181,17 +139,16 @@ resource "aws_lambda_function" "forwarding_lambda" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.forwarding_lambda_exec_policy_attachment,
-    aws_iam_role_policy_attachment.forwarding_lambda_sqs_policy_attachment
+    aws_iam_role_policy_attachment.forwarding_lambda_exec_policy_attachment
   ]
 }
 
-resource "aws_lambda_event_source_mapping" "sqs_event_source_mapping_forwarder_lambda" {
-  for_each         = local.new_sqs_arn_map
-  event_source_arn = each.value
-  function_name    = aws_lambda_function.forwarding_lambda.function_name
-  batch_size       = 1
-  enabled          = true
-
-  depends_on = [aws_lambda_permission.allow_sqs_invoke_forwarder_lambda]
+# Kinesis Event Source Mapping for the Lambda Function
+resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
+  for_each          = local.new_stream_arns
+  event_source_arn  = each.value
+  function_name     = aws_lambda_function.forwarding_lambda.function_name
+  starting_position = "LATEST"
+  batch_size        = 1
+  enabled           = true
 }

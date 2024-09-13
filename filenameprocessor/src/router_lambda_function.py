@@ -398,7 +398,8 @@ def validate_csv_column_count(bucket_name, file_key):
     if len(header) != 34:
         return False
 
-    if header != Constant.expected_csv_content:
-        return False
+    for item in header:
+        if item not in Constant.expected_csv_content:
+            return False
 
     return True

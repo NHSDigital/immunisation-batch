@@ -285,7 +285,7 @@ class TestLambdaHandler(unittest.TestCase):
         s3_client.put_object(
             Bucket=source_bucket_name,
             Key=test_file_key,
-            Body=Constant.invalid_csv_content,
+            Body=Constant.invalid_csv_header,
         )
 
         # Prepare the event
@@ -320,7 +320,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertIn("error", ack_file_content)
         self.assertIn(
             "Unsupported file type received as an attachment", ack_file_content
-        )
+        )    
 
     @mock_s3
     @mock_sqs
