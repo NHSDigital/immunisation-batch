@@ -175,17 +175,6 @@ resource "aws_ecs_service" "ecs_service" {
   }
 }
 
-# Create Kinesis Stream Resources
-resource "aws_kinesis_stream" "processor_streams" {
-  for_each            = toset(var.suppliers)
-  name                = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-stream"
-  shard_count         = var.default_shard_count
-
-  tags = {
-    supplier = each.key
-  }
-}
-
 # Data lookup for created streams, ensuring the streams exist before lookup
 data "aws_kinesis_stream" "processingstreams" {
   for_each = toset(var.suppliers)
