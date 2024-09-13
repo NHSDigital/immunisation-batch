@@ -154,12 +154,11 @@ def process_csv_to_fhir(
             message_body = {
                 "fhir_json": "No_Permissions",
                 "action_flag": "No_Permissions",
-                "imms_id": "No_Permissions",
-                "version": "No_Permissions",
+                "imms_id": "None",
+                "version": "None",
                 "file_name": file_key,
             }
             status = send_to_sqs(supplier, message_body)
-
             data_row = Constant.data_rows("no permissions", created_at_formatted)
             data_row_str = [str(item) for item in data_row]
             cleaned_row = (
@@ -290,12 +289,12 @@ def process_csv_to_fhir(
 
         # Upload to S3 after processing this row
         # csv_bytes = BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
-        print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
-        csv_file_like_object = io.BytesIO(
-            accumulated_csv_content.getvalue().encode("utf-8")
-        )
-        s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
-        logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
+    print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
+    csv_file_like_object = io.BytesIO(
+        accumulated_csv_content.getvalue().encode("utf-8")
+    )
+    s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
+    logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
 
     logger.info(
         f"Total rows processed: {row_count}"
