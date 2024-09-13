@@ -188,11 +188,6 @@ locals {
   new_stream_arns = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
 }
 
-#  Fetch default VPC and subnets
-data "aws_vpc" "default" {
-  default = true
-}
-
 data "aws_subnet_ids" "default" {
   vpc_id = data.aws_vpc.default.id
 }
