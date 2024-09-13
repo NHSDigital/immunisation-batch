@@ -143,7 +143,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
 resource "aws_security_group" "ecs_security_group" {
   name        = "${local.prefix}-ecs-sg"
   description = "Security group for ECS processor tasks"
-  vpc_id      = var.vpc_id
+  vpc_id      = var.vpc_id != "" ? var.vpc_id : data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -169,7 +169,7 @@ resource "aws_ecs_service" "ecs_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = var.subnets
+    subnets         = length(var.subnets) > 0 ? var.subnets : data.aws_subnet_ids.default.ids
     assign_public_ip = true
     security_groups = [aws_security_group.ecs_security_group.id]
   }
@@ -188,18 +188,29 @@ locals {
   new_stream_arns = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
 }
 
-# Define Variables for Subnets, VPC ID, and AWS Region
+#  Fetch default VPC and subnets
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnet_ids" "default" {
+  vpc_id = data.aws_vpc.default.id
+}
+
+#  Define Variables for Subnets, VPC ID, and AWS Region
 variable "subnets" {
   description = "List of subnets for ECS tasks"
   type        = list(string)
+  default     = []
 }
 
 variable "vpc_id" {
   description = "VPC ID for ECS tasks"
   type        = string
+  default     = ""
 }
 
 variable "aws_region" {
   description = "AWS Region"
-  default     = "eu-west-1"
+  default     = "eu-west-2"
 }
