@@ -223,17 +223,18 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
   description = "Trigger ECS task when a message arrives in any SQS queue"
 
   event_pattern = jsonencode({
-    "source": ["aws.sqs"],
-    "detail-type": ["AWS API Call via CloudTrail"],
-    "detail": {
-      "eventSource": ["sqs.amazonaws.com"],
-      "eventName": ["SendMessage"],
-      "requestParameters": {
-        "queueUrl": local.existing_sqs_arns
-      }
+  "source": ["aws.sqs"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventSource": ["sqs.amazonaws.com"],
+    "eventName": ["SendMessage"],
+    "requestParameters": {
+      "queueArn": local.existing_sqs_arns
     }
-  })
+  }
+})
 }
+
 
 #  Create CloudWatch Event Target to Trigger ECS Task
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
