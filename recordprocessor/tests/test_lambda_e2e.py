@@ -557,7 +557,7 @@ class TestLambdaHandler(unittest.TestCase):
         @patch("boto3.client")
         @patch("processing_lambda.get_json_from_s3")
         def test_process_lambda_handler_permissions(self, mock_get_json_from_s3):
-
+            """Test permissions"""
             # Sample config data
             config_data = {
                 "all_permissions": {
