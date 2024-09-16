@@ -69,55 +69,47 @@ def forward_request_to_api(
             # File doesn't exist, write the header to the new file
             accumulated_csv_content.write("|".join(headers) + "\n")
             print(f"accumulated_csv_content:{accumulated_csv_content}")
-    # if fhir_json == "No_Permissions":
-    #     data_row = Constant.data_rows("no permissions", created_at_formatted)
-    #     data_row_str = [str(item) for item in data_row]
-    #     cleaned_row = (
-    #         "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
-    #     )
-    #     accumulated_csv_content.write(cleaned_row + "\n")
-    #     print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
-    #     return
     if fhir_json == "No_Permissions":
         data_row = Constant.data_rows("no permissions", created_at_formatted)
-    if imms_id == "None" and version == "None":
-        data_row = Constant.data_rows(False, created_at_formatted)
-    supplier_system = identify_supplier(file_key)
-    if action_flag == "new":
-        response, status_code = immunization_api_instance.create_immunization(
-            fhir_json, supplier_system
-        )
-        print(f"response:{response},status_code:{status_code}")
-        if status_code == 201:
-            data_row = Constant.data_rows(True, created_at_formatted)
-        elif status_code == 422:
-            data_row = Constant.data_rows("duplicate", created_at_formatted)
-        else:
+    else:
+        if imms_id == "None" and version == "None":
             data_row = Constant.data_rows(False, created_at_formatted)
-    elif (
-        action_flag == "update"
-        and imms_id not in (None, "None")
-        and version not in (None, "None")
-    ):
-        fhir_json["id"] = imms_id
-        print(f"updated_fhir_json:{fhir_json}")
-        response, status_code = immunization_api_instance.update_immunization(
-            imms_id, version, fhir_json, supplier_system
-        )
-        print(f"response:{response},status_code:{status_code}")
-        if status_code == 200:
-            data_row = Constant.data_rows(True, created_at_formatted)
-        else:
-            data_row = Constant.data_rows(False, created_at_formatted)
-    elif action_flag == "delete" and imms_id not in (None, "None"):
-        response, status_code = immunization_api_instance.delete_immunization(
-            imms_id, fhir_json, supplier_system
-        )
-        print(f"response:{response},status_code:{status_code}")
-        if status_code == 204:
-            data_row = Constant.data_rows(True, created_at_formatted)
-        else:
-            data_row = Constant.data_rows(False, created_at_formatted)
+        supplier_system = identify_supplier(file_key)
+        if action_flag == "new":
+            response, status_code = immunization_api_instance.create_immunization(
+                fhir_json, supplier_system
+            )
+            print(f"response:{response},status_code:{status_code}")
+            if status_code == 201:
+                data_row = Constant.data_rows(True, created_at_formatted)
+            elif status_code == 422:
+                data_row = Constant.data_rows("duplicate", created_at_formatted)
+            else:
+                data_row = Constant.data_rows(False, created_at_formatted)
+        elif (
+            action_flag == "update"
+            and imms_id not in (None, "None")
+            and version not in (None, "None")
+        ):
+            fhir_json["id"] = imms_id
+            print(f"updated_fhir_json:{fhir_json}")
+            response, status_code = immunization_api_instance.update_immunization(
+                imms_id, version, fhir_json, supplier_system
+            )
+            print(f"response:{response},status_code:{status_code}")
+            if status_code == 200:
+                data_row = Constant.data_rows(True, created_at_formatted)
+            else:
+                data_row = Constant.data_rows(False, created_at_formatted)
+        elif action_flag == "delete" and imms_id not in (None, "None"):
+            response, status_code = immunization_api_instance.delete_immunization(
+                imms_id, fhir_json, supplier_system
+            )
+            print(f"response:{response},status_code:{status_code}")
+            if status_code == 204:
+                data_row = Constant.data_rows(True, created_at_formatted)
+            else:
+                data_row = Constant.data_rows(False, created_at_formatted)
 
     data_row_str = [str(item) for item in data_row]
     cleaned_row = "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
