@@ -158,7 +158,7 @@ def process_csv_to_fhir(
                 "version": "None",
                 "file_name": file_key,
             }
-            status = send_to_sqs(supplier, message_body)
+
             data_row = Constant.data_rows("no permissions", created_at_formatted)
             data_row_str = [str(item) for item in data_row]
             cleaned_row = (
@@ -174,7 +174,7 @@ def process_csv_to_fhir(
             print(
                 f"CSV content before upload with perms:\n{accumulated_csv_content.getvalue()}"
             )
-
+            status = send_to_sqs(supplier, message_body)
             continue
         if (
             row.get("ACTION_FLAG") in {"new", "update", "delete"}
