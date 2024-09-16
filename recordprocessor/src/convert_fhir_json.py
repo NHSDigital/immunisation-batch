@@ -92,18 +92,25 @@ def convert_to_fhir_json(row, vaccine_type):
         }
 
         # Practitioner
-        practitioner = {
-            "resourceType": "Practitioner",
-            "id": "Pract1"
-        }
         name = {}
-        add_if_not_empty(name, "family", row.get('PERFORMING_PROFESSIONAL_SURNAME', ''))
-        given = row.get('PERFORMING_PROFESSIONAL_FORENAME', '')
-        if given:
-            name["given"] = [given]
-        if name:
-            practitioner["name"] = [name]
-        if practitioner:
+        family_name = row.get('PERFORMING_PROFESSIONAL_SURNAME', '')
+        given_name = row.get('PERFORMING_PROFESSIONAL_FORENAME', '')
+
+        # Add family name if not empty
+        if family_name:
+            name["family"] = family_name
+
+        # Add given name if not empty
+        if given_name:
+            name["given"] = [given_name]
+
+        # Only proceed to create and append the practitioner if any of the family and given names are present
+        if name.get("family") or name.get("given"):
+            practitioner = {
+                "resourceType": "Practitioner",
+                "id": "Pract1",
+                "name": [name]
+            }
             fhir_json["contained"].append(practitioner)
 
         # Patient
@@ -185,13 +192,18 @@ def convert_to_fhir_json(row, vaccine_type):
         coding = {
             "system": "http://snomed.info/sct"
         }
-
+        vaccine_product_code = row.get('VACCINE_PRODUCT_CODE', '')
+        if vaccine_product_code == '':
+            vaccine_product_code = 'NAVU'
+        vaccine_product_term = row.get('VACCINE_PRODUCT_TERM', '')
+        if vaccine_product_term == '':
+            vaccine_product_term = 'NAVU'
         # Use add_if_not_empty to conditionally add 'code' and 'display'
-        add_if_not_empty(coding, "code", row.get('VACCINE_PRODUCT_CODE', ''))
-        add_if_not_empty(coding, "display", row.get('VACCINE_PRODUCT_TERM', ''))
+        add_if_not_empty(coding, "code", vaccine_product_code)
+        add_if_not_empty(coding, "display", vaccine_product_term)
 
         # Only append the coding if it has at least one of 'code', 'display', or 'system'
-        if coding.get("code") or coding.get("display") or coding.get("system"):
+        if coding.get("code") or coding.get("display"):
             vaccine_code["coding"].append(coding)
 
         # Only add vaccineCode to fhir_json if the coding list is not empty
@@ -286,7 +298,7 @@ def convert_to_fhir_json(row, vaccine_type):
         add_if_not_empty(coding, "display", row.get('SITE_OF_VACCINATION_TERM', ''))
 
         # Only append the coding if it has at least one of 'code' or 'display'
-        if coding.get("code") or coding.get("display") or coding.get("system"):
+        if coding.get("code") or coding.get("display"):
             site["coding"].append(coding)
 
         # Only add site to fhir_json if the coding list is not empty
@@ -303,7 +315,7 @@ def convert_to_fhir_json(row, vaccine_type):
         add_if_not_empty(coding, "code", row.get('ROUTE_OF_VACCINATION_CODE', ''))
         add_if_not_empty(coding, "display", row.get('ROUTE_OF_VACCINATION_TERM', ''))
         # Only append the coding if it has at least one of 'code' or 'display'
-        if coding.get("code") or coding.get("display") or coding.get("system"):
+        if coding.get("code") or coding.get("display"):
             route["coding"].append(coding)
 
         # Only add route to fhir_json if the coding list is not empty
@@ -311,14 +323,19 @@ def convert_to_fhir_json(row, vaccine_type):
             fhir_json["route"] = route
 
         # Dose Quantity
-        dose_quantity = {
-            "system": "http://snomed.info/sct"
-        }
+        dose_quantity = {}
 
         # Use add_if_not_empty to conditionally add 'value', 'unit', and 'code'
         add_if_not_empty(dose_quantity, "value", row.get('DOSE_AMOUNT', ''))
         add_if_not_empty(dose_quantity, "unit", row.get('DOSE_UNIT_TERM', ''))
         add_if_not_empty(dose_quantity, "code", row.get('DOSE_UNIT_CODE', ''))
+
+        # Only add 'system' if DOSE_UNIT_CODE is not null or an empty string
+        dose_unit_code = row.get('DOSE_UNIT_CODE', '')
+        if dose_unit_code:
+            dose_quantity["system"] = "http://snomed.info/sct"
+
+        # Convert 'value' to float or int depending on its format
         if "value" in dose_quantity:
             value_str = dose_quantity["value"]
             if '.' in value_str:
@@ -330,30 +347,40 @@ def convert_to_fhir_json(row, vaccine_type):
             fhir_json["doseQuantity"] = dose_quantity
 
         # Performer
-        performer = [
-            {
+        performer = []
+
+        # Check if a practitioner with resourceType "Practitioner" and a valid id is present in fhir_json["contained"]
+        practitioner_exists = any(
+            item.get("resourceType") == "Practitioner" and item.get("id") for item in fhir_json.get("contained", [])
+        )
+
+        # Add performer with practitioner reference if practitioner exists
+        if practitioner_exists:
+            performer.append({
                 "actor": {
                     "reference": "#Pract1"
                 }
-            },
-            {
-                "actor": {
-                    "type": "Organization",
-                    "identifier": {}
-                }
+            })
+
+        # Add the second performer (Organization) with conditional identifier content
+        organization_actor = {
+            "actor": {
+                "type": "Organization",
+                "identifier": {}
             }
-        ]
+        }
 
         # Use add_if_not_empty to conditionally add 'system' and 'value'
-        add_if_not_empty(performer[1]["actor"]["identifier"], "system", row.get('SITE_CODE_TYPE_URI', ''))
-        add_if_not_empty(performer[1]["actor"]["identifier"], "value", row.get('SITE_CODE', ''))
+        add_if_not_empty(organization_actor["actor"]["identifier"], "system", row.get('SITE_CODE_TYPE_URI', ''))
+        add_if_not_empty(organization_actor["actor"]["identifier"], "value", row.get('SITE_CODE', ''))
 
-        # Only add the 'identifier' field if it has content
-        if performer[1]["actor"]["identifier"]:
+        # Only add the organization actor if the identifier has content
+        if organization_actor["actor"]["identifier"]:
+            performer.append(organization_actor)
+
+        # Add the performer array to fhir_json if it has any entries
+        if performer:
             fhir_json["performer"] = performer
-        else:
-            # Remove the second performer entry if the identifier is empty
-            fhir_json["performer"] = [performer[0]]
 
         # Reason Code
         # Initialize reason_code as a list
@@ -368,7 +395,7 @@ def convert_to_fhir_json(row, vaccine_type):
         add_if_not_empty(coding, "code", row.get('INDICATION_CODE', ''))
 
         # If the coding dictionary has either 'code' or 'system', append it to reason_code
-        if coding.get("code") or coding.get("system"):
+        if coding.get("code"):
             reason_code.append({"coding": [coding]})
 
         # If reason_code is not empty, add it to fhir_json

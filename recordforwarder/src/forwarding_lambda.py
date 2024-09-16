@@ -39,7 +39,8 @@ def identify_supplier(file_key: str):
     return ODS_PATTERNS.get(ods_code, None)
 
 
-def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version):
+def forward_request_to_api(message_header, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id,
+                           version):
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
     created_at = response["LastModified"]
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
@@ -64,17 +65,17 @@ def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bu
             accumulated_csv_content.write("|".join(headers) + "\n")
             print(f"accumulated_csv_content:{accumulated_csv_content}")
     if imms_id == "None" and version == "None":
-        data_row = Constant.data_rows("None", created_at_formatted)
+        data_row = Constant.data_rows("None", created_at_formatted, message_header)
     supplier_system = identify_supplier(file_key)
     if action_flag == "new":
         response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 201:
-            data_row = Constant.data_rows(True, created_at_formatted)
+            data_row = Constant.data_rows(True, created_at_formatted, message_header)
         elif status_code == 422:
-            data_row = Constant.data_rows("duplicate", created_at_formatted)
+            data_row = Constant.data_rows("duplicate", created_at_formatted, message_header)
         else:
-            data_row = Constant.data_rows(False, created_at_formatted)
+            data_row = Constant.data_rows(False, created_at_formatted, message_header)
     elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
         fhir_json["id"] = imms_id
         print(f"updated_fhir_json:{fhir_json}")
@@ -83,16 +84,16 @@ def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bu
         )
         print(f"response:{response},status_code:{status_code}")
         if status_code == 200:
-            data_row = Constant.data_rows(True, created_at_formatted)
+            data_row = Constant.data_rows(True, created_at_formatted, message_header)
         else:
-            data_row = Constant.data_rows(False, created_at_formatted)
+            data_row = Constant.data_rows(False, created_at_formatted, message_header)
     elif action_flag == "delete" and imms_id not in (None, "None"):
         response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 204:
-            data_row = Constant.data_rows(True, created_at_formatted)
+            data_row = Constant.data_rows(True, created_at_formatted, message_header)
         else:
-            data_row = Constant.data_rows(False, created_at_formatted)
+            data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
     data_row_str = [str(item) for item in data_row]
     cleaned_row = "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
@@ -117,6 +118,7 @@ def forward_lambda_handler(event, context):
             kinesis_payload = record["kinesis"]["data"]
             decoded_payload = base64.b64decode(kinesis_payload).decode("utf-8")
             message_body = json.loads(decoded_payload)
+            message_header = message_body.get("message_id")
             fhir_json = message_body.get("fhir_json")
             action_flag = message_body.get("action_flag")
             file_key = message_body.get("file_name")
@@ -125,7 +127,8 @@ def forward_lambda_handler(event, context):
             if action_flag in ("update", "delete", "None"):
                 imms_id = message_body.get("imms_id")
                 version = message_body.get("version")
-            forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version)
+            forward_request_to_api(message_header, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name,
+                                   imms_id, version)
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
