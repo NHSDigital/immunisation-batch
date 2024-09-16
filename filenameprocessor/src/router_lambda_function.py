@@ -9,7 +9,7 @@ import uuid
 import boto3
 from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
-from fetch_permissions import get_json_from_s3
+from fetch_permissions import get_permissions_config_json_from_s3
 
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
@@ -47,13 +47,9 @@ def identify_timestamp(file_key):
 
 
 def get_supplier_permissions(supplier, config_bucket_name):
-    supplier_permissions = get_json_from_s3(config_bucket_name)
-    print(f"config_perms_check: {supplier_permissions}")
-    if supplier_permissions is None:
-        return []
-    all_permissions = supplier_permissions.get("all_permissions", {})
-    print(f"ALL_PERMISSIONS:{all_permissions}")
-    return all_permissions.get(supplier, [])
+    # print(f"config_perms_check: {supplier_permissions}")
+    # print(f"ALL_PERMISSIONS:{all_permissions}")
+    return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
 
 
 def validate_vaccine_type_permissions(config_bucket_name, supplier, vaccine_type):
