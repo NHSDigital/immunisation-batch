@@ -193,31 +193,26 @@ def validate_content_headers(csv_content_reader):
     return csv_content_reader.fieldnames == Constant.expected_csv_headers
 
 
-def send_to_supplier_queue(supplier, message_body):
-    # Send a message to the supplier queue
+def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
+    """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
+    # Find the URL of the relevant queue
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
-    if "prod" in imms_env or "production" in imms_env:
-        account_id = os.getenv("PROD_ACCOUNT_ID")
-    else:
-        account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-metadata-queue.fifo"
+    sqs_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
+    account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{sqs_name}-metadata-queue.fifo"
     print(f"Queue_URL: {queue_url}")
 
     try:
-        sqs_client.send_message(
-            QueueUrl=queue_url,
-            MessageBody=json.dumps(message_body),
-            MessageGroupId="default",
-        )
-        logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId="default")
+        logger.info("Message sent to SQS queue '%s' for supplier %s", sqs_name, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
-        logger.error(f"queue {queue_url} does not exist")
+        logger.error("queue %s does not exist", queue_url)
         return False
     return True
 
 
 def create_ack_file(message_id, file_key, ack_bucket_name, validation_passed, message_delivery, created_at_formatted):
+    """Creates the ack file and uploads it to the S3 ack bucket"""
     ack = {
         "MESSAGE_HEADER_ID": message_id,
         "HEADER_RESPONSE_CODE": "Success" if validation_passed else "Failure",
@@ -234,9 +229,11 @@ def create_ack_file(message_id, file_key, ack_bucket_name, validation_passed, me
         "LOCAL_ID": "TBC",  # TODO: Use correct value once known
         "MESSAGE_DELIVERY": message_delivery,
     }
-    # construct acknowlegement file
+
+    #  Construct ack file
     ack_filename = f"ack/{file_key.split('.')[0]}_response.csv"
     print(f"{list(ack.values())}")
+
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
     csv_writer = csv.writer(csv_buffer, delimiter="|")
@@ -250,6 +247,7 @@ def create_ack_file(message_id, file_key, ack_bucket_name, validation_passed, me
 
 
 def lambda_handler(event, context):
+    """Lambda handler for filenameprocessor lambda"""
     error_files = []
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
 
@@ -273,14 +271,14 @@ def lambda_handler(event, context):
             if not validation_passed:
                 logging.error("Error in initial_file_validation")
             else:
-                elements = extract_file_key_elements(file_key)
-                if supplier := identify_supplier(elements["ods_code"]):
+                file_key_elements = extract_file_key_elements(file_key)
+                if supplier := identify_supplier(file_key_elements["ods_code"]):
 
                     message_body = {
                         "message_id": message_id,
-                        "vaccine_type": elements["vaccine_type"],
+                        "vaccine_type": file_key_elements["vaccine_type"],
                         "supplier": supplier,
-                        "timestamp": elements["timestamp"],
+                        "timestamp": file_key_elements["timestamp"],
                         "filename": file_key,
                     }
                     if send_to_supplier_queue(supplier, message_body):
@@ -293,6 +291,7 @@ def lambda_handler(event, context):
             logging.error("Error processing file'%s': %s", file_key, str(e))
             validation_passed = False
             error_files.append(file_key)
+
         create_ack_file(
             message_id, file_key, ack_bucket_name, validation_passed, message_delivered, created_at_formatted
         )
