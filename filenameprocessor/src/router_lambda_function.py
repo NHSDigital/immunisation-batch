@@ -1,3 +1,5 @@
+"""Lambda function for the fileprocessor lambda"""
+
 import json
 from datetime import datetime
 import re
@@ -20,7 +22,7 @@ s3_client = boto3.client("s3", region_name="eu-west-2")
 sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
 
-def get_environment():
+def get_environment() -> str:
     """Returns the current environment"""
     _env = os.getenv("ENVIRONMENT")
     # default to internal-dev for pr and user workspaces
@@ -46,7 +48,11 @@ def identify_timestamp(file_key):
     return timestamp_match.group(1) if timestamp_match else None
 
 
-def get_supplier_permissions(supplier, config_bucket_name):
+def get_supplier_permissions(supplier: str, config_bucket_name: str) -> list:
+    """
+    Returns the permissions for the given supplier. Returns an empty list if the permissions config json could not
+    be downloaded, or the supplier has no permissions.
+    """
     # print(f"config_perms_check: {supplier_permissions}")
     # print(f"ALL_PERMISSIONS:{all_permissions}")
     return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
@@ -109,61 +115,69 @@ def validate_action_flag_permissions(
     return False
 
 
+def extract_file_key_elements(file_key: str) -> dict:
+    """Returns a dictionary containing each of the elements which can be extracted from the file key"""
+    file_key_parts_without_extension = file_key.split(".")[0].split("_")
+    return {
+        "vaccine_type": file_key_parts_without_extension[0].lower(),
+        "vaccination": file_key_parts_without_extension[1].lower(),
+        "version": file_key_parts_without_extension[2].lower(),
+        "ods_code": file_key_parts_without_extension[3],
+        "timestamp": file_key_parts_without_extension[4],
+        "extension": file_key.split(".")[1],
+    }
+
+
 def initial_file_validation(file_key, bucket_name):
-
     # Check if the file name ends with .csv
-    if not file_key.endswith(".csv"):
-        return False
-
-    # Check the structure of the file name
-    parts = file_key.split("_")
-    if len(parts) != 5:
+    if not (file_key.endswith(".csv") and file_key.count("_") == 4):
         return False
 
     # Validate each part of the file name
-    vaccine_type = parts[0].lower()
-    vaccination = parts[1].lower()
-    version = parts[2].lower()
-    ods_code = parts[3]
-    timestamp = parts[4].split(".")[0]
-    supplier = identify_supplier(ods_code)
-    imms_env = get_environment()
-    config_bucket_name = os.getenv(
-        "CONFIG_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-config",
-    )
+    elements = extract_file_key_elements(file_key)
+    vaccine_type = elements["vaccine_type"]
 
-    if vaccine_type not in Constant.valid_vaccine_type:
+    if not (
+        vaccine_type in Constant.valid_vaccine_type
+        and elements["vaccination"] == "vaccinations"
+        and elements["version"] in Constant.valid_versions
+        and any(re.match(pattern, elements["ods_code"]) for pattern in Constant.valid_ods_codes)
+        and is_valid_datetime(elements["timestamp"])
+    ):
         return False
 
-    if vaccination != "vaccinations":
+    csv_content_reader = get_csv_content_reader(bucket_name=bucket_name, file_key=file_key)
+
+    # Validate the content headers
+    if not validate_content_headers(csv_content_reader):
+        logger.error("Incorrect column headers")
         return False
 
-    if version not in Constant.valid_versions:
-        return False
+    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
+    supplier = identify_supplier(elements["ods_code"])
 
-    if not any(re.match(pattern, ods_code) for pattern in Constant.valid_ods_codes):
-        return False
-
-    if not re.match(r"\d{8}T\d{6}", timestamp) or not is_valid_datetime(timestamp):
-        return False
-
-    column_count_valid = validate_csv_headers(bucket_name, file_key)
-    if not column_count_valid:
-        logger.error(f"column count issue {supplier}")
-        return False
-
-    # Validate if has the vaccine_type permissions
+    # Validate has permissions for the vaccine type
     if not validate_vaccine_type_permissions(config_bucket_name, supplier, vaccine_type):
-        logger.info(f"{supplier} does not have permissions for {vaccine_type}")
+        logger.info("%s does not have permissions for %s", supplier, vaccine_type)
         return False
 
-    # Validate the ACTION_FLAG column for permissions - if none reject
+    # Validate has permission to perform at least one of the requested actions
     if not validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name):
-        logger.info(f"{supplier} does not have permissions for any csv ACTION_FLAG operations")
+        logger.info("%s does not have permissions for any csv ACTION_FLAG operations", supplier)
         return False
 
     return True
+
+
+def get_csv_content_reader(bucket_name: str, file_key: str):
+    csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+    csv_body = csv_obj["Body"].read().decode("utf-8")
+    return csv.DictReader(StringIO(csv_body), delimiter="|")
+
+
+def validate_content_headers(csv_content_reader):
+    """Returns a bool to indicate whether the given CSV headers match the 34 expected headers exactly"""
+    return csv_content_reader.fieldnames == Constant.expected_csv_headers
 
 
 def send_to_supplier_queue(supplier, message_body):
@@ -293,12 +307,3 @@ def is_valid_datetime(timestamp):
         return False
 
     return True
-
-
-def validate_csv_headers(bucket_name, file_key):
-    """Returns a bool to indicate whether the given CSV headers match the 34 expected headers exactly"""
-    csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    csv_body = csv_obj["Body"].read().decode("utf-8")
-    csv_reader = csv.DictReader(StringIO(csv_body), delimiter="|")
-
-    return csv_reader.fieldnames == Constant.expected_csv_headers

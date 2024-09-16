@@ -45,7 +45,8 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         timestamp = identify_timestamp(self.file_key)
         self.assertEqual(timestamp, "20240708T12130100")
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.get_csv_content_reader")
+    @patch("router_lambda_function.validate_content_headers")
     @patch("router_lambda_function.validate_action_flag_permissions")
     @patch("router_lambda_function.get_supplier_permissions")
     def test_valid_file(
@@ -53,7 +54,9 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         mock_get_permissions,
         mock_validate_action_flag_permissions,
         mock_validate_csv,
+        mock_get_csv_content_reader,
     ):
+        mock_get_csv_content_reader.return_value = Constant.valid_file_content
         mock_validate_csv.return_value = (True, [])
         mock_get_permissions.return_value = ["FLU_CREATE", "FLU_UPDATE"]
         mock_validate_action_flag_permissions.return_value = True
@@ -64,7 +67,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         print(f"VALID: {valid}")
         self.assertTrue(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.validate_content_headers")
     def test_invalid_extension(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.txt"
         bucket_name = "test-bucket"
@@ -72,7 +75,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.validate_content_headers")
     def test_invalid_file_structure(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41.csv"
         bucket_name = "test-bucket"
@@ -80,7 +83,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.validate_content_headers")
     def test_invalid_vaccine_type(self, mock_validate_csv):
         file_key = "Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -88,7 +91,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.validate_content_headers")
     def test_invalid_version(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v3_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -96,7 +99,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.validate_content_headers")
     def test_invalid_ods_code(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_INVALID_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -104,7 +107,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
+    @patch("router_lambda_function.validate_content_headers")
     def test_invalid_timestamp(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708Ta99999999.csv"
         bucket_name = "test-bucket"
@@ -112,8 +115,10 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_headers")
-    def test_invalid_column_count(self, mock_validate_csv):
+    @patch("router_lambda_function.get_csv_content_reader")
+    @patch("router_lambda_function.validate_content_headers")
+    def test_invalid_column_count(self, mock_validate_csv, mock_csv_content_reader):
+        mock_csv_content_reader.return_value = Constant.valid_file_content
         mock_validate_csv.return_value = (False, True)
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -278,9 +283,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         result = validate_vaccine_type_permissions("test-bucket", "supplierA", "MMR")
         self.assertFalse(result)
 
-        result = validate_vaccine_type_permissions(
-            "test-bucket", "supplierA", "COVID19"
-        )
+        result = validate_vaccine_type_permissions("test-bucket", "supplierA", "COVID19")
         self.assertTrue(result)
 
 
@@ -290,16 +293,12 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
     # @patch("csv.DictReader")
-    def test_validate_action_flag_permissions(
-        self, mock_get_supplier_permissions, mock_s3_client
-    ):
+    def test_validate_action_flag_permissions(self, mock_get_supplier_permissions, mock_s3_client):
         # Sample CSV data
         csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
-        mock_s3_client.get_object.return_value = {
-            "Body": io.BytesIO(csv_data.encode("utf-8"))
-        }
+        mock_s3_client.get_object.return_value = {"Body": io.BytesIO(csv_data.encode("utf-8"))}
 
         # Mock get_supplier_permissions
         mock_get_supplier_permissions.return_value = [
@@ -319,25 +318,19 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         config_bucket_name = "config-bucket"
 
         # Call the function
-        result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-        )
+        result = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name)
         print(f"TEST_RESULT{result}")
         # Check the result
         self.assertTrue(result)
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_one_permissions(
-        self, mock_get_supplier_permissions, mock_s3_client
-    ):
+    def test_validate_action_flag_permissions_with_one_permissions(self, mock_get_supplier_permissions, mock_s3_client):
         # Sample CSV data
         csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
-        mock_s3_client.get_object.return_value = {
-            "Body": io.BytesIO(csv_data.encode("utf-8"))
-        }
+        mock_s3_client.get_object.return_value = {"Body": io.BytesIO(csv_data.encode("utf-8"))}
 
         # Mock get_supplier_permissions
         mock_get_supplier_permissions.return_value = ["FLU_DELETE"]
@@ -350,9 +343,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         config_bucket_name = "config_bucket"
 
         # Call the function
-        result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-        )
+        result = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name)
 
         # Check the result
         self.assertTrue(result)
@@ -366,9 +357,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
-        mock_s3_client.get_object.return_value = {
-            "Body": io.BytesIO(csv_data.encode("utf-8"))
-        }
+        mock_s3_client.get_object.return_value = {"Body": io.BytesIO(csv_data.encode("utf-8"))}
 
         # Mock get_supplier_permissions
         mock_get_supplier_permissions.return_value = ["COVID19_FULL"]
@@ -381,25 +370,19 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         config_bucket_name = "config-bucket"
 
         # Call the function
-        result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-        )
+        result = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name)
 
         # Check the result
         self.assertTrue(result)
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_no_permissions(
-        self, mock_get_supplier_permissions, mock_s3_client
-    ):
+    def test_validate_action_flag_permissions_with_no_permissions(self, mock_get_supplier_permissions, mock_s3_client):
         # Sample CSV data
         csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
-        mock_s3_client.get_object.return_value = {
-            "Body": io.BytesIO(csv_data.encode("utf-8"))
-        }
+        mock_s3_client.get_object.return_value = {"Body": io.BytesIO(csv_data.encode("utf-8"))}
 
         # Mock get_supplier_permissions
         mock_get_supplier_permissions.return_value = ["COVID19_UPDATE"]
@@ -412,9 +395,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         config_bucket_name = "config-bucket"
 
         # Call the function
-        result = validate_action_flag_permissions(
-            bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-        )
+        result = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name)
 
         # Check the result
         self.assertFalse(result)
