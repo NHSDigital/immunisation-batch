@@ -390,7 +390,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         message = {
             "fhir_json": "No_Permissions",
-            "action_flag": "None",
+            "action_flag": "No_Permissions",
             "file_name": test_file_key,
             "imms_id": "None",
             "version": "None",
