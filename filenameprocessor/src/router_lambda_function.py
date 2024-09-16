@@ -5,11 +5,11 @@ import csv
 import os
 import logging
 from io import BytesIO, StringIO
+import uuid
 import boto3
 from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
 from fetch_permissions import get_json_from_s3
-import uuid
 
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
@@ -84,6 +84,7 @@ def validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_ty
 
     # Read the CSV data
     csv_reader = csv.DictReader(StringIO(body), delimiter="|")
+    print(csv_reader, "<<<<OTHER CSV READER")
 
     # Store unique permissions from the CSV
     unique_permissions = set()
@@ -170,7 +171,7 @@ def initial_file_validation(file_key, bucket_name):
     if not re.match(r"\d{8}T\d{6}", timestamp) or not is_valid_datetime(timestamp):
         return False
 
-    column_count_valid = validate_csv_column_count(bucket_name, file_key)
+    column_count_valid = validate_csv_headers(bucket_name, file_key)
     if not column_count_valid:
         logger.error(f"column count issue {supplier}")
         return False
@@ -299,42 +300,28 @@ def lambda_handler(event, context):
 
 
 def is_valid_datetime(timestamp):
+    """
+    Returns a bool to indicate whether the timestamp is a valid datetime in the format 'YYYYmmddTHHMMSSzz'
+    where 'zz' is a two digit number indicating the timezone
+    """
 
-    # Extract date and time component
-    date_part = timestamp[:8]
-    time_part = timestamp[9:]
-
-    # Validate time part
-    if len(time_part) != 8 or not time_part.isdigit():
-        False
-    hours = int(time_part[:2])
-    minutes = int(time_part[2:4])
-    seconds = int(time_part[4:6])
-
-    # Check if time is valid
-    if not (0 <= hours < 24 and 0 <= minutes < 60 and 0 <= seconds < 60):
+    # Timezone is represented by the final two digits
+    if not (timezone := timestamp[-2:]).isdigit() or int(timezone) < 0 or int(timezone) > 23:
         return False
-    # Construct the valid datetime string
-    valid_datetime_string = f"{date_part}T{time_part[:6]}"
 
-    datetime_obj = datetime.strptime(valid_datetime_string, "%Y%m%dT%H%M%S")
-
-    if not datetime_obj:
+    # Check that datetime (excluding timezone) is a valid datetime in the expected format
+    try:
+        datetime.strptime(timestamp[:-2], "%Y%m%dT%H%M%S")
+    except ValueError:
         return False
 
     return True
 
 
-def validate_csv_column_count(bucket_name, file_key):
+def validate_csv_headers(bucket_name, file_key):
+    """Returns a bool to indicate whether the given CSV headers match the 34 expected headers exactly"""
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    body = csv_obj["Body"].read().decode("utf-8")
-    csv_reader = csv.reader(StringIO(body))
-    header = next(csv_reader)[0].split("|")
+    csv_body = csv_obj["Body"].read().decode("utf-8")
+    csv_reader = csv.DictReader(StringIO(csv_body), delimiter="|")
 
-    if len(header) != 34:
-        return False
-
-    if header != Constant.expected_csv_content:
-        return False
-
-    return True
+    return csv_reader.fieldnames == Constant.expected_csv_headers

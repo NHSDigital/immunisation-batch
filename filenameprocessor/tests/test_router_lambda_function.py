@@ -45,7 +45,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         timestamp = identify_timestamp(self.file_key)
         self.assertEqual(timestamp, "20240708T12130100")
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     @patch("router_lambda_function.validate_action_flag_permissions")
     @patch("router_lambda_function.get_supplier_permissions")
     def test_valid_file(
@@ -64,7 +64,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         print(f"VALID: {valid}")
         self.assertTrue(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_extension(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.txt"
         bucket_name = "test-bucket"
@@ -72,7 +72,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_file_structure(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41.csv"
         bucket_name = "test-bucket"
@@ -80,7 +80,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_vaccine_type(self, mock_validate_csv):
         file_key = "Invalid_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -88,7 +88,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_version(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v3_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -96,7 +96,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_ods_code(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_INVALID_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -104,7 +104,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_timestamp(self, mock_validate_csv):
         file_key = "Flu_Vaccinations_v5_YGM41_20240708Ta99999999.csv"
         bucket_name = "test-bucket"
@@ -112,7 +112,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.validate_csv_column_count")
+    @patch("router_lambda_function.validate_csv_headers")
     def test_invalid_column_count(self, mock_validate_csv):
         mock_validate_csv.return_value = (False, True)
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"

@@ -72,7 +72,7 @@ class Constant:
         "RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"
     )
 
-    expected_csv_content = [
+    expected_csv_headers = [
         "NHS_NUMBER",
         "PERSON_FORENAME",
         "PERSON_SURNAME",
