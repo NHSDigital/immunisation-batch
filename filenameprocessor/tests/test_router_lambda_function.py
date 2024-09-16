@@ -7,12 +7,9 @@ import boto3
 from moto import mock_sqs
 from router_lambda_function import (
     identify_supplier,
-    identify_vaccine_type,
-    identify_timestamp,
     initial_file_validation,
     send_to_supplier_queue,
     create_ack_file,
-    extract_ods_code,
     validate_vaccine_type_permissions,
     validate_action_flag_permissions,
 )
@@ -30,20 +27,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         supplier = identify_supplier(self.ods_code)
         self.assertEqual(supplier, "EMIS")
 
-    def test_extract_ods_code(self):
-        """tests supplier ODS code is extracted"""
-        ods_code = extract_ods_code(self.file_key)
-        self.assertEqual(ods_code, "YGM41")
-
-    def test_identify_vaccine_type(self):
-        """tests vaccine type is extracted"""
-        vaccine_type = identify_vaccine_type(self.file_key)
-        self.assertEqual(vaccine_type, "Flu")
-
-    def test_identify_timestamp(self):
-        """tests timestamp is extracted"""
-        timestamp = identify_timestamp(self.file_key)
-        self.assertEqual(timestamp, "20240708T12130100")
+    # TODO: Test extract_file_key_elements function
 
     @patch("router_lambda_function.get_csv_content_reader")
     @patch("router_lambda_function.validate_content_headers")

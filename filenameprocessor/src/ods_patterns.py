@@ -1,7 +1,7 @@
 """Dictionary mapping supplier ODS CODEs to the supplier name, this is used for identifying
 supplier queue"""
 
-ODS_PATTERNS = {
+ODS_TO_SUPPLIER_MAPPINGS = {
     "YGM41": "EMIS",
     "8J1100001": "PINNACLE",
     "8HK48": "SONAR",

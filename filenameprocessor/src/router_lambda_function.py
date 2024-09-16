@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime
+from typing import Union
 import re
 import csv
 import os
@@ -9,7 +10,7 @@ import logging
 from io import BytesIO, StringIO
 import uuid
 import boto3
-from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
+from ods_patterns import ODS_TO_SUPPLIER_MAPPINGS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
 from fetch_permissions import get_permissions_config_json_from_s3
 
@@ -29,23 +30,27 @@ def get_environment() -> str:
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
-def extract_ods_code(file_key):
-    supplier_match = re.search(r"_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$", file_key)
-    return supplier_match.group(1).upper() if supplier_match else None
+def identify_supplier(ods_code: str) -> Union[str, None]:
+    """Identify the supplier from the ods code using the mapping"""
+    return ODS_TO_SUPPLIER_MAPPINGS.get(ods_code)
 
 
-def identify_supplier(ods_code):
-    return ODS_PATTERNS.get(ods_code, None)
+def is_valid_datetime(timestamp):
+    """
+    Returns a bool to indicate whether the timestamp is a valid datetime in the format 'YYYYmmddTHHMMSSzz'
+    where 'zz' is a two digit number indicating the timezone
+    """
+    # Timezone is represented by the final two digits
+    if not (timezone := timestamp[-2:]).isdigit() or int(timezone) < 0 or int(timezone) > 23:
+        return False
 
+    # Check that datetime (excluding timezone) is a valid datetime in the expected format
+    try:
+        datetime.strptime(timestamp[:-2], "%Y%m%dT%H%M%S")
+    except ValueError:
+        return False
 
-def identify_vaccine_type(file_key):
-    vaccine_match = re.search(r"^(\w+)_Vaccinations_", file_key)
-    return vaccine_match.group(1) if vaccine_match else None
-
-
-def identify_timestamp(file_key):
-    timestamp_match = re.search(r"_(\d+T\d+)\.csv$", file_key)
-    return timestamp_match.group(1) if timestamp_match else None
+    return True
 
 
 def get_supplier_permissions(supplier: str, config_bucket_name: str) -> list:
@@ -83,7 +88,7 @@ def validate_action_flag_permissions(
 
     # If the supplier has full permissions for the vaccine type return True
     if f"{vaccine_type.upper()}_FULL" in allowed_permissions:
-        logger.info(f"{supplier} has FULL permissions to create, update and delete")
+        logger.info("%s has FULL permissions to create, update and delete", supplier)
         # print(f"{supplier} has full permissions to create, update and delete")
         return True
 
@@ -129,14 +134,17 @@ def extract_file_key_elements(file_key: str) -> dict:
 
 
 def initial_file_validation(file_key, bucket_name):
-    # Check if the file name ends with .csv
+    """
+    Return True if all elements of file key are valid, content headers are valid and the supplier has the
+    appropriate permissions. Else return False.
+    """
+    # Validate file name format
     if not (file_key.endswith(".csv") and file_key.count("_") == 4):
         return False
 
     # Validate each part of the file name
     elements = extract_file_key_elements(file_key)
     vaccine_type = elements["vaccine_type"]
-
     if not (
         vaccine_type in Constant.valid_vaccine_type
         and elements["vaccination"] == "vaccinations"
@@ -146,6 +154,9 @@ def initial_file_validation(file_key, bucket_name):
     ):
         return False
 
+    # TODO: ? validate supplier
+
+    # Obtain the file content
     csv_content_reader = get_csv_content_reader(bucket_name=bucket_name, file_key=file_key)
 
     # Validate the content headers
@@ -153,6 +164,7 @@ def initial_file_validation(file_key, bucket_name):
         logger.error("Incorrect column headers")
         return False
 
+    # Identify the config_bucket_name and supplier
     config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
     supplier = identify_supplier(elements["ods_code"])
 
@@ -170,6 +182,7 @@ def initial_file_validation(file_key, bucket_name):
 
 
 def get_csv_content_reader(bucket_name: str, file_key: str):
+    """Downloads the csv data and returns a csv_reader with the content of the csv"""
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     csv_body = csv_obj["Body"].read().decode("utf-8")
     return csv.DictReader(StringIO(csv_body), delimiter="|")
@@ -259,21 +272,22 @@ def lambda_handler(event, context):
 
             if not validation_passed:
                 logging.error("Error in initial_file_validation")
+            else:
+                elements = extract_file_key_elements(file_key)
+                if supplier := identify_supplier(elements["ods_code"]):
 
-            if validation_passed and (supplier := identify_supplier(extract_ods_code(file_key))):
-
-                message_body = {
-                    "message_id": message_id,
-                    "vaccine_type": identify_vaccine_type(file_key),
-                    "supplier": supplier,
-                    "timestamp": identify_timestamp(file_key),
-                    "filename": file_key,
-                }
-                if send_to_supplier_queue(supplier, message_body):
-                    logger.info("File added to SQS queue for %s pipeline", supplier)
-                    message_delivered = True
-                else:
-                    logger.error("Failed to send file to %s_pipeline", supplier)
+                    message_body = {
+                        "message_id": message_id,
+                        "vaccine_type": elements["vaccine_type"],
+                        "supplier": supplier,
+                        "timestamp": elements["timestamp"],
+                        "filename": file_key,
+                    }
+                    if send_to_supplier_queue(supplier, message_body):
+                        logger.info("File added to SQS queue for %s pipeline", supplier)
+                        message_delivered = True
+                    else:
+                        logger.error("Failed to send file to %s_pipeline", supplier)
 
         except Exception as e:
             logging.error("Error processing file'%s': %s", file_key, str(e))
@@ -288,22 +302,3 @@ def lambda_handler(event, context):
 
     logger.info("Completed processing all file metadata in current batch")
     return {"statusCode": 200, "body": json.dumps("File processing for S3 bucket completed")}
-
-
-def is_valid_datetime(timestamp):
-    """
-    Returns a bool to indicate whether the timestamp is a valid datetime in the format 'YYYYmmddTHHMMSSzz'
-    where 'zz' is a two digit number indicating the timezone
-    """
-
-    # Timezone is represented by the final two digits
-    if not (timezone := timestamp[-2:]).isdigit() or int(timezone) < 0 or int(timezone) > 23:
-        return False
-
-    # Check that datetime (excluding timezone) is a valid datetime in the expected format
-    try:
-        datetime.strptime(timestamp[:-2], "%Y%m%dT%H%M%S")
-    except ValueError:
-        return False
-
-    return True
