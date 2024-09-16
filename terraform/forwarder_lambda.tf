@@ -2,6 +2,7 @@ locals {
   forwarder_lambda_dir      = abspath("${path.root}/../recordforwarder")
   forwarder_lambda_files    = fileset(local.forwarder_lambda_dir, "**")
   forwarding_lambda_dir_sha = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
+  new_stream_arns           = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
 }
 
 module "forwarding_docker_image" {
@@ -145,7 +146,7 @@ resource "aws_lambda_function" "forwarding_lambda" {
 
 # Kinesis Event Source Mapping for the Lambda Function
 resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
-  for_each          = local.new_stream_arns
+  for_each          = toset(local.new_stream_arns)
   event_source_arn  = each.value
   function_name     = aws_lambda_function.forwarding_lambda.function_name
   starting_position = "LATEST"

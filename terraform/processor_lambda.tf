@@ -43,7 +43,7 @@ resource "aws_iam_role" "ecs_task_exec_role" {
   })
 }
 
-# Attach necessary policies for ECS task execution (logs, ECR pull, S3, KMS, Secrets Manager, Kinesis)
+# Define the IAM Role for ECS Task Execution with Kinesis Permissions
 resource "aws_iam_policy" "ecs_task_exec_policy" {
   name   = "${local.prefix}-ecs-task-exec-policy"
   policy = jsonencode({
@@ -90,7 +90,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kinesis:PutRecord",
           "kinesis:PutRecords"
         ],
-        Resource = local.new_stream_arns
+        Resource = local.new_kinesis_arns
       }
     ]
   })
@@ -133,7 +133,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
       },
       {
         name  = "KINESIS_STREAM_ARN"
-        value = jsonencode(local.new_stream_arns)
+        value = jsonencode(local.new_kinesis_arns)
       }
     ]
     logConfiguration = {
@@ -147,27 +147,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
   }])
 }
 
-# Create Security Group for ECS Tasks
-resource "aws_security_group" "ecs_security_group" {
-  name        = "${local.prefix}-ecs-sg"
-  description = "Security group for ECS processor tasks"
-  vpc_id      = var.vpc_id != "" ? var.vpc_id : data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 # Define the ECS Service to Run the Task Definition
 resource "aws_ecs_service" "ecs_service" {
   name            = "${local.prefix}-processor-service"
@@ -177,51 +156,122 @@ resource "aws_ecs_service" "ecs_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = length(var.subnets) > 0 ? var.subnets : data.aws_subnet_ids.default.ids
-    assign_public_ip = true
-    security_groups = [aws_security_group.ecs_security_group.id]
+            subnets          = data.aws_subnets.default.ids
+            assign_public_ip = true
+        }
+}
+
+#  Retrieve SQS Queues 
+data "aws_sqs_queue" "queues" {
+  for_each = toset(var.suppliers)
+  name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-metadata-queue.fifo"
+  
+  # Ensure the queue exists before looking it up
+  depends_on = [aws_sqs_queue.fifo_queues]
+}
+
+# Create IAM Role for EventBridge to Trigger ECS Task
+resource "aws_iam_role" "eventbridge_ecs_role" {
+  name = "${local.prefix}-eventbridge-ecs-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "events.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+# Attach the ECS Task Execution Role to EventBridge role
+resource "aws_iam_role_policy_attachment" "eventbridge_ecs_role_policy_attachment" {
+  role       = aws_iam_role.eventbridge_ecs_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Custom policy for ECS task execution triggered by EventBridge
+resource "aws_iam_policy" "eventbridge_ecs_policy" {
+  name   = "${local.prefix}-eventbridge-ecs-policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "ecs:RunTask",
+          "ecs:StartTask"
+        ],
+        Resource = aws_ecs_task_definition.ecs_task.arn
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "iam:PassRole"
+        ],
+        Resource = aws_iam_role.ecs_task_exec_role.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eventbridge_ecs_policy_attachment" {
+  role       = aws_iam_role.eventbridge_ecs_role.name
+  policy_arn = aws_iam_policy.eventbridge_ecs_policy.arn
+}
+
+# Create CloudWatch Event Rule for SQS Queues to Trigger ECS Task
+resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
+  name        = "${local.prefix}-ecs-trigger-rule"
+  description = "Trigger ECS task when a message arrives in any SQS queue"
+
+  event_pattern = jsonencode({
+    "source": ["aws.sqs"],
+    "detail-type": ["AWS API Call via CloudTrail"],
+    "detail": {
+      "eventSource": ["sqs.amazonaws.com"],
+      "eventName": ["SendMessage"],
+      "requestParameters": {
+        "queueUrl": local.existing_sqs_arns
+      }
+    }
+  })
+}
+
+#  Create CloudWatch Event Target to Trigger ECS Task
+resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
+  rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
+  arn       = aws_ecs_cluster.ecs_cluster.arn
+  role_arn  = aws_iam_role.eventbridge_ecs_role.arn
+
+  ecs_target {
+    task_definition_arn = aws_ecs_task_definition.ecs_task.arn
+    launch_type         = "FARGATE"
+    network_configuration {
+            subnets          = data.aws_subnets.default.ids
+            assign_public_ip = true
+        }
+    platform_version = "LATEST"
   }
 }
 
-# Data lookup for created streams, ensuring the streams exist before lookup
-data "aws_kinesis_stream" "processingstreams" {
-  for_each = toset(var.suppliers)
-  name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-stream"
-
-  depends_on = [aws_kinesis_stream.processor_streams]
-}
-
-# Create a list of Kinesis Stream ARNs for use elsewhere
-locals {
-
-  new_stream_arns = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
-}
-
-# Correct subnet data source
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_vpc.default.id
-}
-
 #  Define Variables for Subnets, VPC ID, and AWS Region
-variable "subnets" {
-  description = "List of subnets for ECS tasks"
-  type        = list(string)
-  default     = []
+data "aws_vpc" "default" {
+    default = true
+}
+data "aws_subnets" "default" {
+    filter {
+        name   = "vpc-id"
+        values = [data.aws_vpc.default.id]
+    }
 }
 
-variable "vpc_id" {
-  description = "VPC ID for ECS tasks"
-  type        = string
-  default     = ""
-}
 
 variable "aws_region" {
   description = "AWS Region"
   default     = "eu-west-2"
-}
-
-variable "default_shard_count" {
-  description = "Default shard count for Kinesis streams"
-  type        = number
-  default     = 1
 }
