@@ -144,12 +144,20 @@ resource "aws_lambda_function" "forwarding_lambda" {
   ]
 }
 
-# Kinesis Event Source Mapping for the Lambda Function
+# Create a map with index-based keys to use in for_each
+locals {
+  kinesis_stream_map = {
+    for idx, arn in local.new_stream_arns : idx => arn
+  }
+}
+
 resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
-  for_each          = toset(local.new_stream_arns)
+  for_each          = local.kinesis_stream_map
   event_source_arn  = each.value
   function_name     = aws_lambda_function.forwarding_lambda.function_name
   starting_position = "LATEST"
   batch_size        = 1
   enabled           = true
+
+  depends_on = [aws_lambda_function.forwarding_lambda]
 }
