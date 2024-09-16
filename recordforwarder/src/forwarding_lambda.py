@@ -23,13 +23,8 @@ immunization_api_instance = ImmunizationApi(authenticator)
 
 def get_environment():
     _env = os.getenv("ENVIRONMENT")
-    non_prod = ["internal-dev", "int", "ref", "sandbox"]
-    if _env in non_prod:
-        return _env
-    elif _env == "prod":
-        return "prod"
-    else:
-        return "internal-dev"  # default to internal-dev for pr and user workspaces
+    # default to internal-dev for pr and user workspaces
+    return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
 def identify_supplier(file_key: str):
@@ -39,9 +34,7 @@ def identify_supplier(file_key: str):
     return ODS_PATTERNS.get(ods_code, None)
 
 
-def forward_request_to_api(
-    bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version
-):
+def forward_request_to_api(bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version):
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
     created_at = response["LastModified"]
     created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
@@ -55,14 +48,10 @@ def forward_request_to_api(
         # Check if the acknowledgment file exists in S3
         s3_client.head_object(Bucket=ack_bucket_name, Key=ack_filename)
         # If it exists, download the file and accumulate its content
-        existing_ack_file = s3_client.get_object(
-            Bucket=ack_bucket_name, Key=ack_filename
-        )
+        existing_ack_file = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         existing_content = existing_ack_file["Body"].read().decode("utf-8")
         accumulated_csv_content.write(existing_content)
-        print(
-            f"accumulated_csv_content_existing:{accumulated_csv_content}"
-        )  # Add existing content to the StringIO
+        print(f"accumulated_csv_content_existing:{accumulated_csv_content}")  # Add existing content to the StringIO
     except ClientError as e:
         logger.error(f"error:{e}")
         if e.response["Error"]["Code"] == "404":
@@ -84,9 +73,7 @@ def forward_request_to_api(
         data_row = Constant.data_rows("None", created_at_formatted, message_header)
     supplier_system = identify_supplier(file_key)
     if action_flag == "new":
-        response, status_code = immunization_api_instance.create_immunization(
-            fhir_json, supplier_system
-        )
+        response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 201:
             data_row = Constant.data_rows(True, created_at_formatted, message_header)
@@ -94,11 +81,7 @@ def forward_request_to_api(
             data_row = Constant.data_rows("duplicate", created_at_formatted, message_header)
         else:
             data_row = Constant.data_rows(False, created_at_formatted)
-    elif (
-        action_flag == "update"
-        and imms_id not in (None, "None")
-        and version not in (None, "None")
-    ):
+    elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
         fhir_json["id"] = imms_id
         print(f"updated_fhir_json:{fhir_json}")
         response, status_code = immunization_api_instance.update_immunization(
@@ -110,9 +93,7 @@ def forward_request_to_api(
         else:
             data_row = Constant.data_rows(False, created_at_formatted, message_header)
     elif action_flag == "delete" and imms_id not in (None, "None"):
-        response, status_code = immunization_api_instance.delete_immunization(
-            imms_id, fhir_json, supplier_system
-        )
+        response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
         print(f"response:{response},status_code:{status_code}")
         if status_code == 204:
             data_row = Constant.data_rows(True, created_at_formatted, message_header)
@@ -125,21 +106,15 @@ def forward_request_to_api(
     accumulated_csv_content.write(cleaned_row + "\n")
     print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
     # Upload the updated CSV content to S3
-    csv_file_like_object = io.BytesIO(
-        accumulated_csv_content.getvalue().encode("utf-8")
-    )
+    csv_file_like_object = io.BytesIO(accumulated_csv_content.getvalue().encode("utf-8"))
     s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
     logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
 
 
 def forward_lambda_handler(event, context):
     imms_env = get_environment()
-    bucket_name = os.getenv(
-        "SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source"
-    )
-    ack_bucket_name = os.getenv(
-        "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination"
-    )
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
 
     for record in event["Records"]:
         try:

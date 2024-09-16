@@ -21,14 +21,10 @@ sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
 
 def get_environment():
+    """Returns the current environment"""
     _env = os.getenv("ENVIRONMENT")
-    non_prod = ["internal-dev", "int", "ref", "sandbox"]
-    if _env in non_prod:
-        return _env
-    elif _env == "prod":
-        return "prod"
-    else:
-        return "internal-dev"  # default to internal-dev for pr and user workspaces
+    # default to internal-dev for pr and user workspaces
+    return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
 def extract_ods_code(file_key):
