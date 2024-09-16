@@ -373,6 +373,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         s3_client = boto3.client("s3", region_name="eu-west-2")
         source_bucket_name = "immunisation-batch-internal-dev-data-source"
         ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        row_count_ = "10"
         s3_client.create_bucket(
             Bucket=source_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -394,6 +395,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "file_name": test_file_key,
             "imms_id": "None",
             "version": "None",
+            "row_count": row_count_,
         }
 
         # Create a mock SQS message

@@ -71,13 +71,6 @@ def forward_request_to_api(
             print(f"accumulated_csv_content:{accumulated_csv_content}")
     if fhir_json == "No_Permissions":
         data_row = Constant.data_rows("no permissions", created_at_formatted)
-        data_row_str = [str(item) for item in data_row]
-        cleaned_row = (
-            "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
-        )
-
-        accumulated_csv_content.write(cleaned_row + "\n")
-        print(f"CSV content before upload PERMS:\n{accumulated_csv_content.getvalue()}")
     else:
         if imms_id == "None" and version == "None":
             data_row = Constant.data_rows(False, created_at_formatted)

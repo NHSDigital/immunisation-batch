@@ -157,6 +157,7 @@ def process_csv_to_fhir(
                 "imms_id": "None",
                 "version": "None",
                 "file_name": file_key,
+                "row_count": row_count,
             }
             status = send_to_sqs(supplier, message_body)
             print(f"MESSAGE BODY: {message_body}")

@@ -752,8 +752,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     full_permissions,
                     permission_operations,
                 )
-
-            mock_send_to_sqs.assert_not_called()
+            # Called once to send no permissions message to forwarder lambda
+            mock_send_to_sqs.assert_called()
 
     def test_get_environment(self):
         with patch("processing_lambda.os.getenv", return_value="internal-dev"):
