@@ -161,14 +161,7 @@ resource "aws_ecs_service" "ecs_service" {
         }
 }
 
-#  Retrieve SQS Queues 
-data "aws_sqs_queue" "queues" {
-  for_each = toset(var.suppliers)
-  name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-metadata-queue.fifo"
-  
-  # Ensure the queue exists before looking it up
-  depends_on = [aws_sqs_queue.fifo_queues]
-}
+
 
 # Create IAM Role for EventBridge to Trigger ECS Task
 resource "aws_iam_role" "eventbridge_ecs_role" {
@@ -257,21 +250,4 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
         }
     platform_version = "LATEST"
   }
-}
-
-#  Define Variables for Subnets, VPC ID, and AWS Region
-data "aws_vpc" "default" {
-    default = true
-}
-data "aws_subnets" "default" {
-    filter {
-        name   = "vpc-id"
-        values = [data.aws_vpc.default.id]
-    }
-}
-
-
-variable "aws_region" {
-  description = "AWS Region"
-  default     = "eu-west-2"
 }

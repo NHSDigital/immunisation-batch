@@ -13,12 +13,12 @@ variable "service" {
 data "aws_vpc" "default" {
     default = true
 }
-# data "aws_subnets" "default" {
-#     filter {
-#         name   = "vpc-id"
-#         values = [data.aws_vpc.default.id]
-#     }
-# }
+data "aws_subnets" "default" {
+    filter {
+        name   = "vpc-id"
+        values = [data.aws_vpc.default.id]
+    }
+}
 
 locals {
     root_domain = "dev.api.platform.nhs.uk"
@@ -43,7 +43,7 @@ locals {
     }
 }
 
-variable "region" {
+variable "aws_region" {
     default = "eu-west-2"
 }
 
