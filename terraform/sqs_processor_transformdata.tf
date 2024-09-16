@@ -13,7 +13,7 @@ resource "aws_kinesis_stream" "processor_data_streams" {
 # Kinesis Data Stream lookup
 data "aws_kinesis_stream" "processingstreams" {
   for_each = toset(var.suppliers)
-  name     = "${local.short_stream_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-stream"
+  name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-stream"
 
   # Ensure the stream exists before looking it up
   depends_on = [aws_kinesis_stream.processor_data_streams]
