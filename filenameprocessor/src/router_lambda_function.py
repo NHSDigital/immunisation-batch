@@ -1,4 +1,8 @@
-"""Lambda function for the fileprocessor lambda"""
+"""
+Lambda function for the fileprocessor lambda.
+NOTE: The expected file format for the incoming file is 'VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv'.
+e.g. 'Flu_Vaccinations_v5_YYY78_20240708T12130100.csv' (ODS code has multiple lengths)
+"""
 
 import json
 from datetime import datetime
@@ -15,8 +19,6 @@ from constants import Constant
 from fetch_permissions import get_permissions_config_json_from_s3
 
 
-# Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
-# for example: Flu_Vaccinations_v5_YYY78_20240708T12130100.csv - ODS code has multiple lengths
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 s3_client = boto3.client("s3", region_name="eu-west-2")
@@ -70,10 +72,10 @@ def validate_vaccine_type_permissions(config_bucket_name: str, supplier: str, va
     # print(f"supplier:{supplier}")
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     # print(f"Config Supplier Allowed Permissions: {allowed_permissions}")
-    if (vaccine_type := vaccine_type.upper()) in " ".join(allowed_permissions):
-        return True
-    logger.error("Permission issue: %s does not have any permissions for %s", supplier, vaccine_type)
-    return False
+    if (vaccine_type := vaccine_type.upper()) not in " ".join(allowed_permissions):
+        logger.error("Permission issue: %s does not have any permissions for %s", supplier, vaccine_type)
+        return False
+    return True
 
 
 def validate_action_flag_permissions(
@@ -81,7 +83,7 @@ def validate_action_flag_permissions(
 ) -> bool:
     """
     Returns True if the supplier has permission to perform ANY of the requested actions for the given vaccine type,
-    else False
+    else False.
     """
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     # print(f"Allowed_permissions: {allowed_permissions}")
@@ -93,6 +95,7 @@ def validate_action_flag_permissions(
         return True
 
     # Extract a list of all unique action flags in the csv file
+    # TODO: Give csv content as arg
     unique_action_flags = set()
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     body = csv_obj["Body"].read().decode("utf-8")
@@ -211,7 +214,14 @@ def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
     return True
 
 
-def create_ack_file(message_id, file_key, ack_bucket_name, validation_passed, message_delivery, created_at_formatted):
+def create_ack_file(
+    message_id: str,
+    file_key: str,
+    ack_bucket_name: str,
+    validation_passed: bool,
+    message_delivery: bool,
+    created_at_formatted,
+) -> None:
     """Creates the ack file and uploads it to the S3 ack bucket"""
     ack = {
         "MESSAGE_HEADER_ID": message_id,
@@ -230,7 +240,7 @@ def create_ack_file(message_id, file_key, ack_bucket_name, validation_passed, me
         "MESSAGE_DELIVERY": message_delivery,
     }
 
-    #  Construct ack file
+    # Construct ack file
     ack_filename = f"ack/{file_key.split('.')[0]}_response.csv"
     print(f"{list(ack.values())}")
 
@@ -246,6 +256,46 @@ def create_ack_file(message_id, file_key, ack_bucket_name, validation_passed, me
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
 
 
+def try_to_validate_file(file_key: str, bucket_name: str) -> bool:
+    """Attempts initial file validation. Returns a bool to indicate if validation has been passed."""
+    try:
+        validation_passed = initial_file_validation(file_key, bucket_name)
+    except ValueError as ve:
+        logging.error("Error in initial_file_validation'%s': %s", file_key, str(ve))
+        return False
+
+    if not validation_passed:
+        logging.error("Error in initial_file_validation")
+
+    return validation_passed
+
+
+def try_to_send_message(file_key: str, message_id: str) -> bool:
+    """
+    Attempts to send a message to the SQS queue.
+    Returns a bool to indication if the message has been sent successfully.
+    """
+    file_key_elements = extract_file_key_elements(file_key)
+
+    if not (supplier := identify_supplier(file_key_elements["ods_code"])):
+        return False
+
+    message_body = {
+        "message_id": message_id,
+        "vaccine_type": file_key_elements["vaccine_type"],
+        "supplier": supplier,
+        "timestamp": file_key_elements["timestamp"],
+        "filename": file_key,
+    }
+
+    if not send_to_supplier_queue(supplier, message_body):
+        logger.error("Failed to send file to %s_pipeline", supplier)
+        return False
+
+    logger.info("File added to SQS queue for %s pipeline", supplier)
+    return True
+
+
 def lambda_handler(event, context):
     """Lambda handler for filenameprocessor lambda"""
     error_files = []
@@ -258,38 +308,20 @@ def lambda_handler(event, context):
         response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
         created_at_formatted = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
-        # Default validation_passed and message_delivery to False
-        validation_passed = False
-        message_delivered = False
-
         try:
-            try:
-                validation_passed = initial_file_validation(file_key, bucket_name)
-            except ValueError as ve:
-                logging.error("Error in initial_file_validation'%s': %s", file_key, str(ve))
+            # Validate the file
+            validation_passed = try_to_validate_file(file_key, bucket_name)
 
-            if not validation_passed:
-                logging.error("Error in initial_file_validation")
+            # If file is valid then send a message to the SQS queue
+            if validation_passed:
+                message_delivered = try_to_send_message(file_key, message_id)
             else:
-                file_key_elements = extract_file_key_elements(file_key)
-                if supplier := identify_supplier(file_key_elements["ods_code"]):
-
-                    message_body = {
-                        "message_id": message_id,
-                        "vaccine_type": file_key_elements["vaccine_type"],
-                        "supplier": supplier,
-                        "timestamp": file_key_elements["timestamp"],
-                        "filename": file_key,
-                    }
-                    if send_to_supplier_queue(supplier, message_body):
-                        logger.info("File added to SQS queue for %s pipeline", supplier)
-                        message_delivered = True
-                    else:
-                        logger.error("Failed to send file to %s_pipeline", supplier)
+                message_delivered = False
 
         except Exception as e:
             logging.error("Error processing file'%s': %s", file_key, str(e))
             validation_passed = False
+            message_delivered = False
             error_files.append(file_key)
 
         create_ack_file(
