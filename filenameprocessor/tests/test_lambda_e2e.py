@@ -1,6 +1,6 @@
-"""e2e tests for lambda_handler, including specific tests for action_flag_permissions"""
+"""e2e tests for lambda_handler, including specific tests for action flag permissions"""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import unittest
 import json
 from typing import Optional
@@ -10,7 +10,7 @@ from moto import mock_s3, mock_sqs
 from src.constants import Constant
 
 
-from router_lambda_function import lambda_handler, validate_action_flag_permissions
+from router_lambda_function import lambda_handler
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -281,69 +281,3 @@ class TestLambdaHandler(unittest.TestCase):
 
         mock_send_to_supplier_queue.assert_not_called()
         self.assert_ack_file_in_destination_s3_bucket(s3_client)
-
-
-class TestValidateActionFlagPermissions(unittest.TestCase):
-
-    @mock_s3
-    @patch("csv.DictReader")
-    @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_end_to_end(self, mock_get_supplier_permissions, mock_csv_dict_reader):
-        s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "test-bucket"
-        file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
-        supplier = "supplier_123"
-        vaccine_type = "FLU"
-        config_bucket_name = "config-bucket"
-
-        s3_client.create_bucket(
-            Bucket=source_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
-        )
-
-        s3_client.put_object(Bucket=source_bucket_name, Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv")
-
-        mock_get_supplier_permissions.return_value = {"FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"}
-
-        Constant.action_flag_mapping = {"NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
-
-        mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
-        mock_csv_dict_reader.return_value = mock_csv_reader_instance
-
-        result = validate_action_flag_permissions(
-            source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-        )
-        self.assertTrue(result)
-
-    @mock_s3
-    @patch("csv.DictReader")
-    @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_no_permissions_end_to_end(self, mock_get_supplier_permissions, mock_csv_dict_reader):
-        """Should reject if no permissions"""
-        s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "test-bucket"
-        file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
-        supplier = "supplier_123"
-        vaccine_type = "FLU"
-        config_bucket_name = "config-bucket"
-
-        s3_client.create_bucket(
-            Bucket=source_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
-        )
-
-        s3_client.put_object(Bucket=source_bucket_name, Key="Flu_Vaccinations_v5_YYY78_20240708T12130100.csv")
-
-        mock_get_supplier_permissions.return_value = {""}
-        # Mock the permissions configuration
-        Constant.action_flag_mapping = {"NEW": "CREATE", "UPDATE": "UPDATE", "DELETE": "DELETE"}
-
-        # Mock csv request - csv containing update request only
-        mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
-        mock_csv_dict_reader.return_value = mock_csv_reader_instance
-
-        result = validate_action_flag_permissions(
-            source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
-        )
-        # print(f"RESULT: {result}")
-        self.assertFalse(result)

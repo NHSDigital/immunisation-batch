@@ -37,7 +37,7 @@ def identify_supplier(ods_code: str) -> Union[str, None]:
     return ODS_TO_SUPPLIER_MAPPINGS.get(ods_code)
 
 
-def is_valid_datetime(timestamp):
+def is_valid_datetime(timestamp: str) -> bool:
     """
     Returns a bool to indicate whether the timestamp is a valid datetime in the format 'YYYYmmddTHHMMSSzz'
     where 'zz' is a two digit number indicating the timezone
