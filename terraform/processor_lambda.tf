@@ -6,17 +6,43 @@ resource "aws_ecs_cluster" "ecs_cluster" {
 # Locals for Lambda processing paths and hash
 locals {
   processing_lambda_dir     = abspath("${path.root}/../recordprocessor")
-  processing_lambda_files   = fileset(local.processing_lambda_dir, "**")
+  path_include              = ["**"]
+  path_exclude              = ["**/__pycache__/**"]
+  files_include             = setunion([for f in local.path_include : fileset(local.processing_lambda_dir, f)]...)
+  files_exclude             = setunion([for f in local.path_exclude : fileset(local.processing_lambda_dir, f)]...)
+  processing_lambda_files   = sort(setsubtract(local.files_include, local.files_exclude))
   processing_lambda_dir_sha = sha1(join("", [for f in local.processing_lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
 }
 
+# Create ECR Repository for processing
+resource "aws_ecr_repository" "processing_repository" {
+  name = "${local.prefix}-processing-repo"
+}
 
 # Build and Push Docker Image to ECR (Reusing the existing module)
 module "processing_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
-  create_ecr_repo = true
-  ecr_repo        = "${local.prefix}-processing-repo"
+  docker_file_path           = "Dockerfile"
+  create_ecr_repo            = false
+  ecr_repo                   = aws_ecr_repository.processing_repository.name
+  ecr_repo_lifecycle_policy   = jsonencode({
+    "rules" : [
+      {
+        "rulePriority" : 1,
+        "description" : "Keep only the last 2 images",
+        "selection" : {
+          "tagStatus" : "any",
+          "countType" : "imageCountMoreThan",
+          "countNumber" : 2
+        },
+        "action" : {
+          "type" : "expire"
+        }
+      }
+    ]
+  })
+  
   platform      = "linux/amd64"
   use_image_tag = false
   source_path   = local.processing_lambda_dir
