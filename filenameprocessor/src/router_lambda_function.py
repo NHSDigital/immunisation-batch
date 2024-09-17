@@ -7,7 +7,6 @@ e.g. 'Flu_Vaccinations_v5_YYY78_20240708T12130100.csv' (ODS code has multiple le
 import json
 from datetime import datetime
 from typing import Union
-import re
 import csv
 import os
 import logging
@@ -26,9 +25,9 @@ sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
 
 def get_environment() -> str:
-    """Returns the current environment"""
+    """Returns the current environment. Defaults to internal-dev for pr and user environments"""
     _env = os.getenv("ENVIRONMENT")
-    # default to internal-dev for pr and user workspaces
+    # default to internal-dev for pr and user environments
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
@@ -67,7 +66,7 @@ def get_supplier_permissions(supplier: str) -> list:
 def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
     """Returns True if the given supplier has any permissions for the given vaccine type, else False"""
     allowed_permissions = get_supplier_permissions(supplier)
-    if (vaccine_type := vaccine_type.upper()) not in " ".join(allowed_permissions):
+    if vaccine_type not in " ".join(allowed_permissions):
         logger.error("Permission issue: %s does not have any permissions for %s", supplier, vaccine_type)
         return False
     return True
@@ -78,10 +77,11 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
     Returns True if the supplier has permission to perform ANY of the requested actions for the given vaccine type,
     else False.
     """
+    # Obtain the allowed permissions for the supplier
     allowed_permissions_set = set(get_supplier_permissions(supplier))
 
     # If the supplier has full permissions for the vaccine type return True
-    if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
+    if f"{vaccine_type}_FULL" in allowed_permissions_set:
         logger.info("%s has FULL permissions to create, update and delete", supplier)
         return True
 
@@ -96,7 +96,7 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
         unique_action_flags.add("CREATE")
 
     # Check if any of the CSV permissions match the allowed permissions
-    operation_requests_set = {f"{vaccine_type.upper()}_{action_flag}" for action_flag in unique_action_flags}
+    operation_requests_set = {f"{vaccine_type}_{action_flag}" for action_flag in unique_action_flags}
     if operation_requests_set.intersection(allowed_permissions_set):
         logger.info(
             "%s permissions %s matches one of the requested permissions required to %s",
@@ -113,7 +113,7 @@ def extract_file_key_elements(file_key: str) -> dict:
     """Returns a dictionary containing each of the elements which can be extracted from the file key"""
     file_key_parts_without_extension = file_key.split(".")[0].split("_")
     return {
-        "vaccine_type": file_key_parts_without_extension[0].lower(),
+        "vaccine_type": file_key_parts_without_extension[0].upper(),
         "vaccination": file_key_parts_without_extension[1].lower(),
         "version": file_key_parts_without_extension[2].lower(),
         "ods_code": file_key_parts_without_extension[3],
@@ -133,17 +133,16 @@ def initial_file_validation(file_key, bucket_name):
 
     # Validate each part of the file name
     elements = extract_file_key_elements(file_key)
+    supplier = identify_supplier(elements["ods_code"])
     vaccine_type = elements["vaccine_type"]
     if not (
         vaccine_type in Constant.valid_vaccine_type
         and elements["vaccination"] == "vaccinations"
         and elements["version"] in Constant.valid_versions
-        and any(re.match(pattern, elements["ods_code"]) for pattern in Constant.valid_ods_codes)
+        and supplier  # Note that if supplier could be identified, this also verifies that ODS code is valid
         and is_valid_datetime(elements["timestamp"])
     ):
         return False
-
-    # TODO: ? validate supplier
 
     # Obtain the file content
     csv_content_dict_reader = get_csv_content_dict_reader(bucket_name=bucket_name, file_key=file_key)
@@ -152,9 +151,6 @@ def initial_file_validation(file_key, bucket_name):
     if not validate_content_headers(csv_content_dict_reader):
         logger.error("Incorrect column headers")
         return False
-
-    # Identify the config_bucket_name and supplier
-    supplier = identify_supplier(elements["ods_code"])
 
     # Validate has permissions for the vaccine type
     if not validate_vaccine_type_permissions(supplier, vaccine_type):
@@ -172,8 +168,8 @@ def initial_file_validation(file_key, bucket_name):
 def get_csv_content_dict_reader(bucket_name: str, file_key: str):
     """Downloads the csv data and returns a csv_reader with the content of the csv"""
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    csv_body = csv_obj["Body"].read().decode("utf-8")
-    return csv.DictReader(StringIO(csv_body), delimiter="|")
+    csv_content_string = csv_obj["Body"].read().decode("utf-8")
+    return csv.DictReader(StringIO(csv_content_string), delimiter="|")
 
 
 def validate_content_headers(csv_content_reader):
@@ -201,7 +197,6 @@ def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
 def create_ack_file(
     message_id: str,
     file_key: str,
-    ack_bucket_name: str,
     validation_passed: bool,
     message_delivery: bool,
     created_at_formatted,
@@ -236,6 +231,7 @@ def create_ack_file(
     # Upload the CSV file to S3
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode("utf-8"))
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
 
 
@@ -282,7 +278,6 @@ def try_to_send_message(file_key: str, message_id: str) -> bool:
 def lambda_handler(event, context):
     """Lambda handler for filenameprocessor lambda"""
     error_files = []
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
 
     # For each file
     for record in event["Records"]:
@@ -312,9 +307,7 @@ def lambda_handler(event, context):
             message_delivered = False
             error_files.append(file_key)
 
-        create_ack_file(
-            message_id, file_key, ack_bucket_name, validation_passed, message_delivered, created_at_formatted
-        )
+        create_ack_file(message_id, file_key, validation_passed, message_delivered, created_at_formatted)
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))

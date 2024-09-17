@@ -1,7 +1,7 @@
 class Constant:
     """A class to hold various constants used in the application."""
 
-    valid_vaccine_type = ["flu", "covid19", "mmr"]
+    valid_vaccine_type = ["FLU", "COVID19", "MMR"]
     valid_versions = ["v5"]
     valid_ods_codes = [
         "YGM41",

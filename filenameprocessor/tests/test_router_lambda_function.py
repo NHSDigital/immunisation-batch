@@ -47,7 +47,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
 
     # TODO: Test extract_file_key_elements function
 
-    @patch("router_lambda_function.get_csv_content_reader")
+    @patch("router_lambda_function.get_csv_content_dict_reader")
     @patch("router_lambda_function.validate_content_headers")
     @patch("router_lambda_function.validate_action_flag_permissions")
     @patch("router_lambda_function.get_supplier_permissions")
@@ -56,9 +56,9 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         mock_get_permissions,
         mock_validate_action_flag_permissions,
         mock_validate_csv,
-        mock_get_csv_content_reader,
+        mock_get_csv_content_dict_reader,
     ):
-        mock_get_csv_content_reader.return_value = Constant.valid_file_content
+        mock_get_csv_content_dict_reader.return_value = Constant.valid_file_content
         mock_validate_csv.return_value = (True, [])
         mock_get_permissions.return_value = ["FLU_CREATE", "FLU_UPDATE"]
         mock_validate_action_flag_permissions.return_value = True
@@ -117,10 +117,10 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         valid = initial_file_validation(file_key, bucket_name)
         self.assertFalse(valid)
 
-    @patch("router_lambda_function.get_csv_content_reader")
+    @patch("router_lambda_function.get_csv_content_dict_reader")
     @patch("router_lambda_function.validate_content_headers")
-    def test_invalid_column_count(self, mock_validate_csv, mock_csv_content_reader):
-        mock_csv_content_reader.return_value = Constant.valid_file_content
+    def test_invalid_column_count(self, mock_validate_csv, mock_csv_content_dict_reader):
+        mock_csv_content_dict_reader.return_value = Constant.valid_file_content
         mock_validate_csv.return_value = (False, True)
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -145,17 +145,9 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     @patch("router_lambda_function.s3_client")
     def test_create_ack_file(self, mock_s3_client):
         """tests whether ack file is created"""
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         validation_passed = True
         created_at_formatted = "20240725T12510700"
-        create_ack_file(
-            "1",
-            self.file_key,
-            ack_bucket_name,
-            validation_passed,
-            True,
-            created_at_formatted,
-        )
+        create_ack_file("1", self.file_key, validation_passed, True, created_at_formatted)
         mock_s3_client.upload_fileobj.assert_called_once()
 
     @patch.dict(

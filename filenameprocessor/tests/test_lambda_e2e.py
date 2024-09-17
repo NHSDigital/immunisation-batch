@@ -108,7 +108,7 @@ class TestLambdaHandler(unittest.TestCase):
         received_message = json.loads(messages["Messages"][0]["Body"])
 
         # Validate message content
-        self.assertEqual(received_message["vaccine_type"], "flu")
+        self.assertEqual(received_message["vaccine_type"], "FLU")
         self.assertEqual(received_message["supplier"], "EMIS")
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
         self.assertEqual(received_message["filename"], "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv")
