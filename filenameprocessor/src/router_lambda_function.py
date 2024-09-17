@@ -55,55 +55,40 @@ def is_valid_datetime(timestamp: str) -> bool:
     return True
 
 
-def get_supplier_permissions(supplier: str, config_bucket_name: str) -> list:
+def get_supplier_permissions(supplier: str) -> list:
     """
     Returns the permissions for the given supplier. Returns an empty list if the permissions config json could not
     be downloaded, or the supplier has no permissions.
     """
-    # print(f"config_perms_check: {supplier_permissions}")
-    # print(f"ALL_PERMISSIONS:{all_permissions}")
+    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
     return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
 
 
-def validate_vaccine_type_permissions(config_bucket_name: str, supplier: str, vaccine_type: str):
+def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
     """Returns True if the given supplier has any permissions for the given vaccine type, else False"""
-    # print(f"BUCKET_NAME:{config_bucket_name}")
-    # print(f"VACCINE TYPE 1:{vaccine_type}")
-    # print(f"supplier:{supplier}")
-    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
-    # print(f"Config Supplier Allowed Permissions: {allowed_permissions}")
+    allowed_permissions = get_supplier_permissions(supplier)
     if (vaccine_type := vaccine_type.upper()) not in " ".join(allowed_permissions):
         logger.error("Permission issue: %s does not have any permissions for %s", supplier, vaccine_type)
         return False
     return True
 
 
-def validate_action_flag_permissions(
-    bucket_name: str, file_key: str, supplier: str, vaccine_type: str, config_bucket_name: str
-) -> bool:
+def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_type: str) -> bool:
     """
     Returns True if the supplier has permission to perform ANY of the requested actions for the given vaccine type,
     else False.
     """
-    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
-    # print(f"Allowed_permissions: {allowed_permissions}")
+    allowed_permissions_set = set(get_supplier_permissions(supplier))
 
     # If the supplier has full permissions for the vaccine type return True
-    if f"{vaccine_type.upper()}_FULL" in allowed_permissions:
+    if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
         logger.info("%s has FULL permissions to create, update and delete", supplier)
-        # print(f"{supplier} has full permissions to create, update and delete")
         return True
 
     # Extract a list of all unique action flags in the csv file
-    # TODO: Give csv content as arg
     unique_action_flags = set()
-    csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    body = csv_obj["Body"].read().decode("utf-8")
-    csv_reader = csv.DictReader(StringIO(body), delimiter="|")
-    for row in csv_reader:
-        # print(f"ACTION FLAG {action_flag}")
+    for row in csv_dict_reader:
         unique_action_flags.add(row.get("ACTION_FLAG", "").upper())
-        # print(f"MAPPED PERMISSIONS {unique_permissions}")
 
     # Replace 'NEW' with 'CREATE'
     if "NEW" in unique_action_flags:
@@ -111,15 +96,16 @@ def validate_action_flag_permissions(
         unique_action_flags.add("CREATE")
 
     # Check if any of the CSV permissions match the allowed permissions
-    # print(f"CSV OPERATION REQUEST {csv_operation_request} AND UNIQUE PERMISSIONS {allowed_permissions_set}")
-    if any(f"{vaccine_type.upper()}_{action_flag}" in allowed_permissions for action_flag in unique_action_flags):
-        # print(
-        #     f"{supplier} permission {allowed_permissions_set} matches "
-        #     f"one of the csv operation permissions required to {csv_operation_request}"
-        # )
+    operation_requests_set = {f"{vaccine_type.upper()}_{action_flag}" for action_flag in unique_action_flags}
+    if operation_requests_set.intersection(allowed_permissions_set):
+        logger.info(
+            "%s permissions %s matches one of the requested permissions required to %s",
+            supplier,
+            allowed_permissions_set,
+            operation_requests_set,
+        )
         return True
 
-    # print(f"supplier does not have required permissions {csv_operation_request}")
     return False
 
 
@@ -160,31 +146,30 @@ def initial_file_validation(file_key, bucket_name):
     # TODO: ? validate supplier
 
     # Obtain the file content
-    csv_content_reader = get_csv_content_reader(bucket_name=bucket_name, file_key=file_key)
+    csv_content_dict_reader = get_csv_content_dict_reader(bucket_name=bucket_name, file_key=file_key)
 
     # Validate the content headers
-    if not validate_content_headers(csv_content_reader):
+    if not validate_content_headers(csv_content_dict_reader):
         logger.error("Incorrect column headers")
         return False
 
     # Identify the config_bucket_name and supplier
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
     supplier = identify_supplier(elements["ods_code"])
 
     # Validate has permissions for the vaccine type
-    if not validate_vaccine_type_permissions(config_bucket_name, supplier, vaccine_type):
+    if not validate_vaccine_type_permissions(supplier, vaccine_type):
         logger.info("%s does not have permissions for %s", supplier, vaccine_type)
         return False
 
     # Validate has permission to perform at least one of the requested actions
-    if not validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine_type, config_bucket_name):
+    if not validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type):
         logger.info("%s does not have permissions for any csv ACTION_FLAG operations", supplier)
         return False
 
     return True
 
 
-def get_csv_content_reader(bucket_name: str, file_key: str):
+def get_csv_content_dict_reader(bucket_name: str, file_key: str):
     """Downloads the csv data and returns a csv_reader with the content of the csv"""
     csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     csv_body = csv_obj["Body"].read().decode("utf-8")
@@ -203,7 +188,6 @@ def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
     sqs_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{sqs_name}-metadata-queue.fifo"
-    print(f"Queue_URL: {queue_url}")
 
     try:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId="default")
@@ -242,7 +226,6 @@ def create_ack_file(
 
     # Construct ack file
     ack_filename = f"ack/{file_key.split('.')[0]}_response.csv"
-    print(f"{list(ack.values())}")
 
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
@@ -301,10 +284,15 @@ def lambda_handler(event, context):
     error_files = []
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
 
+    # For each file
     for record in event["Records"]:
+
+        # Assign a unique message_id
+        message_id = str(uuid.uuid4())
+
+        # Obtain the file details
         bucket_name = record["s3"]["bucket"]["name"]
         file_key = record["s3"]["object"]["key"]
-        message_id = str(uuid.uuid4())
         response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
         created_at_formatted = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
