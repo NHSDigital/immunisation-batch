@@ -20,3 +20,4 @@ COPY src .
 RUN chmod 644 $(find . -type f)
 RUN chmod 755 $(find . -type d)
 CMD ["processing_lambda.process_lambda_handler"]
+ENTRYPOINT ["python", "processing_lambda.process_lambda_handler"]
