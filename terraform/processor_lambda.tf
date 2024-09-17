@@ -91,6 +91,13 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kinesis:PutRecords"
         ],
         Resource = local.new_kinesis_arns
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "ecr:GetAuthorizationToken"
+        ],
+        Resource = "*"
       }
     ]
   })
@@ -99,6 +106,10 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
 resource "aws_iam_role_policy_attachment" "ecs_task_exec_policy_attachment" {
   role       = aws_iam_role.ecs_task_exec_role.name
   policy_arn = aws_iam_policy.ecs_task_exec_policy.arn
+}
+
+resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
+  name              = "/ecs/${local.prefix}-processor-task"
 }
 
 # Create the ECS Task Definition
@@ -145,6 +156,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
       }
     }
   }])
+  depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
 # Define the ECS Service to Run the Task Definition
