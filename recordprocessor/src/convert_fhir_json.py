@@ -92,18 +92,25 @@ def convert_to_fhir_json(row, vaccine_type):
         }
 
         # Practitioner
-        practitioner = {
-            "resourceType": "Practitioner",
-            "id": "Pract1"
-        }
         name = {}
-        add_if_not_empty(name, "family", row.get('PERFORMING_PROFESSIONAL_SURNAME', ''))
-        given = row.get('PERFORMING_PROFESSIONAL_FORENAME', '')
-        if given:
-            name["given"] = [given]
-        if name:
-            practitioner["name"] = [name]
-        if practitioner:
+        family_name = row.get('PERFORMING_PROFESSIONAL_SURNAME', '')
+        given_name = row.get('PERFORMING_PROFESSIONAL_FORENAME', '')
+
+        # Add family name if not empty
+        if family_name:
+            name["family"] = family_name
+
+        # Add given name if not empty
+        if given_name:
+            name["given"] = [given_name]
+
+        # Only proceed to create and append the practitioner if any of the family and given names are present
+        if name.get("family") or name.get("given"):
+            practitioner = {
+                "resourceType": "Practitioner",
+                "id": "Pract1",
+                "name": [name]
+            }
             fhir_json["contained"].append(practitioner)
 
         # Patient
@@ -185,13 +192,18 @@ def convert_to_fhir_json(row, vaccine_type):
         coding = {
             "system": "http://snomed.info/sct"
         }
-
+        vaccine_product_code = row.get('VACCINE_PRODUCT_CODE', '')
+        if vaccine_product_code == '':
+            vaccine_product_code = 'NAVU'
+        vaccine_product_term = row.get('VACCINE_PRODUCT_TERM', '')
+        if vaccine_product_term == '':
+            vaccine_product_term = 'Not available'
         # Use add_if_not_empty to conditionally add 'code' and 'display'
-        add_if_not_empty(coding, "code", row.get('VACCINE_PRODUCT_CODE', ''))
-        add_if_not_empty(coding, "display", row.get('VACCINE_PRODUCT_TERM', ''))
+        add_if_not_empty(coding, "code", vaccine_product_code)
+        add_if_not_empty(coding, "display", vaccine_product_term)
 
         # Only append the coding if it has at least one of 'code', 'display', or 'system'
-        if coding.get("code") or coding.get("display") or coding.get("system"):
+        if coding.get("code") or coding.get("display"):
             vaccine_code["coding"].append(coding)
 
         # Only add vaccineCode to fhir_json if the coding list is not empty
@@ -286,7 +298,7 @@ def convert_to_fhir_json(row, vaccine_type):
         add_if_not_empty(coding, "display", row.get('SITE_OF_VACCINATION_TERM', ''))
 
         # Only append the coding if it has at least one of 'code' or 'display'
-        if coding.get("code") or coding.get("display") or coding.get("system"):
+        if coding.get("code") or coding.get("display"):
             site["coding"].append(coding)
 
         # Only add site to fhir_json if the coding list is not empty
@@ -303,7 +315,7 @@ def convert_to_fhir_json(row, vaccine_type):
         add_if_not_empty(coding, "code", row.get('ROUTE_OF_VACCINATION_CODE', ''))
         add_if_not_empty(coding, "display", row.get('ROUTE_OF_VACCINATION_TERM', ''))
         # Only append the coding if it has at least one of 'code' or 'display'
-        if coding.get("code") or coding.get("display") or coding.get("system"):
+        if coding.get("code") or coding.get("display"):
             route["coding"].append(coding)
 
         # Only add route to fhir_json if the coding list is not empty
@@ -311,14 +323,19 @@ def convert_to_fhir_json(row, vaccine_type):
             fhir_json["route"] = route
 
         # Dose Quantity
-        dose_quantity = {
-            "system": "http://snomed.info/sct"
-        }
+        dose_quantity = {}
 
         # Use add_if_not_empty to conditionally add 'value', 'unit', and 'code'
         add_if_not_empty(dose_quantity, "value", row.get('DOSE_AMOUNT', ''))
         add_if_not_empty(dose_quantity, "unit", row.get('DOSE_UNIT_TERM', ''))
         add_if_not_empty(dose_quantity, "code", row.get('DOSE_UNIT_CODE', ''))
+
+        # Only add 'system' if DOSE_UNIT_CODE is not null or an empty string
+        dose_unit_code = row.get('DOSE_UNIT_CODE', '')
+        if dose_unit_code:
+            dose_quantity["system"] = "http://snomed.info/sct"
+
+        # Convert 'value' to float or int depending on its format
         if "value" in dose_quantity:
             value_str = dose_quantity["value"]
             if '.' in value_str:
@@ -330,30 +347,40 @@ def convert_to_fhir_json(row, vaccine_type):
             fhir_json["doseQuantity"] = dose_quantity
 
         # Performer
-        performer = [
-            {
+        performer = []
+
+        # Check if a practitioner with resourceType "Practitioner" and a valid id is present in fhir_json["contained"]
+        practitioner_exists = any(
+            item.get("resourceType") == "Practitioner" and item.get("id") for item in fhir_json.get("contained", [])
+        )
+
+        # Add performer with practitioner reference if practitioner exists
+        if practitioner_exists:
+            performer.append({
                 "actor": {
                     "reference": "#Pract1"
                 }
-            },
-            {
-                "actor": {
-                    "type": "Organization",
-                    "identifier": {}
-                }
+            })
+
+        # Add the second performer (Organization) with conditional identifier content
+        organization_actor = {
+            "actor": {
+                "type": "Organization",
+                "identifier": {}
             }
-        ]
+        }
 
         # Use add_if_not_empty to conditionally add 'system' and 'value'
-        add_if_not_empty(performer[1]["actor"]["identifier"], "system", row.get('SITE_CODE_TYPE_URI', ''))
-        add_if_not_empty(performer[1]["actor"]["identifier"], "value", row.get('SITE_CODE', ''))
+        add_if_not_empty(organization_actor["actor"]["identifier"], "system", row.get('SITE_CODE_TYPE_URI', ''))
+        add_if_not_empty(organization_actor["actor"]["identifier"], "value", row.get('SITE_CODE', ''))
 
-        # Only add the 'identifier' field if it has content
-        if performer[1]["actor"]["identifier"]:
+        # Only add the organization actor if the identifier has content
+        if organization_actor["actor"]["identifier"]:
+            performer.append(organization_actor)
+
+        # Add the performer array to fhir_json if it has any entries
+        if performer:
             fhir_json["performer"] = performer
-        else:
-            # Remove the second performer entry if the identifier is empty
-            fhir_json["performer"] = [performer[0]]
 
         # Reason Code
         # Initialize reason_code as a list
@@ -368,7 +395,7 @@ def convert_to_fhir_json(row, vaccine_type):
         add_if_not_empty(coding, "code", row.get('INDICATION_CODE', ''))
 
         # If the coding dictionary has either 'code' or 'system', append it to reason_code
-        if coding.get("code") or coding.get("system"):
+        if coding.get("code"):
             reason_code.append({"coding": [coding]})
 
         # If reason_code is not empty, add it to fhir_json
@@ -400,45 +427,3 @@ def convert_to_fhir_json(row, vaccine_type):
     except ValueError as e:
         logger.error(f"Value error in row data: {e}")
         return None, False
-
-
-def dict_formation(row_values):
-
-    val = {
-                    'NHS_NUMBER': row_values[0] if len(row_values) > 0 else '',
-                    'PERSON_FORENAME': row_values[1] if len(row_values) > 1 else '',
-                    'PERSON_SURNAME': row_values[2] if len(row_values) > 2 else '',
-                    'PERSON_DOB': row_values[3] if len(row_values) > 3 else '',
-                    'PERSON_GENDER_CODE': row_values[4] if len(row_values) > 4 else '',
-                    'PERSON_POSTCODE': row_values[5] if len(row_values) > 5 else '',
-                    'DATE_AND_TIME': row_values[6] if len(row_values) > 6 else '',
-                    'SITE_CODE': row_values[7] if len(row_values) > 7 else '',
-                    'SITE_CODE_TYPE_URI': row_values[8] if len(row_values) > 8 else '',
-                    'UNIQUE_ID': row_values[9] if len(row_values) > 9 else '',
-                    'UNIQUE_ID_URI': row_values[10] if len(row_values) > 10 else '',
-                    'ACTION_FLAG': row_values[11] if len(row_values) > 11 else '',
-                    'PERFORMING_PROFESSIONAL_FORENAME': row_values[12] if len(row_values) > 12 else '',
-                    'PERFORMING_PROFESSIONAL_SURNAME': row_values[13] if len(row_values) > 13 else '',
-                    'RECORDED_DATE': row_values[14] if len(row_values) > 14 else '',
-                    'PRIMARY_SOURCE': row_values[15] if len(row_values) > 15 else '',
-                    'VACCINATION_PROCEDURE_CODE': row_values[16] if len(row_values) > 16 else '',
-                    'VACCINATION_PROCEDURE_TERM': row_values[17] if len(row_values) > 17 else '',
-                    'DOSE_SEQUENCE': row_values[18] if len(row_values) > 18 else '',
-                    'VACCINE_PRODUCT_CODE': row_values[19] if len(row_values) > 19 else '',
-                    'VACCINE_PRODUCT_TERM': row_values[20] if len(row_values) > 20 else '',
-                    'VACCINE_MANUFACTURER': row_values[21] if len(row_values) > 21 else '',
-                    'BATCH_NUMBER': row_values[22] if len(row_values) > 22 else '',
-                    'EXPIRY_DATE': row_values[23] if len(row_values) > 23 else '',
-                    'SITE_OF_VACCINATION_CODE': row_values[24] if len(row_values) > 24 else '',
-                    'SITE_OF_VACCINATION_TERM': row_values[25] if len(row_values) > 25 else '',
-                    'ROUTE_OF_VACCINATION_CODE': row_values[26] if len(row_values) > 26 else '',
-                    'ROUTE_OF_VACCINATION_TERM': row_values[27] if len(row_values) > 27 else '',
-                    'DOSE_AMOUNT': row_values[28] if len(row_values) > 28 else '',
-                    'DOSE_UNIT_CODE': row_values[29] if len(row_values) > 29 else '',
-                    'DOSE_UNIT_TERM': row_values[30] if len(row_values) > 30 else '',
-                    'INDICATION_CODE': row_values[31] if len(row_values) > 31 else '',
-                    'LOCATION_CODE': row_values[32] if len(row_values) > 32 else '',
-                    'LOCATION_CODE_TYPE_URI': row_values[33] if len(row_values) > 33 else ''
-                }
-
-    return val

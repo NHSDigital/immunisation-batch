@@ -10,6 +10,7 @@ from processing_lambda import (
     process_csv_to_fhir,
     get_environment,
     validate_full_permissions,
+    convert_to_fhir_json
 )
 
 
@@ -70,7 +71,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
             # Assert process_csv_to_fhir was called with correct arguments
             mock_process_csv_to_fhir.assert_called_once_with(
-                "source-bucket", "testfile.csv", "Pfizer", "COVID19", "ack-bucket"
+                 "source-bucket", "testfile.csv", "Pfizer", "COVID19", "ack-bucket", None
             )
 
     @mock_s3
@@ -142,7 +143,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, None
             )
 
     @mock_s3
@@ -202,7 +203,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, None
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -268,7 +269,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, None
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -334,7 +335,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             )
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, None
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -375,6 +376,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 supplier,
                 Constant.valid_vaccine_type[1],
                 ack_bucket_name,
+                None
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -419,6 +421,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 supplier,
                 Constant.valid_vaccine_type[1],
                 ack_bucket_name,
+                None
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -453,7 +456,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
-                bucket_name, file_key, supplier, "covid19", ack_bucket_name
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, None
             )
 
         ack_filename = "processedFile/test-file_response.csv"
@@ -516,13 +519,47 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
-                process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name)
+                process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, None)
 
             ack_filename = 'processedFile/test-file_response.csv'
             response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
             content = response['Body'].read().decode('utf-8')
             self.assertIn('Success', content)
             mock_send_to_sqs.assert_called()
+
+    def test_process_csv_to_fhir_successful_Practitioner(self):
+        request = Constant.request
+        request['PERFORMING_PROFESSIONAL_FORENAME'] = ''
+        request['PERFORMING_PROFESSIONAL_SURNAME'] = ''
+        vaccine_types = Constant.valid_vaccine_type
+        for vaccine_type in vaccine_types:
+            json, valid = convert_to_fhir_json(request, vaccine_type)
+
+        self.assertNotIn('Practitioner', [res['resourceType'] for res in json.get('contained', [])])
+        self.assertNotIn('reference', [performer.get('reference') for res in json.get('actor', []) if 'performer'
+                                       in res for performer in res.get('performer', [])])
+
+    def test_process_csv_to_fhir_successful_qualitycode(self):
+        request = Constant.request
+        request['DOSE_UNIT_CODE'] = ''
+        vaccine_types = Constant.valid_vaccine_type
+
+        for vaccine_type in vaccine_types:
+            json, valid = convert_to_fhir_json(request, vaccine_type)
+            dose_quality = json.get("doseQuality", {})
+            self.assertNotIn('system', dose_quality)
+
+    def test_process_csv_to_fhir_successful_vaccine_code(self):
+        request = Constant.request
+        request['VACCINE_PRODUCT_CODE'] = ''
+        request['VACCINE_PRODUCT_TERM'] = ''
+        vaccine_types = Constant.valid_vaccine_type
+
+        for vaccine_type in vaccine_types:
+            json, valid = convert_to_fhir_json(request, vaccine_type)
+            vaccine_code = json.get("vaccineCode", {})
+            self.assertIn('NAVU', vaccine_code["coding"][0]["code"])
+            self.assertIn('Not available', vaccine_code["coding"][0]["display"])
 
     def test_get_environment(self):
         with patch("processing_lambda.os.getenv", return_value="internal-dev"):

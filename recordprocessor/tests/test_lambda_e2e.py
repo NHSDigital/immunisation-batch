@@ -119,7 +119,7 @@ class TestLambdaHandler(unittest.TestCase):
                                 f"processedFile/{vaccine_type}_Vaccinations_v5_"
                                 f"{ods_code}_20210730T12000000_response.csv"
                             )
-                            headers = Constant.headers
+                            headers = Constant.header
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter="|")
                             csv_writer.writerow(headers)
@@ -249,7 +249,7 @@ class TestLambdaHandler(unittest.TestCase):
                                 f"processedFile/{vaccine_type}_Vaccinations_v5_"
                                 f"{ods_code}_20210730T12000000_response.csv"
                             )
-                            headers = Constant.headers
+                            headers = Constant.header
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter="|")
                             csv_writer.writerow(headers)
@@ -381,7 +381,7 @@ class TestLambdaHandler(unittest.TestCase):
                                 f"processedFile/{vaccine_type}_Vaccinations_v5_"
                                 f"{ods_code}_20210730T12000000_response.csv"
                             )
-                            headers = Constant.headers
+                            headers = Constant.header
                             csv_buffer = StringIO()
                             csv_writer = csv.writer(csv_buffer, delimiter="|")
                             csv_writer.writerow(headers)
