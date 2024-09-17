@@ -559,7 +559,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             json, valid = convert_to_fhir_json(request, vaccine_type)
             vaccine_code = json.get("vaccineCode", {})
             self.assertIn('NAVU', vaccine_code["coding"][0]["code"])
-            self.assertIn('NAVU', vaccine_code["coding"][0]["display"])
+            self.assertIn('Not available', vaccine_code["coding"][0]["display"])
 
     def test_get_environment(self):
         with patch("processing_lambda.os.getenv", return_value="internal-dev"):
