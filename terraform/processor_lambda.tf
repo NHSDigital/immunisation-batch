@@ -239,7 +239,7 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
 #  Create CloudWatch Event Target to Trigger ECS Task
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
-  arn       = aws_ecs_task_definition.ecs_task.arn
+  arn       = aws_ecs_task_definition.ecs_cluster.arn
   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
 
   ecs_target {
