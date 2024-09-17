@@ -290,7 +290,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_123"
         vaccine_type = "FLU"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_operations)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
 
         with patch("router_lambda_function.get_supplier_permissions", return_value=allowed_permissions):
             # Call the function
@@ -308,7 +308,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_123"
         vaccine_type = "FLU"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_operations)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
 
         # Call the function
         result = validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type)
@@ -326,7 +326,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_test"
         vaccine_type = "COVID19"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_operations)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
 
         # Call the function
         result = validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type)
@@ -344,7 +344,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_test"
         vaccine_type = "COVID19"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_operations)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
 
         # Call the function
         result = validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type)

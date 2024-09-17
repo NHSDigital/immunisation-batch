@@ -31,6 +31,13 @@ def get_environment() -> str:
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
+def get_csv_content_dict_reader(bucket_name: str, file_key: str):
+    """Downloads the csv data and returns a csv_reader with the content of the csv"""
+    csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+    csv_content_string = csv_obj["Body"].read().decode("utf-8")
+    return csv.DictReader(StringIO(csv_content_string), delimiter="|")
+
+
 def identify_supplier(ods_code: str) -> Union[str, None]:
     """Identify the supplier from the ods code using the mapping"""
     return ODS_TO_SUPPLIER_MAPPINGS.get(ods_code)
@@ -52,6 +59,24 @@ def is_valid_datetime(timestamp: str) -> bool:
         return False
 
     return True
+
+
+def validate_content_headers(csv_content_reader):
+    """Returns a bool to indicate whether the given CSV headers match the 34 expected headers exactly"""
+    return csv_content_reader.fieldnames == Constant.EXPECTED_CSV_HEADERS
+
+
+def extract_file_key_elements(file_key: str) -> dict:
+    """Returns a dictionary containing each of the elements which can be extracted from the file key"""
+    file_key_parts_without_extension = file_key.split(".")[0].split("_")
+    return {
+        "vaccine_type": file_key_parts_without_extension[0].upper(),
+        "vaccination": file_key_parts_without_extension[1].lower(),
+        "version": file_key_parts_without_extension[2].lower(),
+        "ods_code": file_key_parts_without_extension[3],
+        "timestamp": file_key_parts_without_extension[4],
+        "extension": file_key.split(".")[1],
+    }
 
 
 def get_supplier_permissions(supplier: str) -> list:
@@ -109,19 +134,6 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
     return False
 
 
-def extract_file_key_elements(file_key: str) -> dict:
-    """Returns a dictionary containing each of the elements which can be extracted from the file key"""
-    file_key_parts_without_extension = file_key.split(".")[0].split("_")
-    return {
-        "vaccine_type": file_key_parts_without_extension[0].upper(),
-        "vaccination": file_key_parts_without_extension[1].lower(),
-        "version": file_key_parts_without_extension[2].lower(),
-        "ods_code": file_key_parts_without_extension[3],
-        "timestamp": file_key_parts_without_extension[4],
-        "extension": file_key.split(".")[1],
-    }
-
-
 def initial_file_validation(file_key, bucket_name):
     """
     Return True if all elements of file key are valid, content headers are valid and the supplier has the
@@ -136,9 +148,9 @@ def initial_file_validation(file_key, bucket_name):
     supplier = identify_supplier(elements["ods_code"])
     vaccine_type = elements["vaccine_type"]
     if not (
-        vaccine_type in Constant.valid_vaccine_type
+        vaccine_type in Constant.VALID_VACCINE_TYPES
         and elements["vaccination"] == "vaccinations"
-        and elements["version"] in Constant.valid_versions
+        and elements["version"] in Constant.VALID_VERSIONS
         and supplier  # Note that if supplier could be identified, this also verifies that ODS code is valid
         and is_valid_datetime(elements["timestamp"])
     ):
@@ -165,18 +177,6 @@ def initial_file_validation(file_key, bucket_name):
     return True
 
 
-def get_csv_content_dict_reader(bucket_name: str, file_key: str):
-    """Downloads the csv data and returns a csv_reader with the content of the csv"""
-    csv_obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    csv_content_string = csv_obj["Body"].read().decode("utf-8")
-    return csv.DictReader(StringIO(csv_content_string), delimiter="|")
-
-
-def validate_content_headers(csv_content_reader):
-    """Returns a bool to indicate whether the given CSV headers match the 34 expected headers exactly"""
-    return csv_content_reader.fieldnames == Constant.expected_csv_headers
-
-
 def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Find the URL of the relevant queue
@@ -185,6 +185,7 @@ def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
     account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{sqs_name}-metadata-queue.fifo"
 
+    # Send to queue
     try:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId="default")
         logger.info("Message sent to SQS queue '%s' for supplier %s", sqs_name, supplier)
