@@ -43,6 +43,11 @@ resource "aws_iam_role" "ecs_task_exec_role" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "task_execution_ecr_policy" {
+    role       = aws_iam_role.ecs_task_exec_role.name
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 # Define the IAM Role for ECS Task Execution with Kinesis Permissions
 resource "aws_iam_policy" "ecs_task_exec_policy" {
   name   = "${local.prefix}-ecs-task-exec-policy"
