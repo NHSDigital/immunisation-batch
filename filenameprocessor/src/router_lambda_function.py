@@ -91,10 +91,7 @@ def get_supplier_permissions(supplier: str) -> list:
 def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
     """Returns True if the given supplier has any permissions for the given vaccine type, else False"""
     allowed_permissions = get_supplier_permissions(supplier)
-    if vaccine_type not in " ".join(allowed_permissions):
-        logger.error("Permission issue: %s does not have any permissions for %s", supplier, vaccine_type)
-        return False
-    return True
+    return vaccine_type in " ".join(allowed_permissions)
 
 
 def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_type: str) -> bool:
@@ -110,18 +107,14 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
         logger.info("%s has FULL permissions to create, update and delete", supplier)
         return True
 
-    # Extract a list of all unique action flags in the csv file
-    unique_action_flags = set()
+    # Extract a list of all unique operation permissions requested in the csv file
+    operations_requested = set()
     for row in csv_dict_reader:
-        unique_action_flags.add(row.get("ACTION_FLAG", "").upper())
-
-    # Replace 'NEW' with 'CREATE'
-    if "NEW" in unique_action_flags:
-        unique_action_flags.remove("NEW")
-        unique_action_flags.add("CREATE")
+        action_flag = row.get("ACTION_FLAG", "").upper()
+        operations_requested.add("CREATE" if action_flag == "NEW" else action_flag)
 
     # Check if any of the CSV permissions match the allowed permissions
-    operation_requests_set = {f"{vaccine_type}_{action_flag}" for action_flag in unique_action_flags}
+    operation_requests_set = {f"{vaccine_type}_{operation}" for operation in operations_requested}
     if operation_requests_set.intersection(allowed_permissions_set):
         logger.info(
             "%s permissions %s matches one of the requested permissions required to %s",
@@ -134,7 +127,7 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
     return False
 
 
-def initial_file_validation(file_key, bucket_name):
+def initial_file_validation(file_key: str, bucket_name: str) -> bool:
     """
     Return True if all elements of file key are valid, content headers are valid and the supplier has the
     appropriate permissions. Else return False.
@@ -144,16 +137,17 @@ def initial_file_validation(file_key, bucket_name):
         return False
 
     # Validate each part of the file name
-    elements = extract_file_key_elements(file_key)
-    supplier = identify_supplier(elements["ods_code"])
-    vaccine_type = elements["vaccine_type"]
+    file_key_elements = extract_file_key_elements(file_key)
+    supplier = identify_supplier(file_key_elements["ods_code"])
+    vaccine_type = file_key_elements["vaccine_type"]
     if not (
         vaccine_type in Constant.VALID_VACCINE_TYPES
-        and elements["vaccination"] == "vaccinations"
-        and elements["version"] in Constant.VALID_VERSIONS
+        and file_key_elements["vaccination"] == "vaccinations"
+        and file_key_elements["version"] in Constant.VALID_VERSIONS
         and supplier  # Note that if supplier could be identified, this also verifies that ODS code is valid
-        and is_valid_datetime(elements["timestamp"])
+        and is_valid_datetime(file_key_elements["timestamp"])
     ):
+        logger.error("Invalid file key")
         return False
 
     # Obtain the file content
@@ -166,7 +160,7 @@ def initial_file_validation(file_key, bucket_name):
 
     # Validate has permissions for the vaccine type
     if not validate_vaccine_type_permissions(supplier, vaccine_type):
-        logger.info("%s does not have permissions for %s", supplier, vaccine_type)
+        logger.error("%s does not have permissions for %s", supplier, vaccine_type)
         return False
 
     # Validate has permission to perform at least one of the requested actions
@@ -203,7 +197,7 @@ def create_ack_file(
     created_at_formatted,
 ) -> None:
     """Creates the ack file and uploads it to the S3 ack bucket"""
-    ack = {
+    ack_dict = {
         "MESSAGE_HEADER_ID": message_id,
         "HEADER_RESPONSE_CODE": "Success" if validation_passed else "Failure",
         "ISSUE_SEVERITY": "Information" if validation_passed else "Fatal",
@@ -226,8 +220,8 @@ def create_ack_file(
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
     csv_writer = csv.writer(csv_buffer, delimiter="|")
-    csv_writer.writerow(list(ack.keys()))
-    csv_writer.writerow(list(ack.values()))
+    csv_writer.writerow(list(ack_dict.keys()))
+    csv_writer.writerow(list(ack_dict.values()))
 
     # Upload the CSV file to S3
     csv_buffer.seek(0)
@@ -290,7 +284,7 @@ def lambda_handler(event, context):
         bucket_name = record["s3"]["bucket"]["name"]
         file_key = record["s3"]["object"]["key"]
         response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-        created_at_formatted = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
+        created_at_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
         try:
             # Validate the file
@@ -308,7 +302,7 @@ def lambda_handler(event, context):
             message_delivered = False
             error_files.append(file_key)
 
-        create_ack_file(message_id, file_key, validation_passed, message_delivered, created_at_formatted)
+        create_ack_file(message_id, file_key, validation_passed, message_delivered, created_at_string)
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))

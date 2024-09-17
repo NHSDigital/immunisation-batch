@@ -1,5 +1,8 @@
+"""Constants for the filenameprocessor lambda"""
+
+
 class Constant:
-    """A class to hold various constants used in the application."""
+    """Constants for the filenameprocessor lambda"""
 
     VALID_VACCINE_TYPES = ["FLU", "COVID19", "MMR"]
     VALID_VERSIONS = ["v5"]
