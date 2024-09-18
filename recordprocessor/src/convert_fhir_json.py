@@ -197,7 +197,7 @@ def convert_to_fhir_json(row, vaccine_type):
             vaccine_product_code = 'NAVU'
         vaccine_product_term = row.get('VACCINE_PRODUCT_TERM', '')
         if vaccine_product_term == '':
-            vaccine_product_term = 'NAVU'
+            vaccine_product_term = 'Not available'
         # Use add_if_not_empty to conditionally add 'code' and 'display'
         add_if_not_empty(coding, "code", vaccine_product_code)
         add_if_not_empty(coding, "display", vaccine_product_term)

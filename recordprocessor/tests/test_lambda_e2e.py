@@ -80,10 +80,19 @@ class TestLambdaHandler(unittest.TestCase):
         for vaccine_type in vaccine_types:
             for supplier in suppilers:
                 for ods_code in ods_codes:
-                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_return), \
-                         patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
-                         patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
+                    with patch(
+                        "processing_lambda.fetch_file_from_s3",
+                        return_value=Constant.string_return,
+                    ), patch(
+                        "processing_lambda.s3_client.head_object",
+                        return_value=mock_head_object_response,
+                    ), patch(
+                        "processing_lambda.ImmunizationApi.get_imms_id",
+                        return_value=response,
+                    ), patch(
+                        "processing_lambda.s3_client.download_fileobj",
+                        return_value=mock_download_fileobj,
+                    ):
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance.__iter__.return_value = iter(
@@ -209,11 +218,21 @@ class TestLambdaHandler(unittest.TestCase):
             for supplier in suppilers:
                 for ods_code in ods_codes:
                     # Mock the fetch_file_from_s3 function
-                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.string_return), \
-                         patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
-                         patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj), \
-                         patch('processing_lambda.send_to_sqs', return_value=False):
+                    with patch(
+                        "processing_lambda.fetch_file_from_s3",
+                        return_value=Constant.string_return,
+                    ), patch(
+                        "processing_lambda.s3_client.head_object",
+                        return_value=mock_head_object_response,
+                    ), patch(
+                        "processing_lambda.ImmunizationApi.get_imms_id",
+                        return_value=response,
+                    ), patch(
+                        "processing_lambda.s3_client.download_fileobj",
+                        return_value=mock_download_fileobj,
+                    ), patch(
+                        "processing_lambda.send_to_sqs", return_value=False
+                    ):
                         # Mock SQS and send a test message
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
@@ -341,11 +360,22 @@ class TestLambdaHandler(unittest.TestCase):
             for supplier in suppilers:
                 for ods_code in ods_codes:
                     # Mock the fetch_file_from_s3 function
-                    with patch('processing_lambda.fetch_file_from_s3', return_value=Constant.invalid_file_content), \
-                         patch('processing_lambda.convert_to_fhir_json', return_value={False, None}), \
-                         patch('processing_lambda.s3_client.head_object', return_value=mock_head_object_response), \
-                         patch('processing_lambda.ImmunizationApi.get_imms_id', return_value=response), \
-                         patch('processing_lambda.s3_client.download_fileobj', return_value=mock_download_fileobj):
+                    with patch(
+                        "processing_lambda.fetch_file_from_s3",
+                        return_value=Constant.invalid_file_content,
+                    ), patch(
+                        "processing_lambda.convert_to_fhir_json",
+                        return_value={False, None},
+                    ), patch(
+                        "processing_lambda.s3_client.head_object",
+                        return_value=mock_head_object_response,
+                    ), patch(
+                        "processing_lambda.ImmunizationApi.get_imms_id",
+                        return_value=response,
+                    ), patch(
+                        "processing_lambda.s3_client.download_fileobj",
+                        return_value=mock_download_fileobj,
+                    ):
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance.__iter__.return_value = iter(
@@ -404,8 +434,10 @@ class TestLambdaHandler(unittest.TestCase):
                                 .decode("utf-8")
                             )
 
-                            print(f"Content of ack file: {ack_file}")  # Debugging print statement
-                            self.assertIn('fatal-error', ack_file)
+                            print(
+                                f"Content of ack file: {ack_file}"
+                            )  # Debugging print statement
+                            self.assertIn("fatal-error", ack_file)
                             mock_send_to_sqs.assert_called()
 
     # @mock_s3
@@ -522,6 +554,70 @@ class TestLambdaHandler(unittest.TestCase):
             result = validate_full_permissions(config_bucket_name, "dp", "FLU")
             self.assertFalse(result)
 
+        @patch("boto3.client")
+        @patch("processing_lambda.get_json_from_s3")
+        def test_process_lambda_handler_permissions(self, mock_get_json_from_s3):
 
-if __name__ == "__main__":
-    unittest.main()
+            # Sample config data
+            config_data = {
+                "all_permissions": {
+                    "TESTFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+                    "TESTREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+                    "supplierB": ["FLU_UPDATE", "FLU_DELETE"],
+                    "PINN": [""],
+                },
+                "definitions:": {
+                    "FULL": "Full permissions to create, update and delete a batch record",
+                    "CREATE": "Permission to create a batch record",
+                    "UPDATE": "Permission to update a batch record",
+                    "DELETE": "Permission to delete a batch record",
+                },
+            }
+
+            # Mock S3 and SQS clients
+            self.mock_s3_client = MagicMock()
+            self.mock_sqs_client = MagicMock()
+            self.mock_s3_client.get_object.return_value = {
+                "Body": MagicMock(read=lambda: json.dumps(config_data).encode("utf-8"))
+            }
+            self.mock_s3_client.head_object.return_value = {"LastModified": MagicMock()}
+            self.mock_sqs_client.send_message.return_value = {}
+
+            # Inject mocks into the code
+            self.mock_client = {"s3": self.mock_s3_client, "sqs": self.mock_sqs_client}
+
+            boto3.client = MagicMock(
+                side_effect=lambda service, **kwargs: self.mock_client[service]
+            )
+
+            # Define the lambda event
+            event = {
+                "Records": [
+                    {
+                        "body": json.dumps(
+                            {
+                                "vaccine_type": "FLU",
+                                "supplier": "supplierB",
+                                "filename": "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv",
+                            }
+                        )
+                    }
+                ]
+            }
+
+            # Mock the CSV data
+            self.mock_s3_client.get_object.return_value = {
+                "Body": MagicMock(
+                    read=lambda: "NHS_NUMBER|ACTION_FLAG|UNIQUE_ID_URI|UNIQUE_ID\n12345"
+                    "|update|urn:nhs:id|ID12345\n67890|delete|urn:nhs:id|ID67890"
+                )
+            }
+
+            # Run the lambda handler
+            process_lambda_handler(event, None)
+
+            self.mock_s3_client.upload_fileobj.assert_called_once()
+            self.mock_sqs_client.send_message.assert_called()
+
+    if __name__ == "__main__":
+        unittest.main()
