@@ -94,7 +94,7 @@ class TestLambdaHandler(unittest.TestCase):
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions
-        with (patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),):
+        with (patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"])):
             # Call the lambda_handler function
             response = lambda_handler(self.make_event(), None)
 
@@ -122,8 +122,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(), context=None)
@@ -146,8 +146,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(), context=None)
@@ -164,8 +164,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissionsand send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(test_file_key), context=None)
@@ -182,8 +182,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(test_file_key), context=None)
@@ -200,8 +200,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(test_file_key), context=None)
@@ -218,8 +218,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(test_file_key), context=None)
@@ -236,8 +236,8 @@ class TestLambdaHandler(unittest.TestCase):
 
         # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(test_file_key), context=None)
@@ -254,10 +254,10 @@ class TestLambdaHandler(unittest.TestCase):
         # and send_to_supplier_queue functions
         with (
             patch(
-                "router_lambda_function.get_supplier_permissions",
+                "initial_file_validation.get_supplier_permissions",
                 return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
             ),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(), context=None)
@@ -273,8 +273,8 @@ class TestLambdaHandler(unittest.TestCase):
         # Mock the get_supplier_permissions (with return value which doesn't include the requested Flu permissions)
         # and send_to_supplier_queue functions
         with (
-            patch("router_lambda_function.get_supplier_permissions", return_value=["COVID19_FULL"]),
-            patch("router_lambda_function.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.get_supplier_permissions", return_value=["COVID19_FULL"]),
+            patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function
             lambda_handler(event=self.make_event(), context=None)
