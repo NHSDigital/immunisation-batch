@@ -2,7 +2,7 @@ import unittest
 import os
 import io
 # import json
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 # import boto3
 from moto import mock_sqs
 from router_lambda_function import (
