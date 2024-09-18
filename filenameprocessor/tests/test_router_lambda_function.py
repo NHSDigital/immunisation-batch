@@ -3,7 +3,7 @@ import os
 import io
 # import json
 from unittest.mock import patch
-# import boto3
+## import boto3
 from moto import mock_sqs
 from router_lambda_function import (
     identify_supplier,
