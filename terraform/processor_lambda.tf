@@ -12,11 +12,12 @@ locals {
   files_exclude             = setunion([for f in local.path_exclude : fileset(local.processing_lambda_dir, f)]...)
   processing_lambda_files   = sort(setsubtract(local.files_include, local.files_exclude))
   processing_lambda_dir_sha = sha1(join("", [for f in local.processing_lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
+  image_tag = "latest"
 }
 
 # Create ECR Repository for processing
 resource "aws_ecr_repository" "processing_repository" {
-  name = "${local.prefix}-processing-repo"
+  name = local.prefix
 }
 
 # Build and Push Docker Image to ECR (Reusing the existing module)
@@ -150,11 +151,15 @@ resource "aws_ecs_task_definition" "ecs_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
   memory                   = "1024"
+  runtime_platform {
+        operating_system_family = "LINUX"
+        cpu_architecture        = "X86_64"
+    }
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
     name      = "processor-container"
-    image     = module.processing_docker_image.image_uri
+    image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
     environment = [
       {

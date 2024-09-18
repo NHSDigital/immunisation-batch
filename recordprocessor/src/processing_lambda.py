@@ -7,7 +7,7 @@ import os
 from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
 import logging
-from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
+from ods_patterns import SUPPLIER_QUEUE_MAPPINGS
 from botocore.exceptions import ClientError
 from botocore.config import Config
 from constants import Constant
@@ -15,8 +15,9 @@ from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from permissions_checker import get_json_from_s3
 
+# Initialize Kinesis client instead of SQS
+kinesis_client = boto3.client("kinesis", config=Config(region_name="eu-west-2"))
 s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
-sqs_client = boto3.client("sqs", config=Config(region_name="eu-west-2"))
 logger = logging.getLogger()
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
@@ -57,33 +58,28 @@ def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
     return False
 
 
-def send_to_sqs(supplier, message_body):
-    """Send a message to the specified SQS queue."""
+def send_to_kinesis(supplier, message_body):
+    """Send a message to the specified Kinesis stream."""
     print(f"message_body:{message_body}")
+    stream_name = SUPPLIER_QUEUE_MAPPINGS.get(supplier, supplier)
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    SQS_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     if "prod" in imms_env or "production" in imms_env:
         account_id = os.getenv("PROD_ACCOUNT_ID")
     else:
         account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-processingdata-queue.fifo"
-    logger.info(f"Queue_URL: {queue_url}")
+    stream_url = f"https://kinesis.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{stream_name}-processingdata-stream"
+    logger.info(f"Queue_URL: {stream_url}")
 
     try:
-        sqs_client.send_message(
-            QueueUrl=queue_url,
-            MessageBody=json.dumps(message_body, ensure_ascii=False),
-            MessageGroupId="default",
+        # Send the message to the Kinesis stream
+        kinesis_client.put_record(
+            StreamName=stream_url,
+            Data=json.dumps(message_body, ensure_ascii=False),
+            PartitionKey="default",  # Use a partition key
         )
-        logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
-    except sqs_client.exceptions.QueueDoesNotExist:
-        logger.error(f"queue {queue_url} does not exist")
-        return False
+        logger.info(f"Message sent to Kinesis stream '{stream_name}' for supplier {supplier}")
     except ClientError as e:
-        if e.response["Error"]["Code"] == "AccessDenied":
-            logger.error(f"Access denied when sending message to queue {queue_url}")
-        else:
-            logger.error(f"Unexpected error: {e}")
+        logger.error(f"Error sending message to Kinesis: {e}")
         return False
     return True
 
@@ -116,25 +112,16 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
     for row in csv_reader:
         print(f"row:{row}")
         row_count += 1
-        message_header = f"{message_id}#{row_count}"  # Increment the counter for each row
+        message_header = f"{message_id}#{row_count}"
         print(f"messageheader : {message_header}")
-        # # Split the first column which contains concatenated values
-        # # row_values = row.get("NHS_NUMBER", "").split("|")
-        # # Strip quotes and handle missing values
-        # row_values = [value.strip('"') if value else "" for value in row.values()]
-        # print(f"row_values:{row_values}")
-        # val = dict_formation(row_values)
+
         print(f"parsed_row:{row}")
-        if (
-            row.get("ACTION_FLAG") in {"new", "update", "delete"}
-            and row.get("UNIQUE_ID_URI")
-            and row.get("UNIQUE_ID")
-        ):
+        if row.get("ACTION_FLAG") in {"new", "update", "delete"} and row.get("UNIQUE_ID_URI") and row.get("UNIQUE_ID"):
             fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
             if valid:
-                identifier_system = row.get('UNIQUE_ID_URI')
-                action_flag = row.get('ACTION_FLAG')
-                identifier_value = row.get('UNIQUE_ID')
+                identifier_system = row.get("UNIQUE_ID_URI")
+                action_flag = row.get("ACTION_FLAG")
+                identifier_value = row.get("UNIQUE_ID")
                 print(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
                 if action_flag in ("delete", "update"):
@@ -143,7 +130,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                     if response.get("total") == 1 and status_code == 200:
                         flag = True
                 if flag:
-                    # Prepare the message for SQS
+                    # Prepare the message for Kinesis
                     if action_flag == "new":
                         message_body = {
                             'message_id': message_header,
@@ -163,15 +150,14 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                             "version": version,
                             'file_name': file_key
                         }
-                    status = send_to_sqs(supplier, message_body)
+                    status = send_to_kinesis(supplier, message_body)
                     if status:
                         print("create successful")
-                        logger.info("message sent successfully to SQS")
+                        logger.info("message sent successfully to Kinesis")
                         data_row = Constant.data_rows(True, created_at_formatted, message_header)
                     else:
-                        logger.error("Error sending to SQS")
+                        logger.error("Error sending to Kinesis")
                         data_row = Constant.data_rows(False, created_at_formatted, message_header)
-
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
@@ -182,7 +168,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                             'version': 'None',
                             'file_name': file_key
                         }
-                    status = send_to_sqs(supplier, message_body)
+                    status = send_to_kinesis(supplier, message_body)
                     if status:
                         print("create successful imms not found")
                         logger.info("message sent successfully to SQS")
@@ -200,14 +186,14 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                             'version': 'None',
                             'file_name': file_key
                         }
-                status = send_to_sqs(supplier, message_body)
+                status = send_to_kinesis(supplier, message_body)
                 if status:
                     print("sent successful invalid_json")
                     logger.info("message sent successfully to SQS")
                     data_row = Constant.data_rows("None", created_at_formatted, message_header)
                 else:
                     logger.error("Error sending to SQS for invliad json")
-                    data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                data_row = Constant.data_rows(False, created_at_formatted, message_header)
         else:
             logger.error(f"Invalid row format: {row}")
             message_body = {
@@ -218,7 +204,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                             'version': 'None',
                             'file_name': file_key
                         }
-            status = send_to_sqs(supplier, message_body)
+            status = send_to_kinesis(supplier, message_body)
             if status:
                 print("sent successful invalid_json")
                 logger.info("message sent successfully to SQS")
@@ -255,16 +241,9 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
 
 def process_lambda_handler(event, context):
     imms_env = get_environment()
-    bucket_name = os.getenv(
-        "SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source"
-    )
-    ack_bucket_name = os.getenv(
-        "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination"
-    )
-    config_bucket_name = os.getenv(
-        "CONFIG_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-config",
-    )
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
+    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
 
     for record in event["Records"]:
         try:
@@ -275,9 +254,7 @@ def process_lambda_handler(event, context):
             supplier = message_body.get("supplier")
             file_key = message_body.get("filename")
             if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-                process_csv_to_fhir(
-                    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id
-                )
+                process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
             else:
                 logger.info(f"{supplier} does not have full_permissions")
 
