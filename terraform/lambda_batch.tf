@@ -124,7 +124,7 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
         "kms:Decrypt"
       ],
       Resource = [
-        for queue in aws_sqs_queue.fifo_queues : queue.arn
+        aws_sqs_queue.fifo_queue.arn
       ]
     }]
   })
