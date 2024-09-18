@@ -244,7 +244,7 @@ def process_lambda_handler(event, context):
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
     config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
-
+    print(f"event:{event}")
     for record in event["Records"]:
         try:
             print(f"Records:{record}")
