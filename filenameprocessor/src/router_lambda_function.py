@@ -9,6 +9,7 @@ import boto3
 from ods_patterns import ODS_PATTERNS, SUPPLIER_SQSQUEUE_MAPPINGS
 from constants import Constant
 from fetch_permissions import get_json_from_s3
+import uuid
 
 
 # Incoming file format VACCINETYPE_Vaccinations_version_ODSCODE_DATETIME.csv
@@ -224,7 +225,7 @@ def send_to_supplier_queue(supplier, message_body):
 
 
 def create_ack_file(
-    file_key, ack_bucket_name, validation_passed, message_delivery, created_at_formatted
+    message_id, file_key, ack_bucket_name, validation_passed, message_delivery, created_at_formatted
 ):
     # TO DO - Populate acknowledgement file with correct values once known
     headers = [
@@ -245,7 +246,7 @@ def create_ack_file(
     if validation_passed:
         data_rows = [
             [
-                "TBC",
+                message_id,
                 "ok",
                 "information",
                 "informational",
@@ -263,7 +264,7 @@ def create_ack_file(
     else:
         data_rows = [
             [
-                "TBC",
+                message_id,
                 "fatal-error",
                 "error",
                 "error",
@@ -304,7 +305,7 @@ def lambda_handler(event, context):
         try:
             bucket_name = record["s3"]["bucket"]["name"]
             file_key = record["s3"]["object"]["key"]
-
+            message_id = str(uuid.uuid4())
             # Initial file validation
             response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
             created_at = response["LastModified"]
@@ -315,7 +316,7 @@ def lambda_handler(event, context):
             if not validation_passed:
                 logging.error("Error in initial_file_validation")
                 create_ack_file(
-                    file_key, ack_bucket_name, False, False, created_at_formatted
+                    message_id, file_key, ack_bucket_name, False, False, created_at_formatted
                 )
 
             ods_code = extract_ods_code(file_key)
@@ -327,6 +328,7 @@ def lambda_handler(event, context):
             if validation_passed and supplier:
 
                 message_body = {
+                    "message_id": message_id,
                     "vaccine_type": vaccine_type,
                     "supplier": supplier,
                     "timestamp": timestamp,
@@ -336,24 +338,24 @@ def lambda_handler(event, context):
                 if status:
                     logger.info(f"File added to SQS queue for {supplier} pipeline")
                     create_ack_file(
-                        file_key, ack_bucket_name, True, True, created_at_formatted
+                        message_id, file_key, ack_bucket_name, True, True, created_at_formatted
                     )
                 else:
                     logger.error(f"Failed to send file to {supplier}_pipeline")
                     create_ack_file(
-                        file_key, ack_bucket_name, True, False, created_at_formatted
+                        message_id, file_key, ack_bucket_name, True, False, created_at_formatted
                     )
 
         # Error handling for file processing
         except ValueError as ve:
             logging.error(f"Error in initial_file_validation'{file_key}': {str(ve)}")
             create_ack_file(
-                file_key, ack_bucket_name, False, False, created_at_formatted
+                message_id, file_key, ack_bucket_name, False, False, created_at_formatted
             )
         except Exception as e:
             logging.error(f"Error processing file'{file_key}': {str(e)}")
             create_ack_file(
-                file_key, ack_bucket_name, False, False, created_at_formatted
+                message_id, file_key, ack_bucket_name, False, False, created_at_formatted
             )
             error_files.append(file_key)
     if error_files:

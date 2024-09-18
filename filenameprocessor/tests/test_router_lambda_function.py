@@ -142,6 +142,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         validation_passed = True
         created_at_formatted = "20240725T12510700"
         create_ack_file(
+            "1",
             self.file_key,
             ack_bucket_name,
             validation_passed,

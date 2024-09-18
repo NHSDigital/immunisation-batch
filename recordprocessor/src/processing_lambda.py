@@ -101,12 +101,14 @@ def fetch_file_from_s3(bucket_name, file_key):
     return response["Body"].read().decode("utf-8")
 
 
+
 def process_csv_to_fhir(
     bucket_name,
     file_key,
     supplier,
     vaccine_type,
     ack_bucket_name,
+    message_id,
     full_permissions,
     permission_operations,
 ):
@@ -132,6 +134,8 @@ def process_csv_to_fhir(
     for row in csv_reader:
         print(f"row:{row}")
         row_count += 1  # Increment the counter for each row
+        message_header = f"{message_id}#{row_count}"  # Increment the counter for each row
+        print(f"messageheader : {message_header}")
         # Split the first column which contains concatenated values
         # row_values = row.get("NHS_NUMBER", "").split("|")
         # # Strip quotes and handle missing values
@@ -150,14 +154,13 @@ def process_csv_to_fhir(
             print(
                 f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
             )
-
             message_body = {
                 "fhir_json": "No_Permissions",
                 "action_flag": "No_Permissions",
                 "imms_id": "None",
                 "version": "None",
                 "file_name": file_key,
-                "row_count": row_count,
+                "message_id": message_header,
             }
             status = send_to_sqs(supplier, message_body)
             print(f"MESSAGE BODY: {message_body}")
@@ -178,6 +181,7 @@ def process_csv_to_fhir(
             )
 
             continue
+
         if (
             row.get("ACTION_FLAG") in {"new", "update", "delete"}
             and row.get("UNIQUE_ID_URI")
@@ -201,18 +205,20 @@ def process_csv_to_fhir(
                     # Prepare the message for SQS
                     if action_flag == "new":
                         message_body = {
-                            "fhir_json": fhir_json,
-                            "action_flag": action_flag,
-                            "file_name": file_key,
+                            'message_id': message_header,
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'file_name': file_key
                         }
                     if action_flag in ("delete", "update"):
                         entry = response.get("entry", [])[0]
                         imms_id = entry["resource"].get("id")
                         version = entry["resource"].get("meta", {}).get("versionId")
                         message_body = {
-                            "fhir_json": fhir_json,
-                            "action_flag": action_flag,
-                            "imms_id": imms_id,
+                            'message_id': message_header,
+                            'fhir_json': fhir_json,
+                            'action_flag': action_flag,
+                            'imms_id': imms_id
                             "version": version,
                             "file_name": file_key,
                         }
@@ -220,62 +226,65 @@ def process_csv_to_fhir(
                     if status:
                         print("create successful")
                         logger.info("message sent successfully to SQS")
-                        data_row = Constant.data_rows(True, created_at_formatted)
+                        data_row = Constant.data_rows(True, created_at_formatted, message_header)
                     else:
                         logger.error("Error sending to SQS")
-                        data_row = Constant.data_rows(False, created_at_formatted)
+                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
-                        "fhir_json": fhir_json,
-                        "action_flag": "None",
-                        "imms_id": "None",
-                        "version": "None",
-                        "file_name": file_key,
-                    }
+                            'message_id': message_header,
+                            'fhir_json': fhir_json,
+                            'action_flag': 'None',
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
                     status = send_to_sqs(supplier, message_body)
                     if status:
                         print("create successful imms not found")
                         logger.info("message sent successfully to SQS")
-                        data_row = Constant.data_rows("None", created_at_formatted)
+                        data_row = Constant.data_rows("None", created_at_formatted, message_header)
                     else:
                         logger.error("Error sending to SQS imms id not found")
-                        data_row = Constant.data_rows(False, created_at_formatted)
+                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
-                    "fhir_json": fhir_json,
-                    "action_flag": "None",
-                    "imms_id": "None",
-                    "version": "None",
-                    "file_name": file_key,
-                }
+                            'message_id': message_header,
+                            'fhir_json': fhir_json,
+                            'action_flag': 'None',
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
                 status = send_to_sqs(supplier, message_body)
                 if status:
                     print("sent successful invalid_json")
                     logger.info("message sent successfully to SQS")
-                    data_row = Constant.data_rows("None", created_at_formatted)
+                    data_row = Constant.data_rows("None", created_at_formatted, message_header)
                 else:
                     logger.error("Error sending to SQS for invliad json")
-                    data_row = Constant.data_rows(False, created_at_formatted)
+                    data_row = Constant.data_rows(False, created_at_formatted, message_header)
         else:
             logger.error(f"Invalid row format: {row}")
             message_body = {
-                "fhir_json": "None",
-                "action_flag": "None",
-                "imms_id": "None",
-                "version": "None",
-                "file_name": file_key,
-            }
+                            'message_id': message_header,
+                            'fhir_json': 'None',
+                            'action_flag': 'None',
+                            'imms_id': 'None',
+                            'version': 'None',
+                            'file_name': file_key
+                        }
             status = send_to_sqs(supplier, message_body)
             if status:
                 print("sent successful invalid_json")
                 logger.info("message sent successfully to SQS")
-                data_row = Constant.data_rows("None", created_at_formatted)
+                data_row = Constant.data_rows("None", created_at_formatted, message_header)
             else:
                 logger.error("Error sending to SQS for invliad json")
-                data_row = Constant.data_rows(False, created_at_formatted)
+                data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
@@ -320,6 +329,7 @@ def process_lambda_handler(event, context):
         try:
             print(f"Records:{record}")
             message_body = json.loads(record["body"])
+            message_id = message_body.get("message_id")
             vaccine_type = message_body.get("vaccine_type")
             supplier = message_body.get("supplier")
             file_key = message_body.get("filename")
@@ -337,6 +347,7 @@ def process_lambda_handler(event, context):
                 supplier,
                 vaccine_type,
                 ack_bucket_name,
+                message_id,
                 full_permissions,
                 permission_operations,
             )
