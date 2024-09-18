@@ -751,7 +751,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         )
 
         try:
-            ## Call the function
+            # Call the function
             result = validate_action_flag_permissions(
                 source_bucket_name, file_key, supplier, vaccine_type, config_bucket_name
             )
