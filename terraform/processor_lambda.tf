@@ -270,7 +270,7 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
   name        = "${local.prefix}-ecs-trigger-rule"
   description = "Trigger ECS task when a message arrives in any SQS queue"
 
-  event_pattern = <<PATTERN{
+  event_pattern = jsonencode({
     "source": ["aws.sqs"],
     "detail-type": ["SQS Message Received"],
     "detail": {
@@ -282,7 +282,7 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
       }
     }
     }
-    PATTERN
+  )
     }
 
 
