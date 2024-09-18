@@ -14,7 +14,7 @@ from router_lambda_function import (
     validate_vaccine_type_permissions,
     validate_action_flag_permissions,
 )
-from src.constants import Constant
+from src.constants import Constants
 
 
 def convert_csv_to_string(filename):
@@ -35,39 +35,26 @@ def convert_string_to_dict_reader(data_string: str):
 
 
 class TestRouterLambdaFunctions(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        cls.ods_code = "YGM41"
+    def setUp(self):
+        self.file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
+        self.bucket_name = "test-bucket"
+        self.ods_code = "YGM41"
 
     def test_identify_supplier(self):
         """tests supplier is correctly matched"""
-        supplier = identify_supplier(self.ods_code)
-        self.assertEqual(supplier, "EMIS")
+        self.assertEqual(identify_supplier(self.ods_code), "EMIS")
+        self.assertEqual(identify_supplier("NOT_A_VALID_ODS_CODE"), None)
 
     # TODO: Test extract_file_key_elements function
 
-    @patch("router_lambda_function.get_csv_content_dict_reader")
-    @patch("router_lambda_function.validate_content_headers")
-    @patch("router_lambda_function.validate_action_flag_permissions")
-    @patch("router_lambda_function.get_supplier_permissions")
-    def test_valid_file(
-        self,
-        mock_get_permissions,
-        mock_validate_action_flag_permissions,
-        mock_validate_csv,
-        mock_get_csv_content_dict_reader,
-    ):
-        mock_get_csv_content_dict_reader.return_value = Constant.valid_file_content
-        mock_validate_csv.return_value = (True, [])
-        mock_get_permissions.return_value = ["FLU_CREATE", "FLU_UPDATE"]
-        mock_validate_action_flag_permissions.return_value = True
-        file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        bucket_name = "test-bucket"
+    def test_valid_file(self):
+        valid_csv_content_dict_reader = convert_string_to_dict_reader(Constants.valid_file_content)
 
-        valid = initial_file_validation(file_key, bucket_name)
-        print(f"VALID: {valid}")
-        self.assertTrue(valid)
+        with (
+            patch("router_lambda_function.get_supplier_permissions", return_value=["FLU_CREATE", "FLU_UPDATE"]),
+            patch("router_lambda_function.get_csv_content_dict_reader", return_value=valid_csv_content_dict_reader),
+        ):
+            self.assertTrue(initial_file_validation(self.file_key, self.bucket_name))
 
     @patch("router_lambda_function.validate_content_headers")
     def test_invalid_extension(self, mock_validate_csv):
@@ -120,7 +107,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     @patch("router_lambda_function.get_csv_content_dict_reader")
     @patch("router_lambda_function.validate_content_headers")
     def test_invalid_column_count(self, mock_validate_csv, mock_csv_content_dict_reader):
-        mock_csv_content_dict_reader.return_value = Constant.valid_file_content
+        mock_csv_content_dict_reader.return_value = Constants.valid_file_content
         mock_validate_csv.return_value = (False, True)
         file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
         bucket_name = "test-bucket"
@@ -290,7 +277,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_123"
         vaccine_type = "FLU"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constants.file_content_with_new_and_delete_action_flags)
 
         with patch("router_lambda_function.get_supplier_permissions", return_value=allowed_permissions):
             # Call the function
@@ -308,7 +295,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_123"
         vaccine_type = "FLU"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constants.file_content_with_new_and_delete_action_flags)
 
         # Call the function
         result = validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type)
@@ -326,7 +313,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_test"
         vaccine_type = "COVID19"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constants.file_content_with_new_and_delete_action_flags)
 
         # Call the function
         result = validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type)
@@ -344,7 +331,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         supplier = "supplier_test"
         vaccine_type = "COVID19"
 
-        csv_content_dict_reader = convert_string_to_dict_reader(Constant.file_content_with_new_and_delete_action_flags)
+        csv_content_dict_reader = convert_string_to_dict_reader(Constants.file_content_with_new_and_delete_action_flags)
 
         # Call the function
         result = validate_action_flag_permissions(csv_content_dict_reader, supplier, vaccine_type)

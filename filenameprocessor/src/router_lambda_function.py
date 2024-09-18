@@ -13,8 +13,7 @@ import logging
 from io import BytesIO, StringIO
 import uuid
 import boto3
-from ods_patterns import ODS_TO_SUPPLIER_MAPPINGS, SUPPLIER_SQSQUEUE_MAPPINGS
-from constants import Constant
+from constants import Constants
 from fetch_permissions import get_permissions_config_json_from_s3
 
 
@@ -40,7 +39,7 @@ def get_csv_content_dict_reader(bucket_name: str, file_key: str):
 
 def identify_supplier(ods_code: str) -> Union[str, None]:
     """Identify the supplier from the ods code using the mapping"""
-    return ODS_TO_SUPPLIER_MAPPINGS.get(ods_code)
+    return Constants.ODS_TO_SUPPLIER_MAPPINGS.get(ods_code)
 
 
 def is_valid_datetime(timestamp: str) -> bool:
@@ -63,7 +62,7 @@ def is_valid_datetime(timestamp: str) -> bool:
 
 def validate_content_headers(csv_content_reader):
     """Returns a bool to indicate whether the given CSV headers match the 34 expected headers exactly"""
-    return csv_content_reader.fieldnames == Constant.EXPECTED_CSV_HEADERS
+    return csv_content_reader.fieldnames == Constants.EXPECTED_CSV_HEADERS
 
 
 def extract_file_key_elements(file_key: str) -> dict:
@@ -141,9 +140,9 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
     supplier = identify_supplier(file_key_elements["ods_code"])
     vaccine_type = file_key_elements["vaccine_type"]
     if not (
-        vaccine_type in Constant.VALID_VACCINE_TYPES
+        vaccine_type in Constants.VALID_VACCINE_TYPES
         and file_key_elements["vaccination"] == "vaccinations"
-        and file_key_elements["version"] in Constant.VALID_VERSIONS
+        and file_key_elements["version"] in Constants.VALID_VERSIONS
         and supplier  # Note that if supplier could be identified, this also verifies that ODS code is valid
         and is_valid_datetime(file_key_elements["timestamp"])
     ):
@@ -175,7 +174,7 @@ def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Find the URL of the relevant queue
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    sqs_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
+    sqs_name = Constants.SUPPLIER_TO_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{sqs_name}-metadata-queue.fifo"
 
@@ -184,7 +183,7 @@ def send_to_supplier_queue(supplier: str, message_body: dict) -> bool:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId="default")
         logger.info("Message sent to SQS queue '%s' for supplier %s", sqs_name, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
-        logger.error("queue %s does not exist", queue_url)
+        logger.error("Failed to send messaage because queue %s does not exist", queue_url)
         return False
     return True
 
@@ -252,6 +251,7 @@ def try_to_send_message(file_key: str, message_id: str) -> bool:
     file_key_elements = extract_file_key_elements(file_key)
 
     if not (supplier := identify_supplier(file_key_elements["ods_code"])):
+        logger.error("Message not sent to supplier queue as unable to identify supplier")
         return False
 
     message_body = {
@@ -262,12 +262,7 @@ def try_to_send_message(file_key: str, message_id: str) -> bool:
         "filename": file_key,
     }
 
-    if not send_to_supplier_queue(supplier, message_body):
-        logger.error("Failed to send file to %s_pipeline", supplier)
-        return False
-
-    logger.info("File added to SQS queue for %s pipeline", supplier)
-    return True
+    return send_to_supplier_queue(supplier, message_body)
 
 
 def lambda_handler(event, context):

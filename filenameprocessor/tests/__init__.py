@@ -1,3 +1,5 @@
+"""__init__.py file for filenemaeprocessor.tests folder"""
+
 import os
 import sys
 
