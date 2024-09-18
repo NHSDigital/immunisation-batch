@@ -281,7 +281,8 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
         }
       }
     }
-  })}
+  })
+}
 
 
 #  Create CloudWatch Event Target to Trigger ECS Task
