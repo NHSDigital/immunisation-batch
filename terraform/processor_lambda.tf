@@ -200,7 +200,7 @@ resource "aws_ecs_service" "ecs_service" {
   name            = "${local.prefix}-processor-service"
   cluster         = aws_ecs_cluster.ecs_cluster.id
   task_definition = aws_ecs_task_definition.ecs_task.arn
-  desired_count   = 5
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -288,7 +288,8 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
 #  Create CloudWatch Event Target to Trigger ECS Task
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
-  arn       = aws_ecs_cluster.ecs_cluster.arn
+  target_id = "ecs-target"
+  arn       = aws_ecs_service.ecs_service.arn
   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
 
   ecs_target {
