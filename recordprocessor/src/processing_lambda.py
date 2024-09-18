@@ -7,7 +7,7 @@ import os
 from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
 import logging
-from ods_patterns import SUPPLIER_QUEUE_MAPPINGS
+from ods_patterns import SUPPLIER_SQSQUEUE_MAPPINGS
 from botocore.exceptions import ClientError
 from botocore.config import Config
 from constants import Constant
@@ -61,7 +61,7 @@ def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
 def send_to_kinesis(supplier, message_body):
     """Send a message to the specified Kinesis stream."""
     print(f"message_body:{message_body}")
-    stream_name = SUPPLIER_QUEUE_MAPPINGS.get(supplier, supplier)
+    stream_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
     if "prod" in imms_env or "production" in imms_env:
         account_id = os.getenv("PROD_ACCOUNT_ID")
