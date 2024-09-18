@@ -277,13 +277,11 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
       "eventSourceARN": ["${local.existing_sqs_arns}"],
       "messageAttributes": {
         "MessageGroupId": {
-          "exists": true
+          "exists": ["true"]
         }
       }
     }
-    }
-  )
-    }
+  })}
 
 
 #  Create CloudWatch Event Target to Trigger ECS Task
