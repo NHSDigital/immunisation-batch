@@ -16,6 +16,7 @@ from router_lambda_function import (
     validate_vaccine_type_permissions,
     validate_action_flag_permissions,
 )
+from src.constants import Constant
 
 
 class TestRouterLambdaFunctions(unittest.TestCase):
@@ -288,11 +289,12 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
+    # @patch("csv.DictReader")
     def test_validate_action_flag_permissions(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = "ACTION_FLAG\nupdate\nnew\ndelete\n"
+        csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -306,6 +308,9 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
             "FLU_CREATE",
         ]
 
+        mock_csv_reader_instance = MagicMock()
+        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        # mock_csv_dict_reader.return_value = mock_csv_reader_instance
         # Define test parameters
         bucket_name = "test-bucket"
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
@@ -323,12 +328,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_no_permissions(
+    def test_validate_action_flag_permissions_with_one_permissions(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
-                        value1_row2|A2|new"""
+        csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -336,7 +340,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         }
 
         # Mock get_supplier_permissions
-        mock_get_supplier_permissions.return_value = ["FLU_UPDATE"]
+        mock_get_supplier_permissions.return_value = ["FLU_DELETE"]
 
         # Define test parameters
         bucket_name = "test-bucket"
@@ -351,7 +355,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         )
 
         # Check the result
-        self.assertFalse(result)
+        self.assertTrue(result)
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
@@ -359,8 +363,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
-                        value1_row2|A2|new\nvalue1_row1|A1|update"""
+        csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -387,17 +390,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_one_permission(
+    def test_validate_action_flag_permissions_with_no_permissions(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
-                        value1_row2|A2|new
-                        value1_row3|A3|delete
-                        value1_row4|A4|tree
-                        """
-
-        # csv_data = "ACTION_FLAG\nnew\ndelete\n"
+        csv_data = Constant.file_content_operations
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -405,7 +402,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         }
 
         # Mock get_supplier_permissions
-        mock_get_supplier_permissions.return_value = ["COVID19_DELETE"]
+        mock_get_supplier_permissions.return_value = ["COVID19_UPDATE"]
 
         # Define test parameters
         bucket_name = "test-bucket"
@@ -420,4 +417,4 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         )
 
         # Check the result
-        self.assertTrue(result)
+        self.assertFalse(result)
