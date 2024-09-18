@@ -289,7 +289,7 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
   target_id = "ecs-target"
-  arn       = aws_ecs_service.ecs_service.arn
+  arn       = aws_ecs_service.ecs_service.id
   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
 
   ecs_target {
