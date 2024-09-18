@@ -200,7 +200,7 @@ resource "aws_ecs_service" "ecs_service" {
   name            = "${local.prefix}-processor-service"
   cluster         = aws_ecs_cluster.ecs_cluster.id
   task_definition = aws_ecs_task_definition.ecs_task.arn
-  desired_count   = 1
+  desired_count   = 5
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -270,18 +270,20 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
   name        = "${local.prefix}-ecs-trigger-rule"
   description = "Trigger ECS task when a message arrives in any SQS queue"
 
-  event_pattern = jsonencode({
-  "source": ["aws.sqs"],
-  "detail-type": ["AWS API Call via CloudTrail"],
-  "detail": {
-    "eventSource": ["sqs.amazonaws.com"],
-    "eventName": ["SendMessage"],
-    "requestParameters": {
-      "queueArn": local.existing_sqs_arns
+  event_pattern = <<PATTERN{
+    "source": ["aws.sqs"],
+    "detail-type": ["SQS Message Received"],
+    "detail": {
+      "eventSourceARN": ["${local.existing_sqs_arns}"],
+      "messageAttributes": {
+        "MessageGroupId": {
+          "exists": true
+        }
+      }
     }
-  }
-})
-}
+    }
+    PATTERN
+    }
 
 
 #  Create CloudWatch Event Target to Trigger ECS Task
@@ -291,6 +293,7 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
 
   ecs_target {
+    task_count = 1
     task_definition_arn = aws_ecs_task_definition.ecs_task.arn
     launch_type         = "FARGATE"
     network_configuration {

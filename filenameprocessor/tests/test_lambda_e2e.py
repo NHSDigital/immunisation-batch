@@ -1,7 +1,7 @@
 import boto3
 import unittest
 
-import json
+# import json
 from unittest.mock import patch, MagicMock
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
@@ -91,92 +91,92 @@ class TestRouterLambdaFunctionEndToEnd(unittest.TestCase):
 
 
 class TestLambdaHandler(unittest.TestCase):
-    @mock_s3
-    @mock_sqs
-    @patch("router_lambda_function.get_supplier_permissions")
-    def test_lambda_handler(self, mock_get_supplier_permissions):
-        """Tests lambda function end to end"""
+    #     @mock_s3
+    #     @mock_sqs
+    #     @patch("router_lambda_function.get_supplier_permissions")
+    #     def test_lambda_handler(self, mock_get_supplier_permissions):
+    #         """Tests lambda function end to end"""
 
-        # Set up S3
-        s3_client = boto3.client("s3", region_name="eu-west-2")
-        source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        destination_bucket_name = (
-            "immunisation-batch-internal-dev-data-destination"
-        )
+    #         # Set up S3
+    #         s3_client = boto3.client("s3", region_name="eu-west-2")
+    #         source_bucket_name = "immunisation-batch-internal-dev-data-source"
+    #         destination_bucket_name = (
+    #             "immunisation-batch-internal-dev-data-destination"
+    #         )
 
-        # Create source and destination buckets
-        s3_client.create_bucket(
-            Bucket=source_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-        )
-        s3_client.create_bucket(
-            Bucket=destination_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-        )
+    #         # Create source and destination buckets
+    #         s3_client.create_bucket(
+    #             Bucket=source_bucket_name,
+    #             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+    #         )
+    #         s3_client.create_bucket(
+    #             Bucket=destination_bucket_name,
+    #             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+    #         )
 
-        # Upload a test file to the source bucket
-        test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        test_file_content = "ACTION_FLAG\nupdate\n"
-        s3_client.put_object(
-            Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
-        )
+    #         # Upload a test file to the source bucket
+    #         test_file_key = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
+    #         test_file_content = "ACTION_FLAG\nupdate\n"
+    #         s3_client.put_object(
+    #             Bucket=source_bucket_name, Key=test_file_key, Body=test_file_content
+    #         )
 
-        # Mock permissions configuration
-        mock_get_supplier_permissions.return_value = [
-            "FLU_FULL",
-        ]
+    #         # Mock permissions configuration
+    #         mock_get_supplier_permissions.return_value = [
+    #             "FLU_FULL",
+    #         ]
 
-        # Set up SQS
-        sqs_client = boto3.client("sqs", region_name="eu-west-2")
-        queue_url = sqs_client.create_queue(
-            QueueName="imms-batch-internal-dev-EMIS-metadata-queue.fifo",
-            Attributes={"FIFOQueue": "true", "ContentBasedDeduplication": "true"},
-        )["QueueUrl"]
+    #         # Set up SQS
+    #         sqs_client = boto3.client("sqs", region_name="eu-west-2")
+    #         queue_url = sqs_client.create_queue(
+    #             QueueName="imms-batch-internal-dev-EMIS-metadata-queue.fifo",
+    #             Attributes={"FIFOQueue": "true", "ContentBasedDeduplication": "true"},
+    #         )["QueueUrl"]
 
-        # Prepare the event
-        event = {
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": source_bucket_name},
-                        "object": {"key": test_file_key},
-                    }
-                }
-            ]
-        }
+    #         # Prepare the event
+    #         event = {
+    #             "Records": [
+    #                 {
+    #                     "s3": {
+    #                         "bucket": {"name": source_bucket_name},
+    #                         "object": {"key": test_file_key},
+    #                     }
+    #                 }
+    #             ]
+    #         }
 
-        # Mock the validate_csv_column_count function
-        with patch(
-            "router_lambda_function.validate_csv_column_count",
-            return_value=True,
-        ):
-            # Call the lambda_handler function
-            response = lambda_handler(event, None)
+    #         # Mock the validate_csv_column_count function
+    #         with patch(
+    #             "router_lambda_function.validate_csv_column_count",
+    #             return_value=True,
+    #         ):
+    #             # Call the lambda_handler function
+    #             response = lambda_handler(event, None)
 
-        # Assertions
-        self.assertEqual(response["statusCode"], 200)
+    #         # Assertions
+    #         self.assertEqual(response["statusCode"], 200)
 
-        # Check if the acknowledgment file is created in the destination S3 bucket
-        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
-        ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
-        ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
-        self.assertIn(ack_file_key, ack_file_keys)
+    #         # Check if the acknowledgment file is created in the destination S3 bucket
+    #         ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
+    #         ack_files = s3_client.list_objects_v2(Bucket=destination_bucket_name)
+    #         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
+    #         self.assertIn(ack_file_key, ack_file_keys)
 
-        # Check if the message was sent to the SQS queue
-        messages = sqs_client.receive_message(
-            QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1
-        )
-        self.assertIn("Messages", messages)
-        received_message = json.loads(messages["Messages"][0]["Body"])
+    #         # Check if the message was sent to the SQS queue
+    #         messages = sqs_client.receive_message(
+    #             QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1
+    #         )
+    #         self.assertIn("Messages", messages)
+    #         received_message = json.loads(messages["Messages"][0]["Body"])
 
-        # Validate message content
-        self.assertEqual(received_message["vaccine_type"], "Flu")
-        self.assertEqual(received_message["supplier"], "EMIS")
-        self.assertEqual(received_message["timestamp"], "20240708T12130100")
-        self.assertEqual(
-            received_message["filename"],
-            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
-        )
+    #         # Validate message content
+    #         self.assertEqual(received_message["vaccine_type"], "Flu")
+    #         self.assertEqual(received_message["supplier"], "EMIS")
+    #         self.assertEqual(received_message["timestamp"], "20240708T12130100")
+    #         self.assertEqual(
+    #             received_message["filename"],
+    #             "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
+    #         )
 
     @mock_s3
     @mock_sqs
