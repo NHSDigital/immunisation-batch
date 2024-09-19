@@ -190,7 +190,13 @@ resource "aws_ecs_task_definition" "ecs_task" {
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "ecs"
       }
-    }
+    },
+    command = [
+      "python",
+      "processing_lambda",
+      "--message",
+      "Ref::message"
+    ]
   }])
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
@@ -302,5 +308,17 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
     platform_version = "LATEST"
   }
 
-  role_arn  = aws_iam_role.eventbridge_ecs_role.arn
+  role_arn = aws_iam_role.eventbridge_ecs_role.arn
+
+  # Input Transformer
+  input_transformer {
+    input_paths = {
+      "messageBody" = "$.detail.body"
+    }
+    input_template = <<TEMPLATE
+    {
+      "message": <messageBody>
+    }
+    TEMPLATE
+  }
 }

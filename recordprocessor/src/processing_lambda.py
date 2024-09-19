@@ -14,6 +14,7 @@ from constants import Constant
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from permissions_checker import get_json_from_s3
+import argparse
 
 # Initialize Kinesis client instead of SQS
 kinesis_client = boto3.client("kinesis", config=Config(region_name="eu-west-2"))
@@ -239,28 +240,50 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
     )  # logger the total number of rows processed
 
 
-def process_lambda_handler(event, context):
+def process_lambda_handler(message_body):
+    """Process the message from command-line argument or environment variable."""
     imms_env = get_environment()
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
     config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
-    print(f"event:{event}")
-    for record in event["Records"]:
-        try:
-            print(f"Records:{record}")
-            message_body = json.loads(record["body"])
-            message_id = message_body.get("message_id")
-            vaccine_type = message_body.get("vaccine_type")
-            supplier = message_body.get("supplier")
-            file_key = message_body.get("filename")
-            if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-                process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
-            else:
-                logger.info(f"{supplier} does not have full_permissions")
 
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
+    try:
+        print(f"message_body:{message_body}")
+        message_id = message_body.get("message_id")
+        vaccine_type = message_body.get("vaccine_type")
+        supplier = message_body.get("supplier")
+        file_key = message_body.get("filename")
+        if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
+            process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
+        else:
+            logger.info(f"{supplier} does not have full_permissions")
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+
+
+def main():
+    print("1")
+    parser = argparse.ArgumentParser(description="Process incoming message")
+    parser.add_argument("--message", help="Message body passed as a command-line argument")
+    args = parser.parse_args()
+    print(f"args:{args}")
+    # Process message from command-line argument
+    if args.message:
+        print("2")
+        message_body = json.loads(args.message)
+        print(f"message_body:{message_body}")
+        process_lambda_handler(message_body)
+    # Process message from environment variable
+    else:
+        print("3")
+        message_body = os.getenv("MESSAGE_BODY")
+        print(f"message_body:{message_body}")
+        if message_body:
+            message_body = json.loads(message_body)
+            process_lambda_handler(message_body)
+        else:
+            logger.error("No message received from command-line or environment")
 
 
 if __name__ == "__main__":
-    process_lambda_handler({"Records": []}, {})
+    main()
