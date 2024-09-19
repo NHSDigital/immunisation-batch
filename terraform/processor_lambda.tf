@@ -192,7 +192,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
       }
     },
     command = [
-      "processing_lambda.py",
       "--message",
       "Ref::message"
     ]
