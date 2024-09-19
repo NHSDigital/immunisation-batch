@@ -289,11 +289,11 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
   target_id = "ecs-target"
-  arn       = aws_ecs_cluster.ecs_cluster.arn 
+  arn       = aws_ecs_cluster.ecs_cluster.arn
 
   ecs_target {
     task_count = 1
-    task_definition_arn = aws_ecs_task_definition.ecs_task.arn 
+    task_definition_arn = aws_ecs_task_definition.ecs_task.arn
     launch_type         = "FARGATE"
     network_configuration {
       subnets          = data.aws_subnets.default.ids
@@ -301,5 +301,6 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
     }
     platform_version = "LATEST"
   }
+
   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
 }
