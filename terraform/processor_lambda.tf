@@ -285,6 +285,7 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
 }
 
 # Create CloudWatch Event Target to Trigger ECS Task
+# Create CloudWatch Event Target to Trigger ECS Task
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
   arn       = aws_ecs_cluster.ecs_cluster.arn
@@ -295,15 +296,15 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
     task_definition_arn  = aws_ecs_task_definition.ecs_task.arn
     launch_type          = "FARGATE"
     network_configuration {
-            subnets          = data.aws_subnets.default.ids
-            assign_public_ip = true
+      subnets          = data.aws_subnets.default.ids
+      assign_public_ip = true
     }
     platform_version = "LATEST"
-    input_transformer {
-      input_paths = {
-        "message" = "$.detail.requestParameters.messageBody"
-      }
-      input_template = "{\"SQS_MESSAGE\": <message>}"
-    }
   }
+
+  # Use 'input' to pass the message body from the SQS event to the ECS task
+  input = jsonencode({
+    "SQS_MESSAGE" = "$.detail.requestParameters.messageBody"
+  })
 }
+
