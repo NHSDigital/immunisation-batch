@@ -6,7 +6,7 @@ import json
 from typing import Optional
 import boto3
 from moto import mock_s3, mock_sqs
-from constants import Constants
+from src.constants import Constants
 from router_lambda_function import lambda_handler
 
 
