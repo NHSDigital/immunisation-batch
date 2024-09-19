@@ -88,7 +88,7 @@ def initial_file_validation(file_key: str, bucket_name: str, s3_client) -> bool:
     appropriate permissions. Else return False.
     """
     # Validate file name format
-    if not (file_key.endswith(".csv") and file_key.count("_") == 4):
+    if not (file_key.count(".") == 1 and file_key.count("_") == 4 and file_key.endswith(".csv")):
         return False
 
     # Extract elements from the file key
