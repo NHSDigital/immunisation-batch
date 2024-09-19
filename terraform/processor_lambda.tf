@@ -12,7 +12,7 @@ locals {
   files_exclude             = setunion([for f in local.path_exclude : fileset(local.processing_lambda_dir, f)]...)
   processing_lambda_files   = sort(setsubtract(local.files_include, local.files_exclude))
   processing_lambda_dir_sha = sha1(join("", [for f in local.processing_lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
-  image_tag                 = "latest"
+  image_tag = "latest"
 }
 
 # Create ECR Repository for processing
@@ -43,7 +43,7 @@ module "processing_docker_image" {
       }
     ]
   })
-
+  
   platform      = "linux/amd64"
   use_image_tag = false
   source_path   = local.processing_lambda_dir
@@ -55,7 +55,7 @@ module "processing_docker_image" {
 # Define the IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_task_exec_role" {
   name = "${local.prefix}-ecs-task-exec-role"
-
+  
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -71,8 +71,8 @@ resource "aws_iam_role" "ecs_task_exec_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution_ecr_policy" {
-  role       = aws_iam_role.ecs_task_exec_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    role       = aws_iam_role.ecs_task_exec_role.name
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 # Define the IAM Role for ECS Task Execution with Kinesis Permissions
@@ -141,7 +141,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_exec_policy_attachment" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
-  name = "/ecs/${local.prefix}-processor-task"
+  name              = "/ecs/${local.prefix}-processor-task"
 }
 
 # Create the ECS Task Definition
@@ -151,12 +151,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
   memory                   = "1024"
-
   runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "X86_64"
-  }
-
+        operating_system_family = "LINUX"
+        cpu_architecture        = "X86_64"
+    }
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
@@ -192,18 +190,17 @@ resource "aws_ecs_task_definition" "ecs_task" {
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "ecs"
       }
-    }
+    },
     command = [
       "processing_lambda.py",
       "--message",
       "Ref::message"
     ]
   }])
-  
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
-# Define the ECS Service to Run the Task Definition.
+# Define the ECS Service to Run the Task Definition
 resource "aws_ecs_service" "ecs_service" {
   name            = "${local.prefix}-processor-service"
   cluster         = aws_ecs_cluster.ecs_cluster.id
@@ -212,10 +209,12 @@ resource "aws_ecs_service" "ecs_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = data.aws_subnets.default.ids
-    assign_public_ip = true
-  }
+            subnets          = data.aws_subnets.default.ids
+            assign_public_ip = true
+        }
 }
+
+
 
 # Create IAM Role for EventBridge to Trigger ECS Task
 resource "aws_iam_role" "eventbridge_ecs_role" {
@@ -290,7 +289,8 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
   })
 }
 
-# Create CloudWatch Event Target to Trigger ECS Task
+
+#  Create CloudWatch Event Target to Trigger ECS Task
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
   target_id = "ecs-target"
@@ -300,12 +300,10 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
     task_count = 1
     task_definition_arn = aws_ecs_task_definition.ecs_task.arn
     launch_type         = "FARGATE"
-
     network_configuration {
       subnets          = data.aws_subnets.default.ids
       assign_public_ip = true
     }
-    
     platform_version = "LATEST"
   }
 
