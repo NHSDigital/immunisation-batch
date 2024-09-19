@@ -152,15 +152,17 @@ resource "aws_ecs_task_definition" "ecs_task" {
   cpu                      = "512"
   memory                   = "1024"
   runtime_platform {
-        operating_system_family = "LINUX"
-        cpu_architecture        = "X86_64"
-    }
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
     name      = "processor-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
+
+    # Define environment variables
     environment = [
       {
         name  = "SOURCE_BUCKET_NAME"
@@ -181,8 +183,13 @@ resource "aws_ecs_task_definition" "ecs_task" {
       {
         name  = "KINESIS_STREAM_ARN"
         value = jsonencode(local.new_kinesis_arns)
+      },
+      {
+        name  = "MESSAGE_BODY",  # This value will be dynamically passed by EventBridge
+        value = ""               # Placeholder, value will be overridden dynamically
       }
     ]
+
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -190,12 +197,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "ecs"
       }
-    },
-    command = [
-      "--message",
-      "<messageBody>"
-    ]
+    }
   }])
+
+
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
@@ -308,14 +313,14 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
 
   role_arn = aws_iam_role.eventbridge_ecs_role.arn
 
-  # Use Input Transformer to extract the message from the SQS event
+  # Input transformer to pass the SQS message body as MESSAGE_BODY
   input_transformer {
     input_paths = {
-      "messageBody" = "$.Records[0].body"
+      "messageBody" = "$.Records[0].body"  # Adjust based on the actual structure of your SQS event
     }
     input_template = <<TEMPLATE
     {
-      "message": "TestMessage"
+      "MESSAGE_BODY": <messageBody>
     }
     TEMPLATE
   }

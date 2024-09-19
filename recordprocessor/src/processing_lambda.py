@@ -14,7 +14,7 @@ from constants import Constant
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from permissions_checker import get_json_from_s3
-import argparse
+
 
 # Initialize Kinesis client instead of SQS
 kinesis_client = boto3.client("kinesis", config=Config(region_name="eu-west-2"))
@@ -262,28 +262,22 @@ def process_lambda_handler(message_body):
 
 
 def main():
-    print("1")
-    parser = argparse.ArgumentParser(description="Process incoming message")
-    parser.add_argument("--message", help="Message body passed as a command-line argument")
-    args = parser.parse_args()
-    print(f"args:{args}")
-    # Process message from command-line argument
-    if args.message:
-        print("2")
-        print(f"args.message:{args.message}")
-        message_body = json.loads(args.message)
-        print(f"message_body:{message_body}")
-        process_lambda_handler(message_body)
-    # Process message from environment variable
+    # Get the message from the environment variable
+    print("started")
+    message_body = os.getenv('MESSAGE_BODY')
+
+    # Log the message for debugging
+    print(f"Received message from environment variable: {message_body}")
+
+    if message_body:
+        try:
+            print("1")
+            message_body_json = json.loads(message_body)
+            print(f"Parsed message body: {json.dumps(message_body_json, indent=2)}")
+        except json.JSONDecodeError:
+            print("Error: Message is not valid JSON")
     else:
-        print("3")
-        message_body = os.getenv("MESSAGE_BODY")
-        print(f"message_body:{message_body}")
-        if message_body:
-            message_body = json.loads(message_body)
-            process_lambda_handler(message_body)
-        else:
-            logger.error("No message received from command-line or environment")
+        print("No message received.")
 
 
 if __name__ == "__main__":
