@@ -203,7 +203,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
-# Define the ECS Service to Run the Task Definition
+# Define the ECS Service to Run the Task Definition.
 resource "aws_ecs_service" "ecs_service" {
   name            = "${local.prefix}-processor-service"
   cluster         = aws_ecs_cluster.ecs_cluster.id
