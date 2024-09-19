@@ -278,7 +278,7 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
     "detail": {
       "eventName": ["ReceiveMessage"],
       "requestParameters": {
-        "queueUrl": ["${local.existing_sqs_urls}"]
+        "queueUrl": ["${local.existing_sqs_arns}"]
       }
     }
   })
