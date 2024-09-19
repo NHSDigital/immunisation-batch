@@ -315,7 +315,7 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
     }
     input_template = <<TEMPLATE
     {
-      "message": <messageBody>
+      "message": "TestMessage"
     }
     TEMPLATE
   }
