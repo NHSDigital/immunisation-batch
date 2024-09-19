@@ -193,7 +193,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
     },
     command = [
       "--message",
-      "Ref::message"
+      "<messageBody>"
     ]
   }])
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
@@ -296,7 +296,7 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   arn       = aws_ecs_cluster.ecs_cluster.arn
 
   ecs_target {
-    task_count = 1
+    task_count          = 1
     task_definition_arn = aws_ecs_task_definition.ecs_task.arn
     launch_type         = "FARGATE"
     network_configuration {
@@ -308,7 +308,7 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
 
   role_arn = aws_iam_role.eventbridge_ecs_role.arn
 
-  # Input Transformer
+  # Use Input Transformer to extract the message from the SQS event
   input_transformer {
     input_paths = {
       "messageBody" = "$.detail.body"
