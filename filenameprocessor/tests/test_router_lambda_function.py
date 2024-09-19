@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 import boto3
 from moto import mock_sqs
 from router_lambda_function import make_and_upload_ack_file
-from send_to_supplier_queue import send_to_supplier_queue
+from send_to_supplier_queue import send_to_supplier_queues
 from initial_file_validation import (
     initial_file_validation,
     validate_vaccine_type_permissions,
@@ -128,7 +128,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "timestamp": "20240708T12130100",
             "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
-        send_to_supplier_queue(message_body, self.mock_sqs_client)
+        send_to_supplier_queues(message_body, self.mock_sqs_client)
         mock_send_message.assert_called_once()
 
     def test_make_and_upload_ack_file(self):
@@ -165,7 +165,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         }
 
         # Call the send_to_supplier_queue function
-        send_to_supplier_queue(message_body, self.mock_sqs_client)
+        send_to_supplier_queues(message_body, self.mock_sqs_client)
 
         # Assert that send_message was called once
         mock_send_message.assert_called_once()
@@ -214,7 +214,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         }
 
         # Call the send_to_supplier_queue function
-        success = send_to_supplier_queue(message_body, sqs)
+        success = send_to_supplier_queues(message_body, sqs)
 
         self.assertTrue(success)
 
@@ -254,7 +254,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         }
 
         # Call the send_to_supplier_queue function
-        success = send_to_supplier_queue(message_body, mock_sqs)
+        success = send_to_supplier_queues(message_body, mock_sqs)
 
         self.assertFalse(success)
 

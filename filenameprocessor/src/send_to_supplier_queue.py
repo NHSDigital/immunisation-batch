@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def send_to_supplier_queue(message_body: dict, sqs_client) -> bool:
+def send_to_supplier_queues(message_body: dict, sqs_client) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Check the supplier has been identified (this should already have been validated by initial file validation)
     if not (supplier := message_body["supplier"]):
@@ -51,4 +51,4 @@ def make_and_send_sqs_message(file_key: str, message_id: str, sqs_client) -> boo
     Returns a bool to indication if the message has been sent successfully.
     """
     message_body = make_message_body_for_sqs(file_key=file_key, message_id=message_id)
-    return send_to_supplier_queue(message_body, sqs_client)
+    return send_to_supplier_queues(message_body, sqs_client)
