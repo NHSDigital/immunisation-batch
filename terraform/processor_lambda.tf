@@ -311,7 +311,7 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   # Use Input Transformer to extract the message from the SQS event
   input_transformer {
     input_paths = {
-      "messageBody" = "$.detail.body"
+      "messageBody" = "$.Records[0].body"
     }
     input_template = <<TEMPLATE
     {
