@@ -1,7 +1,10 @@
+from dataclasses import dataclass
+
+
 class Constant:
     """A class to hold various constants used in the application."""
 
-    valid_vaccine_type = ["flu", "covid19", "mmr"]
+    valid_vaccine_type = ["mmr", "covid19", "flu"]
     valid_versions = ["v5"]
     valid_ods_codes = [
         "YGM41",
@@ -757,3 +760,48 @@ class Constant:
         '"2622896019"|"Inhalation - unit of product usage"|"1037351000000105"|'
         '"RJC02"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
     )
+
+
+@dataclass
+class DiseaseCodes:
+    """Disease Codes"""
+    covid_19: str = "840539006"
+    flu: str = "6142004"
+    measles: str = "14189004"
+    mumps: str = "36989005"
+    rubella: str = "36653000"
+
+
+class DiseaseDisplayTerms:
+    """Disease display terms which correspond to disease codes"""
+    covid_19: str = "Disease caused by severe acute respiratory syndrome coronavirus 2"
+    flu: str = "Influenza"
+    measles: str = "Measles"
+    mumps: str = "Mumps"
+    rubella: str = "Rubella"
+
+
+vaccine_disease_mapping = {
+    "covid19": ["covid_19"],
+    "flu": ["flu"],
+    "mmr": ["measles", "mumps", "rubella"],
+}
+
+
+def map_target_disease(vaccine_type):
+    # Retrieve the disease types associated with the vaccine
+    diseases = vaccine_disease_mapping.get(vaccine_type, [])
+
+    # Dynamically form the disease coding information based on the retrieved diseases
+    return [
+        {
+            "coding": [
+                {
+                    "system": "http://snomed.info/sct",
+                    "code": getattr(DiseaseCodes, disease),
+                    "display": getattr(DiseaseDisplayTerms, disease)
+                }
+            ]
+        }
+        for disease in diseases
+    ]
