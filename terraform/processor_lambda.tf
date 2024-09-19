@@ -20,7 +20,7 @@ resource "aws_ecr_repository" "processing_repository" {
   name = local.prefix
 }
 
-# Build and Push Docker Image to ECR (Reusing the existing module)
+# Build and Push Docker Image to ECR
 module "processing_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
