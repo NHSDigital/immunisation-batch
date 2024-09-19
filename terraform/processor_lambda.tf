@@ -186,7 +186,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
       },
       {
         name  = "MESSAGE_BODY",  # This value will be dynamically passed by EventBridge
-        value = ""               # Placeholder, value will be overridden dynamically
+        value = ""               
       }
     ]
 
@@ -320,7 +320,7 @@ resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
     }
     input_template = <<TEMPLATE
     {
-      "MESSAGE_BODY": <messageBody>
+      "MESSAGE_BODY": "testmessage"
     }
     TEMPLATE
   }
