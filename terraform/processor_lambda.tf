@@ -20,7 +20,7 @@ resource "aws_ecr_repository" "processing_repository" {
   name = local.prefix
 }
 
-# Build and Push Docker Image to ECR
+# Build and Push Docker Image to ECR (Reusing the existing module)
 module "processing_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
@@ -152,17 +152,15 @@ resource "aws_ecs_task_definition" "ecs_task" {
   cpu                      = "512"
   memory                   = "1024"
   runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "X86_64"
-  }
+        operating_system_family = "LINUX"
+        cpu_architecture        = "X86_64"
+    }
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
     name      = "processor-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
-
-    # Define environment variables
     environment = [
       {
         name  = "SOURCE_BUCKET_NAME"
@@ -185,11 +183,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
         value = jsonencode(local.new_kinesis_arns)
       },
       {
-        name  = "MESSAGE_BODY",  # This value will be dynamically passed by EventBridge
-        value = ""               
+        name  = "SQS_MESSAGE"
+        value = "" # This will be populated by EventBridge
       }
     ]
-
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -199,8 +196,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
       }
     }
   }])
-
-
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
@@ -217,8 +212,6 @@ resource "aws_ecs_service" "ecs_service" {
             assign_public_ip = true
         }
 }
-
-
 
 # Create IAM Role for EventBridge to Trigger ECS Task
 resource "aws_iam_role" "eventbridge_ecs_role" {
@@ -281,47 +274,36 @@ resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
 
   event_pattern = jsonencode({
     "source": ["aws.sqs"],
-    "detail-type": ["SQS Message Received"],
+    "detail-type": ["AWS API Call via CloudTrail"],
     "detail": {
-      "eventSourceARN": ["${local.existing_sqs_arns}"],
-      "messageAttributes": {
-        "MessageGroupId": {
-          "exists": ["true"]
-        }
+      "eventName": ["ReceiveMessage"],
+      "requestParameters": {
+        "queueUrl": ["${local.existing_sqs_urls}"]
       }
     }
   })
 }
 
-
-#  Create CloudWatch Event Target to Trigger ECS Task
+# Create CloudWatch Event Target to Trigger ECS Task
 resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
-  target_id = "ecs-target"
   arn       = aws_ecs_cluster.ecs_cluster.arn
+  role_arn  = aws_iam_role.eventbridge_ecs_role.arn
 
   ecs_target {
-    task_count          = 1
-    task_definition_arn = aws_ecs_task_definition.ecs_task.arn
-    launch_type         = "FARGATE"
+    task_count           = 1
+    task_definition_arn  = aws_ecs_task_definition.ecs_task.arn
+    launch_type          = "FARGATE"
     network_configuration {
-      subnets          = data.aws_subnets.default.ids
-      assign_public_ip = true
+            subnets          = data.aws_subnets.default.ids
+            assign_public_ip = true
     }
     platform_version = "LATEST"
-  }
-
-  role_arn = aws_iam_role.eventbridge_ecs_role.arn
-
-  # Input transformer to pass the SQS message body as MESSAGE_BODY
-  input_transformer {
-    input_paths = {
-      "messageBody" = "$.Records[0].body"  # Adjust based on the actual structure of your SQS event
+    input_transformer {
+      input_paths = {
+        "message" = "$.detail.requestParameters.messageBody"
+      }
+      input_template = "{\"SQS_MESSAGE\": <message>}"
     }
-    input_template = <<TEMPLATE
-    {
-      "MESSAGE_BODY": "testmessage"
-    }
-    TEMPLATE
   }
 }

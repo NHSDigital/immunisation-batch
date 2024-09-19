@@ -264,7 +264,7 @@ def process_lambda_handler(message_body):
 def main():
     # Get the message from the environment variable
     print("started")
-    message_body = os.getenv('MESSAGE_BODY')
+    message_body = os.getenv('SQS_MESSAGE')
 
     # Log the message for debugging
     print(f"Received message from environment variable: {message_body}")
