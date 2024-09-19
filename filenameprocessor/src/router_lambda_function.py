@@ -9,10 +9,10 @@ import logging
 import uuid
 import boto3
 from initial_file_validation import initial_file_validation
-from send_to_supplier_queue import try_to_send_message
-from create_ack_file import create_ack_file
+from send_to_supplier_queue import make_and_send_sqs_message
+from create_ack_file import make_and_upload_ack_file
 
-
+logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -42,7 +42,9 @@ def lambda_handler(event, context):
             validation_passed = initial_file_validation(file_key, bucket_name, s3_client)
 
             # If file is valid then send a message to the SQS queue
-            message_delivered = try_to_send_message(file_key, message_id, sqs_client) if validation_passed else False
+            message_delivered = (
+                make_and_send_sqs_message(file_key, message_id, sqs_client) if validation_passed else False
+            )
 
         except Exception as e:
             logging.error("Error processing file'%s': %s", file_key, str(e))
@@ -50,7 +52,9 @@ def lambda_handler(event, context):
             message_delivered = False
             error_files.append(file_key)
 
-        create_ack_file(message_id, file_key, validation_passed, message_delivered, created_at_string, s3_client)
+        make_and_upload_ack_file(
+            message_id, file_key, validation_passed, message_delivered, created_at_string, s3_client
+        )
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))

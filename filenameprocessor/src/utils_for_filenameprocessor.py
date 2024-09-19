@@ -1,3 +1,5 @@
+"""Utils for filenameprocessor lambda"""
+
 import os
 import csv
 from typing import Union
@@ -35,5 +37,6 @@ def extract_file_key_elements(file_key: str) -> dict:
         "timestamp": file_key_parts_without_extension[4],
         "extension": file_key.split(".")[1],
     }
+    # Identify the supplier using the ODS code (defaults to None if ODS code not found) and add to file_key_elements
     file_key_elements["supplier"] = identify_supplier(file_key_elements["ods_code"])
     return file_key_elements

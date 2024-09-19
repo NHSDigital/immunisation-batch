@@ -94,7 +94,7 @@ class TestLambdaHandler(unittest.TestCase):
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions
-        with (patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"])):
+        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]):
             # Call the lambda_handler function
             response = lambda_handler(self.make_event(), None)
 
@@ -273,7 +273,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Mock the get_supplier_permissions (with return value which doesn't include the requested Flu permissions)
         # and send_to_supplier_queue functions
         with (
-            patch("initial_file_validation.get_supplier_permissions", return_value=["COVID19_FULL"]),
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_DELETE"]),
             patch("send_to_supplier_queue.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
             # Call the lambda_handler function

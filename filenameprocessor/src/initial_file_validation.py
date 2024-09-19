@@ -1,3 +1,5 @@
+"""Functions for initial file validation"""
+
 import logging
 import os
 from datetime import datetime
