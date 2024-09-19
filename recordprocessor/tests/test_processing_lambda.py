@@ -734,26 +734,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch(
-                "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
-            ):
-                mock_csv_reader_instance = MagicMock()
-                mock_csv_reader_instance = MagicMock()
-                mock_csv_reader_instance.__iter__.return_value = iter(
-                    Constant.mock_update_request
-                )
-                mock_csv_dict_reader.return_value = mock_csv_reader_instance
-                process_csv_to_fhir(
-                    bucket_name,
-                    file_key,
-                    supplier,
-                    vaccine_type,
-                    ack_bucket_name,
-                    full_permissions,
-                    permission_operations,
-                )
+            json, valid = convert_to_fhir_json(request, vaccine_type)
+            vaccine_code = json.get("vaccineCode", {})
+            self.assertIn('NAVU', vaccine_code["coding"][0]["code"])
+            self.assertIn('Not available', vaccine_code["coding"][0]["display"])
 
-            mock_send_to_sqs.assert_not_called()
 
     def test_get_environment(self):
         with patch("processing_lambda.os.getenv", return_value="internal-dev"):
