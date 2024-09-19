@@ -9,11 +9,11 @@ from moto import mock_sqs
 from router_lambda_function import create_ack_file
 from send_to_supplier_queue import send_to_supplier_queue
 from initial_file_validation import (
-    identify_supplier,
     initial_file_validation,
     validate_vaccine_type_permissions,
     validate_action_flag_permissions,
 )
+from utils_for_filenameprocessor import identify_supplier
 from src.constants import Constants
 
 
