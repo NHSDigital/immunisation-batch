@@ -124,15 +124,6 @@ def forward_lambda_handler(event, context):
                 imms_id = message_body.get("imms_id")
                 version = message_body.get("version")
             forward_request_to_api(
-                bucket_name,
-                file_key,
-                action_flag,
-                fhir_json,
-                ack_bucket_name,
-                imms_id,
-                version,
-            )
-            forward_request_to_api(
                 message_header, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version
             )
 
