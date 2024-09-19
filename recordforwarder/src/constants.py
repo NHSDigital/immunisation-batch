@@ -118,9 +118,7 @@ class Constant:
                 }
             },
         ],
-        "reasonCode": [
-            {"coding": [{"system": "http://snomed.info/sct", "code": "dummy"}]}
-        ],
+        "reasonCode": [{"coding": [{"system": "http://snomed.info/sct", "code": "dummy"}]}],
         "protocolApplied": [
             {
                 "targetDisease": [
@@ -143,7 +141,7 @@ class Constant:
 
         if status is True:
             data_row = [
-                "TBC",
+                message_header,
                 "ok",
                 "information",
                 "informational",
@@ -158,7 +156,7 @@ class Constant:
             return data_row
         elif status == "duplicate":
             data_row = [
-                "TBC",
+                message_header,
                 "fatal-error",
                 "error",
                 "error",
@@ -173,7 +171,7 @@ class Constant:
             return data_row
         elif status == "no permissions":
             data_row = [
-                "TBC",
+                message_header,
                 "fatal-error",
                 "error",
                 "error",
@@ -184,11 +182,26 @@ class Constant:
                 "TBC",
                 "DPS",
                 False,
-            ]
+            ]  # noqa: E501
             return data_row
-        else:
+        if status == "None":
             data_row = [
+                message_header,
+                "fatal-error",
+                "error",
+                "error",
+                "business",
+                "20005",
+                "failed in json conversion",
+                created_at_formatted,
                 "TBC",
+                "DPS",
+                False,
+            ]  # noqa: E501
+            return data_row
+        if status is False:
+            data_row = [
+                message_header,
                 "fatal-error",
                 "error",
                 "error",
