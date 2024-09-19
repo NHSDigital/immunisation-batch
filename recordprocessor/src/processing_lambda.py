@@ -270,6 +270,7 @@ def main():
     # Process message from command-line argument
     if args.message:
         print("2")
+        print(f"args.message:{args.message}")
         message_body = json.loads(args.message)
         print(f"message_body:{message_body}")
         process_lambda_handler(message_body)
