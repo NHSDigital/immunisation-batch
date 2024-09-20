@@ -9,7 +9,7 @@ import logging
 import uuid
 import boto3
 from initial_file_validation import initial_file_validation
-from send_to_supplier_queue import make_and_send_sqs_message
+from send_sqs_message import make_and_send_sqs_message
 from create_ack_file import make_and_upload_ack_file
 
 logging.basicConfig()

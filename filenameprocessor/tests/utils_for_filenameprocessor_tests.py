@@ -3,6 +3,14 @@
 import boto3
 from src.constants import Constants
 
+# Dictionary for mocking the os.environ dict
+MOCK_ENVIRONMENT_DICT = {
+    "ENVIRONMENT": "internal-dev",
+    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
+    "LOCAL_ACCOUNT_ID": "123456789012",
+    "PROD_ACCOUNT_ID": "3456789109",
+}
+
 
 def setup_s3_bucket_and_file(
     test_bucket_name: str, test_file_key: str, test_file_content: str = Constants.valid_file_content
