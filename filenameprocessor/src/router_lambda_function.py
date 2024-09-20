@@ -16,13 +16,11 @@ logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+s3_client = boto3.client("s3", region_name="eu-west-2")
+
 
 def lambda_handler(event, context):
     """Lambda handler for filenameprocessor lambda"""
-    # Set up S3 and SQS clients
-    s3_client = boto3.client("s3", region_name="eu-west-2")
-    sqs_client = boto3.client("sqs", region_name="eu-west-2")
-
     error_files = []
 
     # For each file
@@ -42,9 +40,7 @@ def lambda_handler(event, context):
             validation_passed = initial_file_validation(file_key, bucket_name)
 
             # If file is valid then send a message to the SQS queue
-            message_delivered = (
-                make_and_send_sqs_message(file_key, message_id, sqs_client) if validation_passed else False
-            )
+            message_delivered = make_and_send_sqs_message(file_key, message_id) if validation_passed else False
 
         except Exception as e:
             logging.error("Error processing file'%s': %s", file_key, str(e))

@@ -3,14 +3,17 @@
 import logging
 import os
 import json
+import boto3
 from constants import Constants
 from utils_for_filenameprocessor import extract_file_key_elements
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
-def send_to_supplier_queues(message_body: dict, sqs_client) -> bool:
+
+def send_to_supplier_queues(message_body: dict) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Check the supplier has been identified (this should already have been validated by initial file validation)
     if not (supplier := message_body["supplier"]):
@@ -28,7 +31,7 @@ def send_to_supplier_queues(message_body: dict, sqs_client) -> bool:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId="default")
         logger.info("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
-        logger.error("Failed to send messaage because queue %s does not exist", queue_url)
+        logger.error("Failed to send message because queue %s does not exist", queue_url)
         return False
     return True
 
@@ -45,10 +48,10 @@ def make_message_body_for_sqs(file_key: str, message_id: str) -> dict:
     }
 
 
-def make_and_send_sqs_message(file_key: str, message_id: str, sqs_client) -> bool:
+def make_and_send_sqs_message(file_key: str, message_id: str) -> bool:
     """
     Attempts to send a message to the SQS queue.
     Returns a bool to indication if the message has been sent successfully.
     """
     message_body = make_message_body_for_sqs(file_key=file_key, message_id=message_id)
-    return send_to_supplier_queues(message_body, sqs_client)
+    return send_to_supplier_queues(message_body)

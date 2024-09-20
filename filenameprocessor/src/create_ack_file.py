@@ -32,7 +32,6 @@ def make_ack_data(message_id: str, validation_passed: bool, message_delivery: bo
 
 def upload_ack_file(file_key: str, ack_data: dict) -> None:
     """Formats the ack data into a csv file and uploads it to the ack bucket"""
-    # Construct ack file
     ack_filename = f"ack/{file_key.split('.')[0]}_response.csv"
 
     # Create CSV file with | delimiter, filetype .csv
