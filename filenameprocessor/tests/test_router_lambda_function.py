@@ -5,7 +5,7 @@ import json
 import csv
 from unittest.mock import patch, MagicMock
 import boto3
-from moto import mock_sqs
+from moto import mock_sqs, mock_s3
 from router_lambda_function import make_and_upload_ack_file
 from send_to_supplier_queue import send_to_supplier_queues
 from src.constants import Constants
@@ -54,9 +54,12 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         """tests whether ack file is created"""
         validation_passed = True
         created_at_formatted = "20240725T12510700"
-        make_and_upload_ack_file("1", self.file_key, validation_passed, True, created_at_formatted, self.mock_s3_client)
-        self.mock_s3_client.upload_fileobj.assert_called_once()
+        s3_client = MagicMock()
+        with patch("create_ack_file.s3_client", s3_client):
+            make_and_upload_ack_file("1", self.file_key, validation_passed, True, created_at_formatted)
+        s3_client.upload_fileobj.assert_called_once()
 
+    @mock_sqs
     @patch.dict(
         os.environ,
         {

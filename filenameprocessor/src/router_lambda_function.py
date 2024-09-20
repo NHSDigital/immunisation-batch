@@ -52,9 +52,7 @@ def lambda_handler(event, context):
             message_delivered = False
             error_files.append(file_key)
 
-        make_and_upload_ack_file(
-            message_id, file_key, validation_passed, message_delivered, created_at_string, s3_client
-        )
+        make_and_upload_ack_file(message_id, file_key, validation_passed, message_delivered, created_at_string)
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))

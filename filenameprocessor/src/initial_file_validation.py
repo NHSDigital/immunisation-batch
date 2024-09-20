@@ -2,8 +2,8 @@
 
 import logging
 import os
-import boto3
 from datetime import datetime
+import boto3
 from constants import Constants
 from fetch_permissions import get_permissions_config_json_from_s3
 from utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
@@ -112,9 +112,7 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
         return False
 
     # Obtain the file content
-    csv_content_dict_reader = get_csv_content_dict_reader(
-        bucket_name=bucket_name, file_key=file_key, s3_client=s3_client
-    )
+    csv_content_dict_reader = get_csv_content_dict_reader(bucket_name=bucket_name, file_key=file_key)
 
     # Validate the content headers
     if not validate_content_headers(csv_content_dict_reader):

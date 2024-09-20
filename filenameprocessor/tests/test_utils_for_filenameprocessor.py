@@ -39,9 +39,9 @@ class TestUtilsForFilenameprocessor(unittest.TestCase):
     def test_get_csv_content_dict_reader(self):
         """Test that get_csv_content_dict_reader can download and correctly read the data file"""
         test_file_content = "HEADER1|HEADER2\nvalue1|value2"
-        s3_client = setup_s3_bucket_and_file(self.test_bucket_name, self.test_file_key, test_file_content)
+        setup_s3_bucket_and_file(self.test_bucket_name, self.test_file_key, test_file_content)
 
-        csv_content_dict_reader = get_csv_content_dict_reader(self.test_bucket_name, self.test_file_key, s3_client)
+        csv_content_dict_reader = get_csv_content_dict_reader(self.test_bucket_name, self.test_file_key)
 
         for row in csv_content_dict_reader:
             self.assertEqual(row.get("HEADER1"), "value1")
