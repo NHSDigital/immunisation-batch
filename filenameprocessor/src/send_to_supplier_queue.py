@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
 
-def send_to_supplier_queues(message_body: dict) -> bool:
+def send_to_supplier_queue(message_body: dict) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Check the supplier has been identified (this should already have been validated by initial file validation)
     if not (supplier := message_body["supplier"]):
@@ -54,4 +54,4 @@ def make_and_send_sqs_message(file_key: str, message_id: str) -> bool:
     Returns a bool to indication if the message has been sent successfully.
     """
     message_body = make_message_body_for_sqs(file_key=file_key, message_id=message_id)
-    return send_to_supplier_queues(message_body)
+    return send_to_supplier_queue(message_body)

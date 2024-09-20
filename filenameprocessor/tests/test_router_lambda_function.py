@@ -5,10 +5,9 @@ import json
 import csv
 from unittest.mock import patch, MagicMock
 import boto3
-from moto import mock_sqs, mock_s3
+from moto import mock_sqs
 from router_lambda_function import make_and_upload_ack_file
-from send_to_supplier_queue import send_to_supplier_queues
-from src.constants import Constants
+from send_to_supplier_queue import send_to_supplier_queue
 
 
 def convert_csv_to_string(filename):
@@ -48,7 +47,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
         }
         with patch("send_to_supplier_queue.sqs_client", self.mock_sqs_client):
-            send_to_supplier_queues(message_body)
+            send_to_supplier_queue(message_body)
         mock_send_message.assert_called_once()
 
     def test_make_and_upload_ack_file(self):
@@ -87,7 +86,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         }
         with patch("send_to_supplier_queue.sqs_client", self.mock_sqs_client):
             # Call the send_to_supplier_queue function
-            send_to_supplier_queues(message_body)
+            send_to_supplier_queue(message_body)
 
         # Assert that send_message was called once
         mock_send_message.assert_called_once()
@@ -137,7 +136,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
 
         with patch("send_to_supplier_queue.sqs_client", sqs):
             # Call the send_to_supplier_queue function
-            success = send_to_supplier_queues(message_body)
+            success = send_to_supplier_queue(message_body)
 
         self.assertTrue(success)
 
@@ -178,6 +177,6 @@ class TestRouterLambdaFunctions(unittest.TestCase):
 
         with patch("send_to_supplier_queue.sqs_client", mock_sqs):
             # Call the send_to_supplier_queue function
-            success = send_to_supplier_queues(message_body)
+            success = send_to_supplier_queue(message_body)
 
         self.assertFalse(success)
