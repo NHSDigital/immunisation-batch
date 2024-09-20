@@ -2,6 +2,7 @@
 
 import logging
 import os
+import boto3
 from datetime import datetime
 from constants import Constants
 from fetch_permissions import get_permissions_config_json_from_s3
@@ -10,19 +11,21 @@ from utils_for_filenameprocessor import extract_file_key_elements, get_environme
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+s3_client = boto3.client("s3", region_name="eu-west-2")
+
 
 def is_valid_datetime(timestamp: str) -> bool:
     """
     Returns a bool to indicate whether the timestamp is a valid datetime in the format 'YYYYmmddTHHMMSSzz'
     where 'zz' is a two digit number indicating the timezone
     """
-    # Timezone is represented by the final two digits
-    if not (timezone := timestamp[-2:]).isdigit() or int(timezone) < 0 or int(timezone) > 23:
+    # Check that datetime (excluding timezone) is a valid datetime in the expected format.
+    # Note that any digits after the seconds (usually expected to represent timezone), do not need to be validated.
+    if len(timestamp) < 15:
         return False
 
-    # Check that datetime (excluding timezone) is a valid datetime in the expected format
     try:
-        datetime.strptime(timestamp[:-2], "%Y%m%dT%H%M%S")
+        datetime.strptime(timestamp[:15], "%Y%m%dT%H%M%S")
     except ValueError:
         return False
 
@@ -40,6 +43,7 @@ def get_supplier_permissions(supplier: str) -> list:
     be downloaded, or the supplier has no permissions.
     """
     config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
+    print(config_bucket_name, "CONFIG BUCKET NAME")
     return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
 
 
@@ -49,7 +53,7 @@ def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
     return vaccine_type in " ".join(allowed_permissions)
 
 
-def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_type: str) -> bool:
+def validate_action_flag_permissions(csv_content_dict_reader, supplier: str, vaccine_type: str) -> bool:
     """
     Returns True if the supplier has permission to perform ANY of the requested actions for the given vaccine type,
     else False.
@@ -64,7 +68,7 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
 
     # Extract a list of all unique operation permissions requested in the csv file
     operations_requested = set()
-    for row in csv_dict_reader:
+    for row in csv_content_dict_reader:
         action_flag = row.get("ACTION_FLAG", "").upper()
         operations_requested.add("CREATE" if action_flag == "NEW" else action_flag)
 
@@ -82,7 +86,7 @@ def validate_action_flag_permissions(csv_dict_reader, supplier: str, vaccine_typ
     return False
 
 
-def initial_file_validation(file_key: str, bucket_name: str, s3_client) -> bool:
+def initial_file_validation(file_key: str, bucket_name: str) -> bool:
     """
     Return True if all elements of file key are valid, content headers are valid and the supplier has the
     appropriate permissions. Else return False.

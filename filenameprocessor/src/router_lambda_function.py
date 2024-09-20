@@ -39,7 +39,7 @@ def lambda_handler(event, context):
 
         try:
             # Validate the file
-            validation_passed = initial_file_validation(file_key, bucket_name, s3_client)
+            validation_passed = initial_file_validation(file_key, bucket_name)
 
             # If file is valid then send a message to the SQS queue
             message_delivered = (

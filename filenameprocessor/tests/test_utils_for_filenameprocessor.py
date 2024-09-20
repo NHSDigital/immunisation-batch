@@ -1,16 +1,15 @@
 """Tests for utils_for_filenameprocessor functions"""
 
 import unittest
-import boto3
 from unittest.mock import patch
 from moto import mock_s3
-from utils_for_filenameprocessor import (
+from src.utils_for_filenameprocessor import (
     get_environment,
     get_csv_content_dict_reader,
     identify_supplier,
     extract_file_key_elements,
 )
-from src.constants import Constants
+from tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file
 
 
 class TestUtilsForFilenameprocessor(unittest.TestCase):
@@ -19,16 +18,6 @@ class TestUtilsForFilenameprocessor(unittest.TestCase):
     def setUp(self):
         self.test_file_key = "test_file_key"
         self.test_bucket_name = "test_bucket"
-
-    def setup_s3_bucket_and_file(self, test_bucket_name, test_file_key, test_file_content=Constants.valid_file_content):
-        """
-        Sets up the S3 client and uploads the test file, containing the test file content, to a bucket named
-        'test_bucket'. Returns the S3 client
-        """
-        s3_client = boto3.client("s3", region_name="eu-west-2")
-        s3_client.create_bucket(Bucket=test_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
-        s3_client.put_object(Bucket=test_bucket_name, Key=test_file_key, Body=test_file_content)
-        return s3_client
 
     def test_get_environment(self):
         "Tests that get_environment returns the correct environment"
@@ -43,14 +32,14 @@ class TestUtilsForFilenameprocessor(unittest.TestCase):
 
         for test_value, expected_result in test_values.items():
             with self.subTest():
-                with patch("os.getenv", return_value=test_value):
+                with patch("src.utils_for_filenameprocessor.os.getenv", return_value=test_value):
                     self.assertEqual(get_environment(), expected_result)
 
     @mock_s3
     def test_get_csv_content_dict_reader(self):
         """Test that get_csv_content_dict_reader can download and correctly read the data file"""
         test_file_content = "HEADER1|HEADER2\nvalue1|value2"
-        s3_client = self.setup_s3_bucket_and_file(self.test_bucket_name, self.test_file_key, test_file_content)
+        s3_client = setup_s3_bucket_and_file(self.test_bucket_name, self.test_file_key, test_file_content)
 
         csv_content_dict_reader = get_csv_content_dict_reader(self.test_bucket_name, self.test_file_key, s3_client)
 
