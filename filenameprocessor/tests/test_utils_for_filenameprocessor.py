@@ -10,7 +10,7 @@ from utils_for_filenameprocessor import (
     identify_supplier,
     extract_file_key_elements,
 )
-from constants import Constants
+from src.constants import Constants
 
 
 class TestUtilsForFilenameprocessor(unittest.TestCase):
