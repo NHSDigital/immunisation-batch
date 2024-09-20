@@ -6,7 +6,7 @@ class Constants:
 
     VALID_VACCINE_TYPES = ["FLU", "COVID19", "MMR"]
 
-    VALID_VERSIONS = ["v5"]
+    VALID_VERSIONS = ["V5"]
 
     EXPECTED_CSV_HEADERS = [
         "NHS_NUMBER",

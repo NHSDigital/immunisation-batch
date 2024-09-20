@@ -45,7 +45,7 @@ class TestRouterLambdaFunctions(unittest.TestCase):
     def test_identify_supplier(self):
         """tests supplier is correctly matched"""
         self.assertEqual(identify_supplier(self.ods_code), "EMIS")
-        self.assertEqual(identify_supplier("NOT_A_VALID_ODS_CODE"), None)
+        self.assertEqual(identify_supplier("NOT_A_VALID_ODS_CODE"), "")
 
     # TODO: Test extract_file_key_elements function
 

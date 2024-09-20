@@ -88,7 +88,7 @@ def initial_file_validation(file_key: str, bucket_name: str, s3_client) -> bool:
     appropriate permissions. Else return False.
     """
     # Validate file name format
-    if not (file_key.count(".") == 1 and file_key.count("_") == 4 and file_key.endswith(".csv")):
+    if not (file_key.count(".") == 1 and file_key.count("_") == 4 and file_key.upper().endswith(".CSV")):
         return False
 
     # Extract elements from the file key
@@ -99,7 +99,7 @@ def initial_file_validation(file_key: str, bucket_name: str, s3_client) -> bool:
     # Validate each file key element
     if not (
         vaccine_type in Constants.VALID_VACCINE_TYPES
-        and file_key_elements["vaccination"] == "vaccinations"
+        and file_key_elements["vaccination"] == "VACCINATIONS"
         and file_key_elements["version"] in Constants.VALID_VERSIONS
         and supplier  # Note that if supplier could be identified, this also verifies that ODS code is valid
         and is_valid_datetime(file_key_elements["timestamp"])
