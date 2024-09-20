@@ -1,13 +1,9 @@
 import unittest
 import os
 import io
-import json
 import csv
 from unittest.mock import patch, MagicMock
-import boto3
-from moto import mock_sqs
 from router_lambda_function import make_and_upload_ack_file
-from send_sqs_message import send_to_supplier_queue
 
 
 def convert_csv_to_string(filename):

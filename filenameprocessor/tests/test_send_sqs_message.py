@@ -10,6 +10,7 @@ from src.send_sqs_message import send_to_supplier_queue, make_message_body_for_s
 from tests.utils_for_filenameprocessor_tests import MOCK_ENVIRONMENT_DICT
 
 
+@patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestSendSQSMessage(unittest.TestCase):
     """Tests for send_sqs_meesage functions"""
 
@@ -30,10 +31,7 @@ class TestSendSQSMessage(unittest.TestCase):
         )["QueueUrl"]
 
         # Call the send_to_supplier_queue function
-        with (
-            patch("src.send_sqs_message.sqs_client", mock_sqs_client),
-            patch.dict("os.environ", MOCK_ENVIRONMENT_DICT),
-        ):
+        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
             self.assertTrue(send_to_supplier_queue(message_body))
 
         # Assert that correct message has reached the queue
@@ -50,10 +48,7 @@ class TestSendSQSMessage(unittest.TestCase):
         message_body = {"supplier": supplier}
 
         # Call the send_to_supplier_queue function without setting up the supplier queue
-        with (
-            patch("src.send_sqs_message.sqs_client", mock_sqs_client),
-            patch.dict("os.environ", MOCK_ENVIRONMENT_DICT),
-        ):
+        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
             self.assertFalse(send_to_supplier_queue(message_body))
 
     @mock_sqs
@@ -75,10 +70,7 @@ class TestSendSQSMessage(unittest.TestCase):
         )["QueueUrl"]
 
         # Call the send_to_supplier_queue function
-        with (
-            patch("src.send_sqs_message.sqs_client", mock_sqs_client),
-            patch.dict("os.environ", MOCK_ENVIRONMENT_DICT),
-        ):
+        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
             self.assertFalse(send_to_supplier_queue(message_body))
             mock_sqs_client.send_message.assert_not_called()
 
@@ -121,10 +113,7 @@ class TestSendSQSMessage(unittest.TestCase):
         )["QueueUrl"]
 
         # Call the send_to_supplier_queue function
-        with (
-            patch("src.send_sqs_message.sqs_client", mock_sqs_client),
-            patch.dict("os.environ", MOCK_ENVIRONMENT_DICT),
-        ):
+        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
             self.assertTrue(make_and_send_sqs_message(file_key=file_key, message_id=message_id))
 
         # Assert that correct message has reached the queue
@@ -141,8 +130,5 @@ class TestSendSQSMessage(unittest.TestCase):
         message_id = str(uuid4())
 
         # Call the send_to_supplier_queue function without setting up the queue
-        with (
-            patch("src.send_sqs_message.sqs_client", mock_sqs_client),
-            patch.dict("os.environ", MOCK_ENVIRONMENT_DICT),
-        ):
+        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
             self.assertFalse(make_and_send_sqs_message(file_key=file_key, message_id=message_id))
