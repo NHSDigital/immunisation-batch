@@ -3,7 +3,7 @@ import os
 import io
 import csv
 from unittest.mock import patch, MagicMock
-from router_lambda_function import make_and_upload_ack_file
+from make_and_upload_ack_file import make_and_upload_ack_file
 
 
 def convert_csv_to_string(filename):
@@ -36,6 +36,6 @@ class TestRouterLambdaFunctions(unittest.TestCase):
         validation_passed = True
         created_at_formatted = "20240725T12510700"
         s3_client = MagicMock()
-        with patch("create_ack_file.s3_client", s3_client):
+        with patch("make_and_upload_ack_file.s3_client", s3_client):
             make_and_upload_ack_file("1", self.file_key, validation_passed, True, created_at_formatted)
         s3_client.upload_fileobj.assert_called_once()

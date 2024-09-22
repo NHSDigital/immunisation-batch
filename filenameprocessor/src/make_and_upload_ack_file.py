@@ -9,7 +9,7 @@ from utils_for_filenameprocessor import get_environment
 s3_client = boto3.client("s3", region_name="eu-west-2")
 
 
-def make_ack_data(message_id: str, validation_passed: bool, message_delivery: bool, created_at_formatted) -> dict:
+def make_ack_data(message_id: str, validation_passed: bool, message_delivered: bool, created_at_formatted) -> dict:
     """Returns a dictionary of ack data based on the input values. Dictionary keys are the ack file headers,
     dictionary values are the values for the ack file row"""
     return {
@@ -26,13 +26,13 @@ def make_ack_data(message_id: str, validation_passed: bool, message_delivery: bo
         "RECEIVED_TIME": created_at_formatted,
         "MAILBOX_FROM": "TBC",  # TODO: Use correct value once known
         "LOCAL_ID": "TBC",  # TODO: Use correct value once known
-        "MESSAGE_DELIVERY": message_delivery,
+        "MESSAGE_DELIVERY": message_delivered,
     }
 
 
 def upload_ack_file(file_key: str, ack_data: dict) -> None:
     """Formats the ack data into a csv file and uploads it to the ack bucket"""
-    ack_filename = f"ack/{file_key.split('.')[0]}_response.csv"
+    ack_filename = "ack/" + file_key.replace(".csv", "_response.csv")
 
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
@@ -48,8 +48,8 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
 
 
 def make_and_upload_ack_file(
-    message_id: str, file_key: str, validation_passed: bool, message_delivery: bool, created_at_formatted
+    message_id: str, file_key: str, validation_passed: bool, message_delivered: bool, created_at_formatted
 ) -> None:
     """Creates the ack file and uploads it to the S3 ack bucket"""
-    ack_data = make_ack_data(message_id, validation_passed, message_delivery, created_at_formatted)
+    ack_data = make_ack_data(message_id, validation_passed, message_delivered, created_at_formatted)
     upload_ack_file(file_key=file_key, ack_data=ack_data)
