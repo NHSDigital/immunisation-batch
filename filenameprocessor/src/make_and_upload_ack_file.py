@@ -9,7 +9,9 @@ from utils_for_filenameprocessor import get_environment
 s3_client = boto3.client("s3", region_name="eu-west-2")
 
 
-def make_ack_data(message_id: str, validation_passed: bool, message_delivered: bool, created_at_formatted) -> dict:
+def make_ack_data(
+    message_id: str, validation_passed: bool, message_delivered: bool, created_at_formatted_string
+) -> dict:
     """Returns a dictionary of ack data based on the input values. Dictionary keys are the ack file headers,
     dictionary values are the values for the ack file row"""
     return {
@@ -23,7 +25,7 @@ def make_ack_data(message_id: str, validation_passed: bool, message_delivered: b
         "RESPONSE_DISPLAY": (
             "Success" if validation_passed else "Infrastructure Level Response Value - Processing Error"
         ),
-        "RECEIVED_TIME": created_at_formatted,
+        "RECEIVED_TIME": created_at_formatted_string,
         "MAILBOX_FROM": "TBC",  # TODO: Use correct value once known
         "LOCAL_ID": "TBC",  # TODO: Use correct value once known
         "MESSAGE_DELIVERY": message_delivered,
@@ -48,8 +50,8 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
 
 
 def make_and_upload_ack_file(
-    message_id: str, file_key: str, validation_passed: bool, message_delivered: bool, created_at_formatted
+    message_id: str, file_key: str, validation_passed: bool, message_delivered: bool, created_at_formatted_string
 ) -> None:
     """Creates the ack file and uploads it to the S3 ack bucket"""
-    ack_data = make_ack_data(message_id, validation_passed, message_delivered, created_at_formatted)
+    ack_data = make_ack_data(message_id, validation_passed, message_delivered, created_at_formatted_string)
     upload_ack_file(file_key=file_key, ack_data=ack_data)

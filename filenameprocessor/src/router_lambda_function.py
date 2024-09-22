@@ -19,37 +19,47 @@ logger.setLevel(logging.INFO)
 s3_client = boto3.client("s3", region_name="eu-west-2")
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, context):  # pylint: disable=unused-argument
     """Lambda handler for filenameprocessor lambda"""
     error_files = []
 
     # For each file
     for record in event["Records"]:
-
-        # Assign a unique message_id
-        message_id = str(uuid.uuid4())
-
-        # Obtain the file details
-        bucket_name = record["s3"]["bucket"]["name"]
-        file_key = record["s3"]["object"]["key"]
-        response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-        created_at_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
-
         try:
+            # Assign a unique message_id
+            message_id = str(uuid.uuid4())
+
+            # Obtain the file details
+            bucket_name = record["s3"]["bucket"]["name"]
+            file_key = record["s3"]["object"]["key"]
+            response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
+            created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
+
             # Validate the file
             validation_passed = initial_file_validation(file_key, bucket_name)
 
             # If file is valid then send a message to the SQS queue
             message_delivered = make_and_send_sqs_message(file_key, message_id) if validation_passed else False
 
-        except Exception as e:
-            logging.error("Error processing file'%s': %s", file_key, str(e))
+            # Upload the ack file
+            make_and_upload_ack_file(
+                message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
+            )
+
+        except Exception as error:  # pylint: disable=broad-except
+            # If an unexpected error occured, add the file to the error_files list, and upload an ack file
+            message_id = message_id or "Message id was not created"
+            file_key = file_key or "Unable to identify file key"
             validation_passed = False
             message_delivered = False
+            created_at_formatted_string = created_at_formatted_string or "Unable to identify or format created at time"
+            logging.error("Error processing file'%s': %s", file_key, str(error))
             error_files.append(file_key)
+            make_and_upload_ack_file(
+                message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
+            )
 
-        make_and_upload_ack_file(message_id, file_key, validation_passed, message_delivered, created_at_string)
-
+    # Log a list of files which could not be processed
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))
 
