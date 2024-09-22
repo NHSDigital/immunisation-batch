@@ -6,8 +6,8 @@ import json
 from typing import Optional
 import boto3
 from moto import mock_s3, mock_sqs
-from src.constants import Constants
 from router_lambda_function import lambda_handler
+from tests.values_for_tests import VALID_FILE_CONTENT
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestLambdaHandler(unittest.TestCase):
         """
         # Use the default test_file_key and test_file_content if these aren't provided as args
         test_file_key = test_file_key or self.test_file_key
-        test_file_content = test_file_content or Constants.valid_file_content
+        test_file_content = test_file_content or VALID_FILE_CONTENT
 
         # Set up S3
         s3_client = boto3.client("s3", region_name="eu-west-2")
@@ -114,7 +114,7 @@ class TestLambdaHandler(unittest.TestCase):
     def test_lambda_invalid_csv_header(self):
         """tests SQS queue is not called when CSV headers are invalid due to misspelled header"""
         s3_client = self.set_up_s3_buckets_and_upload_file(
-            test_file_content=Constants.valid_file_content.replace("PERSON_DOB", "PERON_DOB"),
+            test_file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB"),
         )
 
         # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
@@ -138,7 +138,7 @@ class TestLambdaHandler(unittest.TestCase):
     def test_lambda_invalid_columns_header_count(self):
         """tests SQS queue is not called when CSV headers are invalid due to missing header"""
         s3_client = self.set_up_s3_buckets_and_upload_file(
-            test_file_content=Constants.valid_file_content.replace("PERSON_DOB|", ""),
+            test_file_content=VALID_FILE_CONTENT.replace("PERSON_DOB|", ""),
         )
 
         # Mock the get_supplier_permissions functions and send_to_supplier_queue functions
@@ -240,7 +240,7 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     def test_lambda_valid_action_flag_permissions(self):
         """tests SQS queue is called when has action flag permissions"""
-        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_content=Constants.valid_file_content)
+        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_content=VALID_FILE_CONTENT)
 
         # Mock the get_supplier_permissions (with return value which includes the requested Flu permissions)
         # and send_to_supplier_queue functions
@@ -257,7 +257,7 @@ class TestLambdaHandler(unittest.TestCase):
     @mock_s3
     def test_lambda_invalid_action_flag_permissions(self):
         """tests SQS queue is called when has action flag permissions"""
-        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_content=Constants.valid_file_content)
+        s3_client = self.set_up_s3_buckets_and_upload_file(test_file_content=VALID_FILE_CONTENT)
 
         # Mock the get_supplier_permissions (with return value which doesn't include the requested Flu permissions)
         # and send_to_supplier_queue functions

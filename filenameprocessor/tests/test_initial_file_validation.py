@@ -15,8 +15,8 @@ from src.initial_file_validation import (
     validate_action_flag_permissions,
     initial_file_validation,
 )
-from src.constants import Constants
 from tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file
+from tests.values_for_tests import VALID_FILE_CONTENT
 
 
 def convert_string_to_dict_reader(data_string: str):
@@ -54,10 +54,10 @@ class TestInitialFileValidation(unittest.TestCase):
     def test_validate_content_headers(self):
         "Tests that validate_content_headers returns True for an exact header match and False otherwise"
         test_cases = {
-            Constants.valid_file_content: True,  # Valid file content
-            Constants.valid_file_content.replace("SITE_CODE", "SITE_COVE"): False,  # Misspelled header
-            Constants.valid_file_content.replace("SITE_CODE|", ""): False,  # Missing header
-            Constants.valid_file_content.replace("PERSON_DOB|", "PERSON_DOB|EXTRA_HEADER|"): False,  # Extra header
+            VALID_FILE_CONTENT: True,  # Valid file content
+            VALID_FILE_CONTENT.replace("SITE_CODE", "SITE_COVE"): False,  # Misspelled header
+            VALID_FILE_CONTENT.replace("SITE_CODE|", ""): False,  # Missing header
+            VALID_FILE_CONTENT.replace("PERSON_DOB|", "PERSON_DOB|EXTRA_HEADER|"): False,  # Extra header
         }
 
         for test_value, expected_result in test_cases.items():
@@ -122,8 +122,8 @@ class TestInitialFileValidation(unittest.TestCase):
         Tests that validate_action_flag_permissions returns True if supplier has permissions to perform at least one
         of the requested CRUD operations for the given vaccine type, and False otherwise
         """
-        # Note that Constants.valid_file_content contains one "new" and one "update" ACTION_FLAG
-        valid_file_content = Constants.valid_file_content
+        # Note that VALID_FILE_CONTENT contains one "new" and one "update" ACTION_FLAG
+        valid_file_content = VALID_FILE_CONTENT
         valid_content_new_and_update_lowercase = valid_file_content
         valid_content_new_and_update_uppercase = valid_file_content.replace("new", "NEW").replace("update", "UPDATE")
         valid_content_new_and_update_mixedcase = valid_file_content.replace("new", "New").replace("update", "uPdAte")
@@ -177,7 +177,7 @@ class TestInitialFileValidation(unittest.TestCase):
             Bucket=self.test_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
         valid_file_key = "Flu_Vaccinations_v5_YGA_20200101T12345600.csv"
-        valid_file_content = Constants.valid_file_content
+        valid_file_content = VALID_FILE_CONTENT
 
         # Test case tuples are stuctured as (file_key, file_content, expected_result)
         test_cases_for_full_permissions = [

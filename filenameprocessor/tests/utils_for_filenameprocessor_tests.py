@@ -4,7 +4,7 @@ from os import path
 from io import StringIO
 from csv import reader, DictReader
 from boto3 import client as boto3_client
-from src.constants import Constants
+from tests.values_for_tests import VALID_FILE_CONTENT
 
 # Dictionary for mocking the os.environ dict
 MOCK_ENVIRONMENT_DICT = {
@@ -16,7 +16,7 @@ MOCK_ENVIRONMENT_DICT = {
 
 
 def setup_s3_bucket_and_file(
-    test_bucket_name: str, test_file_key: str, test_file_content: str = Constants.valid_file_content
+    test_bucket_name: str, test_file_key: str, test_file_content: str = VALID_FILE_CONTENT
 ) -> None:
     """
     Sets up the S3 client and uploads the test file, containing the test file content, to a bucket named 'test_bucket'
