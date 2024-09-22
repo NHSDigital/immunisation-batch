@@ -1,4 +1,4 @@
-"""Tests for send_sqs_meesage functions"""
+"""Tests for send_sqs_message functions"""
 
 import unittest
 import json
@@ -7,12 +7,12 @@ from unittest.mock import patch, MagicMock
 from moto import mock_sqs
 import boto3
 from src.send_sqs_message import send_to_supplier_queue, make_message_body_for_sqs, make_and_send_sqs_message
-from tests.utils_for_filenameprocessor_tests import MOCK_ENVIRONMENT_DICT
+from tests.values_for_tests import MOCK_ENVIRONMENT_DICT
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestSendSQSMessage(unittest.TestCase):
-    """Tests for send_sqs_meesage functions"""
+    """Tests for send_sqs_message functions"""
 
     @mock_sqs
     def test_send_to_supplier_queue_success(self):

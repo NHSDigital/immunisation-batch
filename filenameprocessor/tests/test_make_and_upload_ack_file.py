@@ -1,4 +1,4 @@
-"""Tests for initial_file_validation functions"""
+"""Tests for make_and_upload_ack_file functions"""
 
 from unittest import TestCase
 from unittest.mock import patch
@@ -9,12 +9,12 @@ from csv import DictReader
 from boto3 import client as boto3_client
 from moto import mock_s3
 from src.make_and_upload_ack_file import make_ack_data, upload_ack_file, make_and_upload_ack_file
-from tests.utils_for_filenameprocessor_tests import MOCK_ENVIRONMENT_DICT
+from tests.values_for_tests import MOCK_ENVIRONMENT_DICT
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
-class TestInitialFileValidation(TestCase):
-    """Tests for utils_for_filenameprocessor functions"""
+class TestMakeAndUploadAckFile(TestCase):
+    """Tests for make_and_upload_ack_file functions"""
 
     def setUp(self):
         """Set up test values to be used for the tests"""

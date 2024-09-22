@@ -1,5 +1,13 @@
 """File of values which can be used for testing"""
 
+# Dictionary for mocking the os.environ dict
+MOCK_ENVIRONMENT_DICT = {
+    "ENVIRONMENT": "internal-dev",
+    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
+    "LOCAL_ACCOUNT_ID": "123456789012",
+    "PROD_ACCOUNT_ID": "3456789109",
+}
+
 VALID_FILE_CONTENT = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
     "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"

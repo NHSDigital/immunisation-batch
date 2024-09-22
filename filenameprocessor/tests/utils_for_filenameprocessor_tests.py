@@ -6,13 +6,7 @@ from csv import reader, DictReader
 from boto3 import client as boto3_client
 from tests.values_for_tests import VALID_FILE_CONTENT
 
-# Dictionary for mocking the os.environ dict
-MOCK_ENVIRONMENT_DICT = {
-    "ENVIRONMENT": "internal-dev",
-    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-    "LOCAL_ACCOUNT_ID": "123456789012",
-    "PROD_ACCOUNT_ID": "3456789109",
-}
+
 
 
 def setup_s3_bucket_and_file(
