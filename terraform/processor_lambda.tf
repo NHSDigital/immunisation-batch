@@ -304,6 +304,7 @@ resource "aws_ecs_service" "ecs_service" {
 #   })
 # }
 
+
 # IAM Role for EventBridge Pipe
 resource "aws_iam_role" "pipe_role" {
 name = "eventbridge-pipe-role"
@@ -330,11 +331,21 @@ inline_policy {
            "sqs:DeleteMessage",
            "sqs:GetQueueAttributes",
            "ecs:RunTask",
-           "ecs:StartTask"
+           "ecs:StartTask",
+           "logs:CreateLogGroup",
+           "logs:CreateLogStream",
+           "logs:PutLogEvents"
          ]
          Effect = "Allow"
          Resource = "*"
        },
+       {
+         Effect   = "Allow",
+         Action   = [
+            "iam:PassRole"
+        ],
+         Resource = aws_iam_role.ecs_task_exec_role.arn
+      }
      ]
    })
 }
@@ -360,4 +371,19 @@ resource "aws_pipes_pipe" "my_pipe" {
       task_count = 1
     }
   }
+#   logging_configuration {
+#    level = "ERROR"
+#    log_destination = "CLOUDWATCH_LOGS"
+#  }
 }
+# # Custom Log Group
+# resource "aws_cloudwatch_log_group" "custom_log_group" {
+#  name = "${local.prefix}-pipe-logs"
+# }
+# # Subscription Filter
+# resource "aws_cloudwatch_log_subscription_filter" "pipe_log_filter" {
+#  name            = "pipe-log-filter"
+#  log_group_name  = "/aws/pipes/${aws_pipes_pipe.my_pipe.name}" # Default log group
+#  filter_pattern  = "" # Match all log events
+#  destination_arn = aws_cloudwatch_log_group.custom_log_group.arn
+# }
