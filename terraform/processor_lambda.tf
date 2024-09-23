@@ -45,7 +45,7 @@ module "processing_docker_image" {
   })
   
   platform      = "linux/amd64"
-  use_image_tag = false
+  use_image_tag = true
   source_path   = local.processing_lambda_dir
   triggers = {
     dir_sha = local.processing_lambda_dir_sha
