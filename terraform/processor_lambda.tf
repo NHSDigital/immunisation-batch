@@ -345,6 +345,6 @@ resource "aws_pipes_pipe" "my_pipe" {
 name = "${local.prefix}-pipe"
 role_arn = aws_iam_role.pipe_role.arn
 source = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
-target = "arn:aws:ecs:eu-west-2:790083933819:task-definition/${local.prefix}-processor-task:14"
+target = aws_ecs_task_definition.ecs_task.arn
 }
 
