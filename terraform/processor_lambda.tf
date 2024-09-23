@@ -346,19 +346,5 @@ name = "${local.prefix}-pipe"
 role_arn = aws_iam_role.pipe_role.arn
 source = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
 target = "arn:aws:ecs:eu-west-2:790083933819:task-definition/${local.prefix}-processor-task:14"
-target_parameters {
-   ecs_task_parameters {
-     task_definition_arn = "arn:aws:ecs:eu-west-2:790083933819:task-definition/${local.prefix}-processor-task:14"
-     task_count          = 1
-     launch_type         = "FARGATE"
-     cluster             = "immunisation-batch-pr-49-ecs-cluster"  
-     network_configuration {
-       awsvpc_configuration {
-         subnets          = data.aws_subnets.default.ids
-         assign_public_ip = true
-       }
-     }
-   }
-}
 }
 

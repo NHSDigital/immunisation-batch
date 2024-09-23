@@ -2,7 +2,6 @@ locals {
   forwarder_lambda_dir      = abspath("${path.root}/../recordforwarder")
   forwarder_lambda_files    = fileset(local.forwarder_lambda_dir, "**")
   forwarding_lambda_dir_sha = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
-  new_stream_arns           = [for stream in data.aws_kinesis_stream.processingstreams : stream.arn]
 }
 
 module "forwarding_docker_image" {
@@ -107,7 +106,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:DescribeStream",
           "kinesis:ListStreams"
         ]
-        Resource = [for stream in local.new_stream_arns : stream]
+        Resource = local.new_kinesis_arns
       }
     ]
   })
@@ -144,20 +143,20 @@ resource "aws_lambda_function" "forwarding_lambda" {
   ]
 }
 
-# Create a map with index-based keys to use in for_each
-locals {
-  kinesis_stream_map = {
-    for idx, arn in local.new_stream_arns : idx => arn
-  }
-}
+# # Create a map with index-based keys to use in for_each
+# locals {
+#   kinesis_stream_map = {
+#     for idx, arn in local.new_stream_arns : idx => arn
+#   }
+# }
 
-resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
-  for_each          = local.kinesis_stream_map
-  event_source_arn  = each.value
-  function_name     = aws_lambda_function.forwarding_lambda.function_name
-  starting_position = "LATEST"
-  batch_size        = 1
-  enabled           = true
+# resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
+#   for_each          = local.kinesis_stream_map
+#   event_source_arn  = each.value
+#   function_name     = aws_lambda_function.forwarding_lambda.function_name
+#   starting_position = "LATEST"
+#   batch_size        = 1
+#   enabled           = true
 
-  depends_on = [aws_lambda_function.forwarding_lambda]
-}
+#   depends_on = [aws_lambda_function.forwarding_lambda]
+# }
