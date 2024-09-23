@@ -261,24 +261,24 @@ def process_lambda_handler(message_body):
         logger.error(f"Error processing message: {e}")
 
 
-def main():
-    # Get the message from the environment variable
-    print("started")
-    message_body = os.getenv('SQS_MESSAGE')
+# def main():
+#     # Get the message from the environment variable
+#     print("started")
+#     # message_body = os.getenv('SQS_MESSAGE')
 
-    # Log the message for debugging
-    print(f"Received message from environment variable: {message_body}")
+#     # Log the message for debugging
+#     print(f"Received message from environment variable: {message_body}")
 
-    if message_body:
-        try:
-            print("1")
-            message_body_json = json.loads(message_body)
-            print(f"Parsed message body: {json.dumps(message_body_json, indent=2)}")
-        except json.JSONDecodeError:
-            print("Error: Message is not valid JSON")
-    else:
-        print("No message received.")
+#     if message_body:
+#         try:
+#             print("1")
+#             message_body_json = json.loads(message_body)
+#             print(f"Parsed message body: {json.dumps(message_body_json, indent=2)}")
+#         except json.JSONDecodeError:
+#             print("Error: Message is not valid JSON")
+#     else:
+#         print("No message received.")
 
 
 if __name__ == "__main__":
-    main()
+    process_lambda_handler()

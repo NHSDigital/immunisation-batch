@@ -181,10 +181,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
       {
         name  = "KINESIS_STREAM_ARN"
         value = jsonencode(local.new_kinesis_arns)
-      },
-      {
-        name  = "SQS_MESSAGE"
-        value = "" # This will be populated by EventBridge
       }
     ]
     logConfiguration = {
@@ -200,111 +196,169 @@ resource "aws_ecs_task_definition" "ecs_task" {
 }
 
 # Define the ECS Service to Run the Task Definition
-resource "aws_ecs_service" "ecs_service" {
-  name            = "${local.prefix}-processor-service"
-  cluster         = aws_ecs_cluster.ecs_cluster.id
-  task_definition = aws_ecs_task_definition.ecs_task.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+# resource "aws_ecs_service" "ecs_service" {
+#   name            = "${local.prefix}-processor-service"
+#   cluster         = aws_ecs_cluster.ecs_cluster.id
+#   task_definition = aws_ecs_task_definition.ecs_task.arn
+#   desired_count   = 1
+#   launch_type     = "FARGATE"
 
-  network_configuration {
-            subnets          = data.aws_subnets.default.ids
-            assign_public_ip = true
-        }
-}
+#   network_configuration {
+#             subnets          = data.aws_subnets.default.ids
+#             assign_public_ip = true
+#         }
+# }
 
 # Create IAM Role for EventBridge to Trigger ECS Task
-resource "aws_iam_role" "eventbridge_ecs_role" {
-  name = "${local.prefix}-eventbridge-ecs-role"
+# resource "aws_iam_role" "eventbridge_ecs_role" {
+#   name = "${local.prefix}-eventbridge-ecs-role"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = {
-          Service = "events.amazonaws.com"
-        },
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect = "Allow",
+#         Principal = {
+#           Service = "events.amazonaws.com"
+#         },
+#         Action = "sts:AssumeRole"
+#       }
+#     ]
+#   })
+# }
 
 # Attach the ECS Task Execution Role to EventBridge role
-resource "aws_iam_role_policy_attachment" "eventbridge_ecs_role_policy_attachment" {
-  role       = aws_iam_role.eventbridge_ecs_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
+# resource "aws_iam_role_policy_attachment" "eventbridge_ecs_role_policy_attachment" {
+#   role       = aws_iam_role.eventbridge_ecs_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+# }
 
-# Custom policy for ECS task execution triggered by EventBridge
-resource "aws_iam_policy" "eventbridge_ecs_policy" {
-  name   = "${local.prefix}-eventbridge-ecs-policy"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = [
-          "ecs:RunTask",
-          "ecs:StartTask"
-        ],
-        Resource = aws_ecs_task_definition.ecs_task.arn
-      },
-      {
-        Effect   = "Allow",
-        Action   = [
-          "iam:PassRole"
-        ],
-        Resource = aws_iam_role.ecs_task_exec_role.arn
-      }
-    ]
-  })
-}
+# # Custom policy for ECS task execution triggered by EventBridge
+# resource "aws_iam_policy" "eventbridge_ecs_policy" {
+#   name   = "${local.prefix}-eventbridge-ecs-policy"
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect   = "Allow",
+#         Action   = [
+#           "ecs:RunTask",
+#           "ecs:StartTask"
+#         ],
+#         Resource = aws_ecs_task_definition.ecs_task.arn
+#       },
+#       {
+#         Effect   = "Allow",
+#         Action   = [
+#           "iam:PassRole"
+#         ],
+#         Resource = aws_iam_role.ecs_task_exec_role.arn
+#       }
+#     ]
+#   })
+# }
 
-resource "aws_iam_role_policy_attachment" "eventbridge_ecs_policy_attachment" {
-  role       = aws_iam_role.eventbridge_ecs_role.name
-  policy_arn = aws_iam_policy.eventbridge_ecs_policy.arn
-}
+# resource "aws_iam_role_policy_attachment" "eventbridge_ecs_policy_attachment" {
+#   role       = aws_iam_role.eventbridge_ecs_role.name
+#   policy_arn = aws_iam_policy.eventbridge_ecs_policy.arn
+# }
 
 # Create CloudWatch Event Rule for SQS Queues to Trigger ECS Task
-resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
-  name        = "${local.prefix}-ecs-trigger-rule"
-  description = "Trigger ECS task when a message arrives in any SQS queue"
+# resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
+#   name        = "${local.prefix}-ecs-trigger-rule"
+#   description = "Trigger ECS task when a message arrives in any SQS queue"
 
-  event_pattern = jsonencode({
-    "source": ["aws.sqs"],
-    "detail-type": ["AWS API Call via CloudTrail"],
-    "detail": {
-      "eventName": ["ReceiveMessage"],
-      "requestParameters": {
-        "queueUrl": ["${local.existing_sqs_arns}"]
-      }
-    }
-  })
+#   event_pattern = jsonencode({
+#     "source": ["aws.sqs"],
+#     "detail-type": ["AWS API Call via CloudTrail"],
+#     "detail": {
+#       "eventName": ["ReceiveMessage"],
+#       "requestParameters": {
+#         "queueUrl": ["${local.existing_sqs_arns}"]
+#       }
+#     }
+#   })
+# }
+
+# Create CloudWatch Event Target to Trigger ECS Task
+# Create CloudWatch Event Target to Trigger ECS Task
+# resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
+#   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
+#   arn       = aws_ecs_cluster.ecs_cluster.arn
+#   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
+
+#   ecs_target {
+#     task_count           = 1
+#     task_definition_arn  = aws_ecs_task_definition.ecs_task.arn
+#     launch_type          = "FARGATE"
+#     network_configuration {
+#       subnets          = data.aws_subnets.default.ids
+#       assign_public_ip = true
+#     }
+#     platform_version = "LATEST"
+#   }
+
+#   # Use 'input' to pass the message body from the SQS event to the ECS task
+#   input = jsonencode({
+#     "SQS_MESSAGE" = "$.detail.requestParameters.messageBody"
+#   })
+# }
+
+# IAM Role for EventBridge Pipe
+resource "aws_iam_role" "pipe_role" {
+name = "eventbridge-pipe-role"
+assume_role_policy = jsonencode({
+   Version = "2012-10-17"
+   Statement = [
+     {
+       Action = "sts:AssumeRole"
+       Effect = "Allow"
+       Principal = {
+         Service = "pipes.amazonaws.com"
+       }
+     }
+   ]
+})
+inline_policy {
+   name = "pipe-policy"
+   policy = jsonencode({
+     Version = "2012-10-17"
+     Statement = [
+       {
+         Action = [
+           "sqs:ReceiveMessage",
+           "sqs:DeleteMessage",
+           "sqs:GetQueueAttributes",
+           "ecs:RunTask",
+           "ecs:StartTask"
+         ]
+         Effect = "Allow"
+         Resource = *
+       },
+     ]
+   })
 }
-
-# Create CloudWatch Event Target to Trigger ECS Task
-# Create CloudWatch Event Target to Trigger ECS Task
-resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
-  rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
-  arn       = aws_ecs_cluster.ecs_cluster.arn
-  role_arn  = aws_iam_role.eventbridge_ecs_role.arn
-
-  ecs_target {
-    task_count           = 1
-    task_definition_arn  = aws_ecs_task_definition.ecs_task.arn
-    launch_type          = "FARGATE"
-    network_configuration {
-      subnets          = data.aws_subnets.default.ids
-      assign_public_ip = true
-    }
-    platform_version = "LATEST"
-  }
-
-  # Use 'input' to pass the message body from the SQS event to the ECS task
-  input = jsonencode({
-    "SQS_MESSAGE" = "$.detail.requestParameters.messageBody"
-  })
+}
+ 
+# EventBridge Pipe
+resource "aws_pipes_pipe" "my_pipe" {
+name = "${local.prefix}-pipe"
+role_arn = aws_iam_role.pipe_role.arn
+source = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
+target = "arn:aws:ecs:eu-west-2:790083933819:task-definition/${local.prefix}-processor-task:14"
+target_parameters {
+   ecs_task_parameters {
+     task_definition_arn = "arn:aws:ecs:eu-west-2:790083933819:task-definition/${local.prefix}-processor-task:14"
+     task_count          = 1
+     launch_type         = "FARGATE"
+     cluster             = "immunisation-batch-pr-49-ecs-cluster"  
+     network_configuration {
+       awsvpc_configuration {
+         subnets          = data.aws_subnets.default.ids
+         assign_public_ip = true
+       }
+     }
+   }
+}
 }
 
