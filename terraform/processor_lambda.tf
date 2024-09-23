@@ -212,104 +212,8 @@ resource "aws_ecs_service" "ecs_service" {
         }
 }
 
-# Create IAM Role for EventBridge to Trigger ECS Task
-# resource "aws_iam_role" "eventbridge_ecs_role" {
-#   name = "${local.prefix}-eventbridge-ecs-role"
-
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17",
-#     Statement = [
-#       {
-#         Effect = "Allow",
-#         Principal = {
-#           Service = "events.amazonaws.com"
-#         },
-#         Action = "sts:AssumeRole"
-#       }
-#     ]
-#   })
-# }
-
-# Attach the ECS Task Execution Role to EventBridge role
-# resource "aws_iam_role_policy_attachment" "eventbridge_ecs_role_policy_attachment" {
-#   role       = aws_iam_role.eventbridge_ecs_role.name
-#   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-# }
-
-# # Custom policy for ECS task execution triggered by EventBridge
-# resource "aws_iam_policy" "eventbridge_ecs_policy" {
-#   name   = "${local.prefix}-eventbridge-ecs-policy"
-#   policy = jsonencode({
-#     Version = "2012-10-17",
-#     Statement = [
-#       {
-#         Effect   = "Allow",
-#         Action   = [
-#           "ecs:RunTask",
-#           "ecs:StartTask"
-#         ],
-#         Resource = aws_ecs_task_definition.ecs_task.arn
-#       },
-#       {
-#         Effect   = "Allow",
-#         Action   = [
-#           "iam:PassRole"
-#         ],
-#         Resource = aws_iam_role.ecs_task_exec_role.arn
-#       }
-#     ]
-#   })
-# }
-
-# resource "aws_iam_role_policy_attachment" "eventbridge_ecs_policy_attachment" {
-#   role       = aws_iam_role.eventbridge_ecs_role.name
-#   policy_arn = aws_iam_policy.eventbridge_ecs_policy.arn
-# }
-
-# Create CloudWatch Event Rule for SQS Queues to Trigger ECS Task
-# resource "aws_cloudwatch_event_rule" "ecs_trigger_rule" {
-#   name        = "${local.prefix}-ecs-trigger-rule"
-#   description = "Trigger ECS task when a message arrives in any SQS queue"
-
-#   event_pattern = jsonencode({
-#     "source": ["aws.sqs"],
-#     "detail-type": ["AWS API Call via CloudTrail"],
-#     "detail": {
-#       "eventName": ["ReceiveMessage"],
-#       "requestParameters": {
-#         "queueUrl": ["${local.existing_sqs_arns}"]
-#       }
-#     }
-#   })
-# }
-
-# Create CloudWatch Event Target to Trigger ECS Task
-# Create CloudWatch Event Target to Trigger ECS Task
-# resource "aws_cloudwatch_event_target" "ecs_trigger_target" {
-#   rule      = aws_cloudwatch_event_rule.ecs_trigger_rule.name
-#   arn       = aws_ecs_cluster.ecs_cluster.arn
-#   role_arn  = aws_iam_role.eventbridge_ecs_role.arn
-
-#   ecs_target {
-#     task_count           = 1
-#     task_definition_arn  = aws_ecs_task_definition.ecs_task.arn
-#     launch_type          = "FARGATE"
-#     network_configuration {
-#       subnets          = data.aws_subnets.default.ids
-#       assign_public_ip = true
-#     }
-#     platform_version = "LATEST"
-#   }
-
-#   # Use 'input' to pass the message body from the SQS event to the ECS task
-#   input = jsonencode({
-#     "SQS_MESSAGE" = "$.detail.requestParameters.messageBody"
-#   })
-# }
-
-
 # IAM Role for EventBridge Pipe
-resource "aws_iam_role" "pipe_role" {
+resource "aws_iam_role" "fifo_pipe_role" {
 name = "${local.prefix}-eventbridge-pipe-role"
 assume_role_policy = jsonencode({
    Version = "2012-10-17"
@@ -323,8 +227,9 @@ assume_role_policy = jsonencode({
      }
    ]
 })
-inline_policy {
-   name = "${local.prefix}-pipe-policy"
+}
+resource "aws_iam_policy" "fifo_pipe_policy" {
+   name   = "${local.prefix}-fifo-pipe-policy"
    policy = jsonencode({
      Version = "2012-10-17"
      Statement = [
@@ -352,12 +257,17 @@ inline_policy {
      ]
    })
 }
-}
+
+ resource "aws_iam_role_policy_attachment" "fifo_pipe_policy_attachment" {
+   role       = aws_iam_role.fifo_pipe_role.name
+   policy_arn = aws_iam_policy.fifo_pipe_policy.arn
+ }
+
  
 # EventBridge Pipe
-resource "aws_pipes_pipe" "my_pipe" {
+resource "aws_pipes_pipe" "fifo_pipe" {
   name       = "${local.prefix}-pipe"
-  role_arn   = aws_iam_role.pipe_role.arn
+  role_arn   = aws_iam_role.fifo_pipe_role.arn
   source     = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
   target     = aws_ecs_cluster.ecs_cluster.arn
   target_parameters {
@@ -384,20 +294,5 @@ resource "aws_pipes_pipe" "my_pipe" {
 
 # Custom Log Group
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
-  name = "${local.prefix}-pipe-logs"
+  name = "/pipe/${local.prefix}-pipe-logs"
 }
-#   logging_configuration {
-#    level = "ERROR"
-#    log_destination = "CLOUDWATCH_LOGS"
-#  }
-# # Custom Log Group
-# resource "aws_cloudwatch_log_group" "custom_log_group" {
-#  name = "${local.prefix}-pipe-logs"
-# }
-# # Subscription Filter
-# resource "aws_cloudwatch_log_subscription_filter" "pipe_log_filter" {
-#  name            = "pipe-log-filter"
-#  log_group_name  = "/aws/pipes/${aws_pipes_pipe.my_pipe.name}" # Default log group
-#  filter_pattern  = "" # Match all log events
-#  destination_arn = aws_cloudwatch_log_group.custom_log_group.arn
-# }
