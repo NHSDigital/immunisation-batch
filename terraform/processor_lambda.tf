@@ -189,7 +189,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-group"         = "/ecs/${local.prefix}-processor-task"
+        "awslogs-group"         = "/aws/vendedlogs/ecs/${local.prefix}-processor-task"
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "ecs"
       }
