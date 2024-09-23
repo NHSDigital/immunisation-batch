@@ -285,7 +285,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
   }
  log_configuration {
     include_execution_data = ["ALL"]
-    level                  = "INFO"
+    level                  = "ERROR"
     cloudwatch_logs_log_destination {
       log_group_arn = aws_cloudwatch_log_group.pipe_log_group.arn
     }
