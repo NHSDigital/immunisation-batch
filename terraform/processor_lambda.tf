@@ -333,7 +333,7 @@ inline_policy {
            "ecs:StartTask"
          ]
          Effect = "Allow"
-         Resource = *
+         Resource = "*"
        },
      ]
    })
