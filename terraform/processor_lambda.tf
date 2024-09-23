@@ -342,9 +342,22 @@ inline_policy {
  
 # EventBridge Pipe
 resource "aws_pipes_pipe" "my_pipe" {
-name = "${local.prefix}-pipe"
-role_arn = aws_iam_role.pipe_role.arn
-source = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
-target = aws_ecs_task_definition.ecs_task.arn
-}
+  name       = "${local.prefix}-pipe"
+  role_arn   = aws_iam_role.pipe_role.arn
+  source     = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
+  target     = aws_ecs_cluster.ecs_cluster.arn
 
+  target_parameters {
+    ecs_task_parameters {
+      task_definition_arn = aws_ecs_task_definition.ecs_task.arn
+      launch_type         = "FARGATE"
+      network_configuration {
+        awsvpc_configuration {
+          subnets         = data.aws_subnets.default.ids
+          assign_public_ip = true
+        }
+      }
+      task_count = 1
+    }
+  }
+}
