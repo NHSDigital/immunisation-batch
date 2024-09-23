@@ -240,23 +240,24 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
     )  # logger the total number of rows processed
 
 
-def process_lambda_handler(message_body):
+def process_lambda_handler(event, context):
     """Process the message from command-line argument or environment variable."""
-    imms_env = get_environment()
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
+    # imms_env = get_environment()
+    # bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
+    # ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
+    # config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
 
     try:
-        print(f"message_body:{message_body}")
-        message_id = message_body.get("message_id")
-        vaccine_type = message_body.get("vaccine_type")
-        supplier = message_body.get("supplier")
-        file_key = message_body.get("filename")
-        if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-            process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
-        else:
-            logger.info(f"{supplier} does not have full_permissions")
+        print("started")
+        print(f"event:{event}")
+        # message_id = message_body.get("message_id")
+        # vaccine_type = message_body.get("vaccine_type")
+        # supplier = message_body.get("supplier")
+        # file_key = message_body.get("filename")
+        # if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
+        #     process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
+        # else:
+        #     logger.info(f"{supplier} does not have full_permissions")
     except Exception as e:
         logger.error(f"Error processing message: {e}")
 
@@ -279,6 +280,3 @@ def process_lambda_handler(message_body):
 #     else:
 #         print("No message received.")
 
-
-if __name__ == "__main__":
-    process_lambda_handler()
