@@ -141,7 +141,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_exec_policy_attachment" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
-  name              = "/ecs/${local.prefix}-processor-task"
+  name              = "/aws/vendedlogs/ecs/${local.prefix}-processor-task"
 }
 
 # Create the ECS Task Definition
@@ -294,5 +294,5 @@ resource "aws_pipes_pipe" "fifo_pipe" {
 
 # Custom Log Group
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
-  name = "/pipe/${local.prefix}-pipe-logs"
+  name = "/aws/vendedlogs/pipes/${local.prefix}-pipe-logs"
 }
