@@ -15,7 +15,7 @@ locals {
   image_tag = "latest"
 }
 
-# Create ECR Repository for processing
+# Create ECR Repository for processing.
 resource "aws_ecr_repository" "processing_repository" {
   name = "${local.prefix}-processing-repo"
 }
