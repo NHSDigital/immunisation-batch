@@ -279,4 +279,3 @@ def process_lambda_handler(event, context):
 #             print("Error: Message is not valid JSON")
 #     else:
 #         print("No message received.")
-
