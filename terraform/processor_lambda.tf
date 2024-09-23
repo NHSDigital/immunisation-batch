@@ -310,7 +310,7 @@ resource "aws_ecs_service" "ecs_service" {
 
 # IAM Role for EventBridge Pipe
 resource "aws_iam_role" "pipe_role" {
-name = "eventbridge-pipe-role"
+name = "${local.prefix}-eventbridge-pipe-role"
 assume_role_policy = jsonencode({
    Version = "2012-10-17"
    Statement = [
@@ -324,7 +324,7 @@ assume_role_policy = jsonencode({
    ]
 })
 inline_policy {
-   name = "pipe-policy"
+   name = "${local.prefix}-pipe-policy"
    policy = jsonencode({
      Version = "2012-10-17"
      Statement = [
@@ -360,7 +360,6 @@ resource "aws_pipes_pipe" "my_pipe" {
   role_arn   = aws_iam_role.pipe_role.arn
   source     = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
   target     = aws_ecs_cluster.ecs_cluster.arn
-
   target_parameters {
     ecs_task_parameters {
       task_definition_arn = aws_ecs_task_definition.ecs_task.arn
@@ -374,6 +373,9 @@ resource "aws_pipes_pipe" "my_pipe" {
       task_count = 1
     }
   }
+  log_configuration {
+    level = "ERROR"
+    }
 }
 #   logging_configuration {
 #    level = "ERROR"
