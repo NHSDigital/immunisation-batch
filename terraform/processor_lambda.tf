@@ -146,7 +146,7 @@ resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
 
 # Create the ECS Task Definition
 resource "aws_ecs_task_definition" "ecs_task" {
-  family                   = "${local.prefix}-processor-task"
+  family                   = "immunisation-processor-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
