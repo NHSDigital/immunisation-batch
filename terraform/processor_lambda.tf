@@ -373,9 +373,18 @@ resource "aws_pipes_pipe" "my_pipe" {
       task_count = 1
     }
   }
-  log_configuration {
-    level = "ERROR"
+ log_configuration {
+    include_execution_data = ["ALL"]
+    level                  = "INFO"
+    cloudwatch_logs_log_destination {
+      log_group_arn = aws_cloudwatch_log_group.pipe_log_group.arn
     }
+  }
+}
+
+# Custom Log Group
+resource "aws_cloudwatch_log_group" "pipe_log_group" {
+  name = "${local.prefix}-pipe-logs"
 }
 #   logging_configuration {
 #    level = "ERROR"
