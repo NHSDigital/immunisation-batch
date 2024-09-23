@@ -17,7 +17,7 @@ locals {
 
 # Create ECR Repository for processing
 resource "aws_ecr_repository" "processing_repository" {
-  name = local.prefix
+  name = "${local.prefix}-processing-repo"
 }
 
 # Build and Push Docker Image to ECR (Reusing the existing module)
@@ -45,7 +45,7 @@ module "processing_docker_image" {
   })
   
   platform      = "linux/amd64"
-  use_image_tag = true
+  use_image_tag = false
   source_path   = local.processing_lambda_dir
   triggers = {
     dir_sha = local.processing_lambda_dir_sha
@@ -151,9 +151,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
   memory                   = "1024"
-  # lifecycle{
-  #   create_before_destroy = true
-  # }
   runtime_platform {
         operating_system_family = "LINUX"
         cpu_architecture        = "X86_64"
