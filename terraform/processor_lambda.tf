@@ -374,11 +374,11 @@ resource "aws_pipes_pipe" "my_pipe" {
       task_count = 1
     }
   }
+}
 #   logging_configuration {
 #    level = "ERROR"
 #    log_destination = "CLOUDWATCH_LOGS"
 #  }
-}
 # # Custom Log Group
 # resource "aws_cloudwatch_log_group" "custom_log_group" {
 #  name = "${local.prefix}-pipe-logs"
