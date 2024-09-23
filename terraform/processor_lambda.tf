@@ -352,7 +352,7 @@ resource "aws_pipes_pipe" "my_pipe" {
       task_definition_arn = aws_ecs_task_definition.ecs_task.arn
       launch_type         = "FARGATE"
       network_configuration {
-        awsvpc_configuration {
+        aws_vpc_configuration {
           subnets         = data.aws_subnets.default.ids
           assign_public_ip = true
         }
