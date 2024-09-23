@@ -122,7 +122,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kinesis:PutRecord",
           "kinesis:PutRecords"
         ],
-        Resource = local.new_kinesis_arns
+        Resource = "*"
       },
       {
         Effect   = "Allow",

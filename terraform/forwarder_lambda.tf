@@ -106,7 +106,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:DescribeStream",
           "kinesis:ListStreams"
         ]
-        Resource = local.new_kinesis_arns
+        Resource = "*"
       }
     ]
   })
