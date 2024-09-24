@@ -19,7 +19,9 @@ from permissions_checker import get_json_from_s3
 # Initialize Kinesis client instead of SQS.
 kinesis_client = boto3.client("kinesis", config=Config(region_name="eu-west-2"))
 s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
+logging.basicConfig()
 logger = logging.getLogger()
+logger.setLevel("INFO")
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
