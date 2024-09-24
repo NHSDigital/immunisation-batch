@@ -142,7 +142,7 @@ resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
 
 # Create the ECS Task Definition
 resource "aws_ecs_task_definition" "ecs_task" {
-  family                   = "immunisation-processor-task"
+  family                   = "${local.prefix}-processor-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
@@ -154,7 +154,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
-    name      = "processor-container"
+    name      = "${local.prefix}-processor-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
     environment = [
