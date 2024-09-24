@@ -39,6 +39,7 @@ def extract_file_key_elements(file_key: str) -> dict:
     NOTE: This function works on the assumption that the file_key has already
     been validated as having a single '.', four '_' and ends with .csv (case insensitive).
     """
+    file_key = file_key.upper()
     file_key_parts_without_extension = file_key.split(".")[0].split("_")
     file_key_elements = {
         "vaccine_type": file_key_parts_without_extension[0],
@@ -49,11 +50,7 @@ def extract_file_key_elements(file_key: str) -> dict:
         "extension": file_key.split(".")[1],
     }
 
-    # Convert all values to upper case
-    file_key_elements = {k: v.upper() for k, v in file_key_elements.items()}
-
     # Identify the supplier using the ODS code (defaults to empty string if ODS code not found)
-    # and add to file_key_elements
     file_key_elements["supplier"] = identify_supplier(file_key_elements["ods_code"])
 
     return file_key_elements

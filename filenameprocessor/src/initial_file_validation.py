@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from datetime import datetime
 import boto3
 from constants import Constants
@@ -88,11 +89,12 @@ def validate_action_flag_permissions(csv_content_dict_reader, supplier: str, vac
 
 def initial_file_validation(file_key: str, bucket_name: str) -> bool:
     """
-    Return True if all elements of file key are valid, content headers are valid and the supplier has the
-    appropriate permissions. Else return False.
+    Returns True if all elements of file key are valid, content headers are valid and the supplier has the
+    appropriate permissions. Else returns False.
     """
-    # Validate file name format
-    if not (file_key.count(".") == 1 and file_key.count("_") == 4 and file_key.upper().endswith(".CSV")):
+    # Validate file name format (must contain four '_' and one '.'. All four '_' must preceded the '.')
+    if not re.search(r"^[^_.]*_[^_.]*_[^_.]*_[^_.]*_[^_.]*\.[^_.]*$", file_key):
+        logger.error("Initial file validation failed: invalid file key format")
         return False
 
     # Extract elements from the file key
@@ -105,8 +107,9 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
         vaccine_type in Constants.VALID_VACCINE_TYPES
         and file_key_elements["vaccination"] == "VACCINATIONS"
         and file_key_elements["version"] in Constants.VALID_VERSIONS
-        and supplier  # Note that if supplier could be identified, this also verifies that ODS code is valid
+        and supplier  # Note that if supplier could be identified, this also implies that ODS code is valid
         and is_valid_datetime(file_key_elements["timestamp"])
+        and file_key_elements["extension"] == "CSV"
     ):
         logger.error("Initial file validation failed: invalid file key")
         return False

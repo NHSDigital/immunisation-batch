@@ -26,7 +26,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     # For each file
     for record in event["Records"]:
         try:
-            # Assign a unique message_id
+            # Assign a unique message_id for the file
             message_id = str(uuid.uuid4())
 
             # Obtain the file details
@@ -35,13 +35,9 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
             created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
-            # Validate the file
+            # Process the file
             validation_passed = initial_file_validation(file_key, bucket_name)
-
-            # If file is valid then send a message to the SQS queue
             message_delivered = make_and_send_sqs_message(file_key, message_id) if validation_passed else False
-
-            # Upload the ack file
             make_and_upload_ack_file(
                 message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
             )
@@ -59,7 +55,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
             )
 
-    # Log a list of files which could not be processed
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))
 
