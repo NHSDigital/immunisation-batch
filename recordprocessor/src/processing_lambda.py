@@ -284,5 +284,5 @@ def process_lambda_handler(event):
 #     else:
 #         print("No message received.")
 if __name__ == "__main__":
-    message_body = os.getenv('EVENT_DATA')
+    message_body = os.getenv('DETAIL')
     process_lambda_handler(message_body)
