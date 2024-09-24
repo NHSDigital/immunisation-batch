@@ -252,6 +252,8 @@ def process_lambda_handler(event, context):
     try:
         print("started")
         print(f"event:{event}")
+        logger.info("started")
+        logger.info(f"event:{event}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
@@ -281,3 +283,5 @@ def process_lambda_handler(event, context):
 #             print("Error: Message is not valid JSON")
 #     else:
 #         print("No message received.")
+if __name__ == "__main__":
+    process_lambda_handler({"Records": []}, {})
