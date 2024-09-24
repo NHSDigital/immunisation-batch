@@ -251,9 +251,9 @@ def process_lambda_handler(event):
 
     try:
         print("started")
-        print(f"event:{event}")
-        logger.info("started")
-        logger.info(f"event:{event}")
+        for key, value in os.environ.items():
+            print(f"{key}:{value}")
+            
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
