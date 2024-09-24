@@ -278,9 +278,12 @@ def process_lambda_handler(event):
 
     try:
         print("started")
+        for key, value in os.environ.items():
+            print(f"{key}:{value}")
         url = os.environ.get("ECS_CONTAINER_METADATA_URI")
         response = requests.get(url)
         print(f"{response.json()}")
+        print(f"Event: {event}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
@@ -311,5 +314,5 @@ def process_lambda_handler(event):
 #     else:
 #         print("No message received.")
 if __name__ == "__main__":
-    message_body = os.environ.get("DETAIL")
+    message_body = os.environ.get("EVENT_DATA")
     process_lambda_handler(message_body)

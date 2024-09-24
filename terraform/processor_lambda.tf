@@ -263,6 +263,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
   role_arn   = aws_iam_role.fifo_pipe_role.arn
   source     = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
   target     = aws_ecs_cluster.ecs_cluster.arn
+  
   target_parameters {
     ecs_task_parameters {
       task_definition_arn = aws_ecs_task_definition.ecs_task.arn
@@ -275,6 +276,21 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       }
       task_count = 1
     }
+    input_template = <<EOF
+        {
+          "containerOverrides": [
+            {
+              "name": "${local.prefix}-processor-container",
+              "environment": [
+                {
+                  "name": "EVENT_DATA",
+                  "value": <$.payload.Records[0].body>
+                }
+              ]
+            }
+          ]
+        }
+        EOF
   }
  log_configuration {
     include_execution_data = ["ALL"]
