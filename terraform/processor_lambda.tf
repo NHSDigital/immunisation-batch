@@ -6,11 +6,7 @@ resource "aws_ecs_cluster" "ecs_cluster" {
 # Locals for Lambda processing paths and hash
 locals {
   processing_lambda_dir     = abspath("${path.root}/../recordprocessor")
-  path_include              = ["**"]
-  path_exclude              = ["**/__pycache__/**"]
-  files_include             = setunion([for f in local.path_include : fileset(local.processing_lambda_dir, f)]...)
-  files_exclude             = setunion([for f in local.path_exclude : fileset(local.processing_lambda_dir, f)]...)
-  processing_lambda_files   = sort(setsubtract(local.files_include, local.files_exclude))
+  processing_lambda_files    = fileset(local.processing_lambda_dir, "**")
   processing_lambda_dir_sha = sha1(join("", [for f in local.processing_lambda_files : filesha1("${local.processing_lambda_dir}/${f}")]))
   image_tag = "latest"
 }
