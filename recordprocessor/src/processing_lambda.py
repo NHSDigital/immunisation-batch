@@ -250,8 +250,8 @@ def process_lambda_handler(event, context):
     # config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
 
     try:
-        logger.info("started")
-        logger.info(f"event:{event}")
+        print("started")
+        print(f"event:{event}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
