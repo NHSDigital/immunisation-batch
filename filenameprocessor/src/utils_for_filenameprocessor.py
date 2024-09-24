@@ -26,7 +26,7 @@ def get_csv_content_dict_reader(bucket_name: str, file_key: str):
 
 def identify_supplier(ods_code: str) -> Union[str, None]:
     """
-    Identify the supplier from the ods code using the mapping.
+    Identifies the supplier from the ods code using the mapping.
     Defaults to empty string if ODS code isn't found in the mappings
     """
     return Constants.ODS_TO_SUPPLIER_MAPPINGS.get(ods_code, "")
@@ -35,9 +35,10 @@ def identify_supplier(ods_code: str) -> Union[str, None]:
 def extract_file_key_elements(file_key: str) -> dict:
     """
     Returns a dictionary containing each of the elements which can be extracted from the file key.
-    All elements are converted to upper case.
+    All elements are converted to upper case.\n
+    Supplier is identified using the ods_to_supplier mapping and defaulted to empty string if ODS code is not found.\n
     NOTE: This function works on the assumption that the file_key has already
-    been validated as having a single '.', four '_' and ends with .csv (case insensitive).
+    been validated as having four underscores and a single '.' which occurs after the four of the underscores.
     """
     file_key = file_key.upper()
     file_key_parts_without_extension = file_key.split(".")[0].split("_")

@@ -45,8 +45,8 @@ class Constants:
         "LOCATION_CODE_TYPE_URI",
     ]
 
-    # Mappings from ODS code to supplier name. NOTE: All valid ODS codes for this service are listed as keys,
-    # therefore any ODS code not found in this dictionary is invalid
+    # Mappings from ODS code to supplier name.
+    # NOTE: Any ODS code not found in this dictionary's keys is invalid for this service
     ODS_TO_SUPPLIER_MAPPINGS = {
         "YGM41": "EMIS",
         "8J1100001": "PINNACLE",

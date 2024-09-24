@@ -21,10 +21,11 @@ def is_valid_datetime(timestamp: str) -> bool:
     where 'zz' is a two digit number indicating the timezone
     """
     # Check that datetime (excluding timezone) is a valid datetime in the expected format.
-    # Note that any digits after the seconds (usually expected to represent timezone), do not need to be validated.
     if len(timestamp) < 15:
         return False
 
+    # Note that any digits after the seconds (i.e. from the 16th character onwards, usually expected to represent
+    # timezone), do not need to be validated
     try:
         datetime.strptime(timestamp[:15], "%Y%m%dT%H%M%S")
     except ValueError:
@@ -92,7 +93,7 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
     Returns True if all elements of file key are valid, content headers are valid and the supplier has the
     appropriate permissions. Else returns False.
     """
-    # Validate file name format (must contain four '_' and one '.'. All four '_' must preceded the '.')
+    # Validate file name format (must contain four '_' a single '.' which occurs after the four '_'
     if not re.search(r"^[^_.]*_[^_.]*_[^_.]*_[^_.]*_[^_.]*\.[^_.]*$", file_key):
         logger.error("Initial file validation failed: invalid file key format")
         return False
