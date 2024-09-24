@@ -242,7 +242,7 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
     )  # logger the total number of rows processed
 
 
-def process_lambda_handler(event, context):
+def process_lambda_handler(event):
     """Process the message from command-line argument or environment variable."""
     # imms_env = get_environment()
     # bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
@@ -284,4 +284,5 @@ def process_lambda_handler(event, context):
 #     else:
 #         print("No message received.")
 if __name__ == "__main__":
-    process_lambda_handler({"Records": []}, {})
+    message_body = os.getenv('EVENT_DATA')
+    process_lambda_handler(message_body)

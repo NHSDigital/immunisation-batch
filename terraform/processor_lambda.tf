@@ -177,7 +177,11 @@ resource "aws_ecs_task_definition" "ecs_task" {
       {
         name  = "KINESIS_STREAM_ARN"
         value = jsonencode(local.new_kinesis_arns)
-      }
+      },
+      {
+        name  = "EVENT_DATA"
+        value = "$.payload"
+      },
     ]
     logConfiguration = {
       logDriver = "awslogs"
