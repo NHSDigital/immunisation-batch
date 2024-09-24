@@ -80,7 +80,9 @@ def send_to_kinesis(supplier, message_body):
             Data=json.dumps(message_body, ensure_ascii=False),
             PartitionKey="default",  # Use a partition key
         )
-        logger.info(f"Message sent to Kinesis stream '{stream_name}' for supplier {supplier}")
+        logger.info(
+            f"Message sent to Kinesis stream '{stream_name}' for supplier {supplier}"
+        )
     except ClientError as e:
         logger.error(f"Error sending message to Kinesis: {e}")
         return False
@@ -92,7 +94,9 @@ def fetch_file_from_s3(bucket_name, file_key):
     return response["Body"].read().decode("utf-8")
 
 
-def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id):
+def process_csv_to_fhir(
+    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id
+):
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
@@ -119,7 +123,11 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
         print(f"messageheader : {message_header}")
 
         print(f"parsed_row:{row}")
-        if row.get("ACTION_FLAG") in {"new", "update", "delete"} and row.get("UNIQUE_ID_URI") and row.get("UNIQUE_ID"):
+        if (
+            row.get("ACTION_FLAG") in {"new", "update", "delete"}
+            and row.get("UNIQUE_ID_URI")
+            and row.get("UNIQUE_ID")
+        ):
             fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
             if valid:
                 identifier_system = row.get("UNIQUE_ID_URI")
@@ -129,92 +137,110 @@ def process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucke
                 flag = True
                 if action_flag in ("delete", "update"):
                     flag = False
-                    response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
+                    response, status_code = immunization_api_instance.get_imms_id(
+                        identifier_system, identifier_value
+                    )
                     if response.get("total") == 1 and status_code == 200:
                         flag = True
                 if flag:
                     # Prepare the message for Kinesis
                     if action_flag == "new":
                         message_body = {
-                            'message_id': message_header,
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                            'file_name': file_key
+                            "message_id": message_header,
+                            "fhir_json": fhir_json,
+                            "action_flag": action_flag,
+                            "file_name": file_key,
                         }
                     if action_flag in ("delete", "update"):
                         entry = response.get("entry", [])[0]
                         imms_id = entry["resource"].get("id")
                         version = entry["resource"].get("meta", {}).get("versionId")
                         message_body = {
-                            'message_id': message_header,
-                            'fhir_json': fhir_json,
-                            'action_flag': action_flag,
-                            'imms_id': imms_id,
+                            "message_id": message_header,
+                            "fhir_json": fhir_json,
+                            "action_flag": action_flag,
+                            "imms_id": imms_id,
                             "version": version,
-                            'file_name': file_key
+                            "file_name": file_key,
                         }
                     status = send_to_kinesis(supplier, message_body)
                     if status:
                         print("create successful")
                         logger.info("message sent successfully to Kinesis")
-                        data_row = Constant.data_rows(True, created_at_formatted, message_header)
+                        data_row = Constant.data_rows(
+                            True, created_at_formatted, message_header
+                        )
                     else:
                         logger.error("Error sending to Kinesis")
-                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                        data_row = Constant.data_rows(
+                            False, created_at_formatted, message_header
+                        )
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
-                            'message_id': message_header,
-                            'fhir_json': fhir_json,
-                            'action_flag': 'None',
-                            'imms_id': 'None',
-                            'version': 'None',
-                            'file_name': file_key
-                        }
+                        "message_id": message_header,
+                        "fhir_json": fhir_json,
+                        "action_flag": "None",
+                        "imms_id": "None",
+                        "version": "None",
+                        "file_name": file_key,
+                    }
                     status = send_to_kinesis(supplier, message_body)
                     if status:
                         print("create successful imms not found")
                         logger.info("message sent successfully to SQS")
-                        data_row = Constant.data_rows("None", created_at_formatted, message_header)
+                        data_row = Constant.data_rows(
+                            "None", created_at_formatted, message_header
+                        )
                     else:
                         logger.error("Error sending to SQS imms id not found")
-                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                        data_row = Constant.data_rows(
+                            False, created_at_formatted, message_header
+                        )
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
-                            'message_id': message_header,
-                            'fhir_json': fhir_json,
-                            'action_flag': 'None',
-                            'imms_id': 'None',
-                            'version': 'None',
-                            'file_name': file_key
-                        }
+                    "message_id": message_header,
+                    "fhir_json": fhir_json,
+                    "action_flag": "None",
+                    "imms_id": "None",
+                    "version": "None",
+                    "file_name": file_key,
+                }
                 status = send_to_kinesis(supplier, message_body)
                 if status:
                     print("sent successful invalid_json")
                     logger.info("message sent successfully to SQS")
-                    data_row = Constant.data_rows("None", created_at_formatted, message_header)
+                    data_row = Constant.data_rows(
+                        "None", created_at_formatted, message_header
+                    )
                 else:
                     logger.error("Error sending to SQS for invliad json")
-                data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                data_row = Constant.data_rows(
+                    False, created_at_formatted, message_header
+                )
         else:
             logger.error(f"Invalid row format: {row}")
             message_body = {
-                            'message_id': message_header,
-                            'fhir_json': 'None',
-                            'action_flag': 'None',
-                            'imms_id': 'None',
-                            'version': 'None',
-                            'file_name': file_key
-                        }
+                "message_id": message_header,
+                "fhir_json": "None",
+                "action_flag": "None",
+                "imms_id": "None",
+                "version": "None",
+                "file_name": file_key,
+            }
             status = send_to_kinesis(supplier, message_body)
             if status:
                 print("sent successful invalid_json")
                 logger.info("message sent successfully to SQS")
-                data_row = Constant.data_rows("None", created_at_formatted, message_header)
+                data_row = Constant.data_rows(
+                    "None", created_at_formatted, message_header
+                )
             else:
                 logger.error("Error sending to SQS for invliad json")
-                data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                data_row = Constant.data_rows(
+                    False, created_at_formatted, message_header
+                )
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
@@ -252,7 +278,7 @@ def process_lambda_handler(event):
     try:
         print("started")
         for key, value in os.environ.items():
-            print(f"{key}:{value}")            
+            print(f"{key}:{value}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
@@ -283,5 +309,5 @@ def process_lambda_handler(event):
 #     else:
 #         print("No message received.")
 if __name__ == "__main__":
-    message_body = os.environ.get('DETAIL')
+    message_body = os.environ.get("DETAIL")
     process_lambda_handler(message_body)
