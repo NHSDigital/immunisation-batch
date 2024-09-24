@@ -7,8 +7,6 @@ from boto3 import client as boto3_client
 from tests.values_for_tests import VALID_FILE_CONTENT
 
 
-
-
 def setup_s3_bucket_and_file(
     test_bucket_name: str, test_file_key: str, test_file_content: str = VALID_FILE_CONTENT
 ) -> None:
