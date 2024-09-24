@@ -284,7 +284,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
               "environment": [
                 {
                   "name": "EVENT_DATA",
-                  "value": <$.payload.Records[0].body>
+                  "value": <$.payload>
                 }
               ]
             }
