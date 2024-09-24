@@ -4,6 +4,7 @@ import json
 from io import StringIO
 import io
 import os
+import requests
 from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
 import logging
@@ -277,8 +278,9 @@ def process_lambda_handler(event):
 
     try:
         print("started")
-        for key, value in os.environ.items():
-            print(f"{key}:{value}")
+        url = os.environ.get("ECS_CONTAINER_METADATA_URI")
+        response = requests.get(url)
+        print(f"{response.json()}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
