@@ -274,22 +274,31 @@ resource "aws_pipes_pipe" "fifo_pipe" {
           assign_public_ip = "ENABLED"
         }
       }
+      overrides {
+        container_override {
+          name = "${local.prefix}-processor-container"
+          environment {
+            name  = "TestInput"
+            value = "testing"
+          }
+        }
+      }
       task_count = 1
     }
-    input_template = <<EOF
-        {
-          "containerOverrides": [
-            {
-              "environment": [
-                            "TestInput",
-                            "testing"
-                        ],
-              "name": "${local.prefix}-processor-container"
-            }
-          ]
-        }
-        EOF
-  }
+  #   input_template = <<EOF
+  #       {
+  #         "containerOverrides": [
+  #           {
+  #             "environment": [
+  #                           "TestInput",
+  #                           "testing"
+  #                       ],
+  #             "name": "${local.prefix}-processor-container"
+  #           }
+  #         ]
+  #       }
+  #       EOF
+ }
  log_configuration {
     include_execution_data = ["ALL"]
     level                  = "INFO"
