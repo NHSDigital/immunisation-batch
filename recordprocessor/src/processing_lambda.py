@@ -279,14 +279,13 @@ def main():
 
     try:
         print("task started")
-        event_payload_str = sys.stdin.read()
-        event_payload = json.loads(event_payload_str)
+        # event_payload_str = sys.stdin.read()
+        # event_payload = json.loads(event_payload_str)
         for key, value in os.environ.items():
             print(f"{key}:{value}")
-        url = os.environ.get("ECS_CONTAINER_METADATA_URI")
-        response = requests.get(url)
-        print(f"{response.json()}")
-        print(f"Event: {event_payload}")
+        # response = requests.get(url)
+        # print(f"{response.json()}")
+        # print(f"Event: {event_payload_str}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
