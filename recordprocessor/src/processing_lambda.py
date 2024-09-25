@@ -75,14 +75,14 @@ def send_to_kinesis(supplier, message_body):
 
     try:
         # Send the message to the Kinesis stream
-        kinesis_client.put_record(
+        resp = kinesis_client.put_record(
             StreamName=f"{imms_env}-processingdata-stream",
             StreamARN=os.getenv("KINESIS_STREAM_ARN"),
             Data=json.dumps(message_body, ensure_ascii=False),
             PartitionKey=stream_name,  # Use a partition key
         )
         logger.info(
-            f"Message sent to Kinesis stream '{stream_name}' for supplier {supplier}"
+            f"Message sent to Kinesis stream:{stream_name} for supplier:{supplier} with resp:{resp}"
         )
     except ClientError as e:
         logger.error(f"Error sending message to Kinesis: {e}")
