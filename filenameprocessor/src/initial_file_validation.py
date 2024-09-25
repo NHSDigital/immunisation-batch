@@ -10,7 +10,6 @@ from fetch_permissions import get_permissions_config_json_from_s3
 from utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3", region_name="eu-west-2")
 

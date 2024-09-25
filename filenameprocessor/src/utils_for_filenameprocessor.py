@@ -3,8 +3,8 @@
 import os
 import csv
 from typing import Union
-import boto3
 from io import StringIO
+import boto3
 from constants import Constants
 
 s3_client = boto3.client("s3", region_name="eu-west-2")

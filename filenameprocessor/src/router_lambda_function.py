@@ -12,9 +12,8 @@ from initial_file_validation import initial_file_validation
 from send_sqs_message import make_and_send_sqs_message
 from make_and_upload_ack_file import make_and_upload_ack_file
 
-logging.basicConfig()
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3", region_name="eu-west-2")
 

@@ -8,7 +8,6 @@ from constants import Constants
 from utils_for_filenameprocessor import extract_file_key_elements
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
