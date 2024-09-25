@@ -283,8 +283,11 @@ resource "aws_pipes_pipe" "fifo_pipe" {
               "name": "${local.prefix}-processor-container",
               "environment": [
                 {
-                  "name": "EVENT_DATA",
-                  "value": <$.payload>
+                  "Command": [
+                            "echo",
+                            "test"
+                        ],
+                  "name": "bash"                  
                 }
               ]
             }
