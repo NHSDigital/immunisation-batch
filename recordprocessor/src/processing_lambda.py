@@ -4,7 +4,6 @@ import json
 from io import StringIO
 import io
 import os
-import requests
 from convert_fhir_json import convert_to_fhir_json
 from get_imms_id import ImmunizationApi
 import logging
@@ -14,7 +13,6 @@ from botocore.config import Config
 from constants import Constant
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
-import sys
 from permissions_checker import get_json_from_s3
 
 
