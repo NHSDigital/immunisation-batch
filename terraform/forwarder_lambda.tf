@@ -150,13 +150,12 @@ resource "aws_lambda_function" "forwarding_lambda" {
 #   }
 # }
 
-# resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
-#   for_each          = local.kinesis_stream_map
-#   event_source_arn  = each.value
-#   function_name     = aws_lambda_function.forwarding_lambda.function_name
-#   starting_position = "LATEST"
-#   batch_size        = 1
-#   enabled           = true
+ resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
+    event_source_arn  = local.new_kinesis_arn
+    function_name     = aws_lambda_function.forwarding_lambda.function_name
+    starting_position = "LATEST"
+    batch_size        = 1
+    enabled           = true
 
-#   depends_on = [aws_lambda_function.forwarding_lambda]
-# }
+   depends_on = [aws_lambda_function.forwarding_lambda]
+ }
