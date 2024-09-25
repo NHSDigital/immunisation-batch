@@ -176,6 +176,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
         value = "${local.environment}"
       },
       {
+        name  = "SHORT_QUEUE_PREFIX"
+        value = "${local.short_queue_prefix}"
+      },
+      {
         name  = "CONFIG_BUCKET_NAME"
         value = "${local.prefix}-config"
       },

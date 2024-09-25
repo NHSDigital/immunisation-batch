@@ -65,7 +65,7 @@ def send_to_kinesis(supplier, message_body):
     """Send a message to the specified Kinesis stream."""
     print(f"message_body:{message_body}")
     stream_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
-    imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
+    imms_shrt_prefix = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
     # if "prod" in imms_env or "production" in imms_env:
     #     account_id = os.getenv("PROD_ACCOUNT_ID")
     # else:
@@ -76,7 +76,7 @@ def send_to_kinesis(supplier, message_body):
     try:
         # Send the message to the Kinesis stream
         resp = kinesis_client.put_record(
-            StreamName=f"{imms_env}-processingdata-stream",
+            StreamName=f"{imms_shrt_prefix}-processingdata-stream",
             StreamARN=os.getenv("KINESIS_STREAM_ARN"),
             Data=json.dumps(message_body, ensure_ascii=False),
             PartitionKey=stream_name,  # Use a partition key
