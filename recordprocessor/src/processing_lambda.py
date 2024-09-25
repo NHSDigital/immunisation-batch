@@ -292,4 +292,5 @@ def main(event):
 
 if __name__ == "__main__":
     event = os.environ.get("EVENT_DETAILS")
+    event = os.environ.get("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
     main(event)
