@@ -157,28 +157,28 @@ resource "aws_ecs_task_definition" "ecs_task" {
     name      = "${local.prefix}-processor-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
-    # environment = [
-    #   {
-    #     name  = "SOURCE_BUCKET_NAME"
-    #     value = "${local.prefix}-data-source"
-    #   },
-    #   {
-    #     name  = "ACK_BUCKET_NAME"
-    #     value = "${local.prefix}-data-destination"
-    #   },
-    #   {
-    #     name  = "ENVIRONMENT"
-    #     value = local.environment
-    #   },
-    #   {
-    #     name  = "CONFIG_BUCKET_NAME"
-    #     value = "${local.prefix}-config"
-    #   },
-    #   {
-    #     name  = "KINESIS_STREAM_ARN"
-    #     value = jsonencode(local.new_kinesis_arns)
-    #   },
-    # ]
+    environment = [
+      {
+        name  = "SOURCE_BUCKET_NAME"
+        value = "${local.prefix}-data-source"
+      },
+      {
+        name  = "ACK_BUCKET_NAME"
+        value = "${local.prefix}-data-destination"
+      },
+      {
+        name  = "ENVIRONMENT"
+        value = local.environment
+      },
+      {
+        name  = "CONFIG_BUCKET_NAME"
+        value = "${local.prefix}-config"
+      },
+      {
+        name  = "KINESIS_STREAM_ARN"
+        value = jsonencode(local.new_kinesis_arns)
+      },
+    ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -276,28 +276,19 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       }
       overrides {
         container_override {
+          cpu = 256
           name = "${local.prefix}-processor-container"
           environment {
             name  = "TestInput"
             value = "testing"
           }
+          memory = 512
+          memory_reservation = 512
         }
       }
       task_count = 1
     }
-  #   input_template = <<EOF
-  #       {
-  #         "containerOverrides": [
-  #           {
-  #             "environment": [
-  #                           "TestInput",
-  #                           "testing"
-  #                       ],
-  #             "name": "${local.prefix}-processor-container"
-  #           }
-  #         ]
-  #       }
-  #       EOF
+    
  }
  log_configuration {
     include_execution_data = ["ALL"]
