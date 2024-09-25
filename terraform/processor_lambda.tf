@@ -157,28 +157,28 @@ resource "aws_ecs_task_definition" "ecs_task" {
     name      = "${local.prefix}-processor-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
-    environment = [
-      {
-        name  = "SOURCE_BUCKET_NAME"
-        value = "${local.prefix}-data-source"
-      },
-      {
-        name  = "ACK_BUCKET_NAME"
-        value = "${local.prefix}-data-destination"
-      },
-      {
-        name  = "ENVIRONMENT"
-        value = local.environment
-      },
-      {
-        name  = "CONFIG_BUCKET_NAME"
-        value = "${local.prefix}-config"
-      },
-      {
-        name  = "KINESIS_STREAM_ARN"
-        value = jsonencode(local.new_kinesis_arns)
-      },
-    ]
+    # environment = [
+    #   {
+    #     name  = "SOURCE_BUCKET_NAME"
+    #     value = "${local.prefix}-data-source"
+    #   },
+    #   {
+    #     name  = "ACK_BUCKET_NAME"
+    #     value = "${local.prefix}-data-destination"
+    #   },
+    #   {
+    #     name  = "ENVIRONMENT"
+    #     value = local.environment
+    #   },
+    #   {
+    #     name  = "CONFIG_BUCKET_NAME"
+    #     value = "${local.prefix}-config"
+    #   },
+    #   {
+    #     name  = "KINESIS_STREAM_ARN"
+    #     value = jsonencode(local.new_kinesis_arns)
+    #   },
+    # ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
