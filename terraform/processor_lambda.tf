@@ -280,16 +280,11 @@ resource "aws_pipes_pipe" "fifo_pipe" {
         {
           "containerOverrides": [
             {
-              "name": "${local.prefix}-processor-container",
-              "environment": [
-                {
-                  "Command": [
+              "Command": [
                             "echo",
                             "test"
                         ],
-                  "name": "bash"                  
-                }
-              ]
+              "name": "bash"
             }
           ]
         }
