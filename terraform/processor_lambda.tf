@@ -155,6 +155,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
         operating_system_family = "LINUX"
         cpu_architecture        = "X86_64"
     }
+  task_role_arn            = aws_iam_role.ecs_task_exec_role.arn
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
