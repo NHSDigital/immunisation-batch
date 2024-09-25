@@ -14,6 +14,7 @@ from botocore.config import Config
 from constants import Constant
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
+import sys
 from permissions_checker import get_json_from_s3
 
 
@@ -269,7 +270,7 @@ def process_csv_to_fhir(
     )  # logger the total number of rows processed
 
 
-def process_lambda_handler(event):
+def main():
     """Process the message from command-line argument or environment variable."""
     # imms_env = get_environment()
     # bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
@@ -277,13 +278,15 @@ def process_lambda_handler(event):
     # config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
 
     try:
-        print("started")
+        print("task started")
+        event_payload_str = sys.stdin.read()
+        event_payload = json.loads(event_payload_str)
         for key, value in os.environ.items():
             print(f"{key}:{value}")
         url = os.environ.get("ECS_CONTAINER_METADATA_URI")
         response = requests.get(url)
         print(f"{response.json()}")
-        print(f"Event: {event}")
+        print(f"Event: {event_payload}")
         # message_id = message_body.get("message_id")
         # vaccine_type = message_body.get("vaccine_type")
         # supplier = message_body.get("supplier")
@@ -314,5 +317,4 @@ def process_lambda_handler(event):
 #     else:
 #         print("No message received.")
 if __name__ == "__main__":
-    message_body = os.environ.get("EVENT_DATA")
-    process_lambda_handler(message_body)
+    main()

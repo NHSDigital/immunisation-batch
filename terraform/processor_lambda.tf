@@ -279,8 +279,8 @@ resource "aws_pipes_pipe" "fifo_pipe" {
           cpu = 256
           name = "${local.prefix}-processor-container"
           environment {
-            name  = "TestInput"
-            value = "testing"
+            name  = "EVENT_DETAILS"
+            value = "$.body"
           }
           memory = 512
           memory_reservation = 512
