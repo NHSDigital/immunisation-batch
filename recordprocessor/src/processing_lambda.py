@@ -70,7 +70,7 @@ def send_to_kinesis(supplier, message_body):
         account_id = os.getenv("PROD_ACCOUNT_ID")
     else:
         account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    stream_url = f"https://kinesis.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{stream_name}-processingdata-stream"
+    stream_url = f"https://kinesis.eu-west-2.amazonaws.com/{account_id}/{imms_env}-processingdata-stream"
     logger.info(f"Queue_URL: {stream_url}")
 
     try:
@@ -78,7 +78,7 @@ def send_to_kinesis(supplier, message_body):
         kinesis_client.put_record(
             StreamName=stream_url,
             Data=json.dumps(message_body, ensure_ascii=False),
-            PartitionKey="default",  # Use a partition key
+            PartitionKey=stream_name,  # Use a partition key
         )
         logger.info(
             f"Message sent to Kinesis stream '{stream_name}' for supplier {supplier}"
@@ -270,43 +270,26 @@ def process_csv_to_fhir(
 
 def main(event):
     """Process the message from command-line argument or environment variable."""
-    # imms_env = get_environment()
-    # bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
-    # ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
-    # config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
-
+    imms_env = get_environment()
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
+    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
     try:
         print("task started")
-        print(f"Event: {event}")
-        # message_id = message_body.get("message_id")
-        # vaccine_type = message_body.get("vaccine_type")
-        # supplier = message_body.get("supplier")
-        # file_key = message_body.get("filename")
-        # if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-        #     process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
-        # else:
-        #     logger.info(f"{supplier} does not have full_permissions")
+        message_body_json = json.loads(event)
+        print(f"Event: {message_body_json}")
+        message_id = message_body_json.get("message_id")
+        vaccine_type = message_body_json.get("vaccine_type")
+        supplier = message_body_json.get("supplier")
+        file_key = message_body_json.get("filename")
+        if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
+            process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
+        else:
+            logger.info(f"{supplier} does not have full_permissions")
     except Exception as e:
         logger.error(f"Error processing message: {e}")
 
 
-# def main():
-#     # Get the message from the environment variable
-#     print("started")
-#     # message_body = os.getenv('SQS_MESSAGE')
-
-#     # Log the message for debugging
-#     print(f"Received message from environment variable: {message_body}")
-
-#     if message_body:
-#         try:
-#             print("1")
-#             message_body_json = json.loads(message_body)
-#             print(f"Parsed message body: {json.dumps(message_body_json, indent=2)}")
-#         except json.JSONDecodeError:
-#             print("Error: Message is not valid JSON")
-#     else:
-#         print("No message received.")
 if __name__ == "__main__":
     event = os.environ.get("EVENT_DETAILS")
     main(event)
