@@ -66,17 +66,18 @@ def send_to_kinesis(supplier, message_body):
     print(f"message_body:{message_body}")
     stream_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    if "prod" in imms_env or "production" in imms_env:
-        account_id = os.getenv("PROD_ACCOUNT_ID")
-    else:
-        account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    stream_url = f"https://kinesis.eu-west-2.amazonaws.com/{account_id}/{imms_env}-processingdata-stream"
-    logger.info(f"Queue_URL: {stream_url}")
+    # if "prod" in imms_env or "production" in imms_env:
+    #     account_id = os.getenv("PROD_ACCOUNT_ID")
+    # else:
+    #     account_id = os.getenv("LOCAL_ACCOUNT_ID")
+    # stream_url = f"https://kinesis.eu-west-2.amazonaws.com/{account_id}/{imms_env}-processingdata-stream"
+    # logger.info(f"Queue_URL: {stream_url}")
 
     try:
         # Send the message to the Kinesis stream
         kinesis_client.put_record(
-            StreamName=stream_url,
+            StreamName=f"{imms_env}-processingdata-stream",
+            StreamARN=os.getenv("KINESIS_STREAM_ARN"),
             Data=json.dumps(message_body, ensure_ascii=False),
             PartitionKey=stream_name,  # Use a partition key
         )
