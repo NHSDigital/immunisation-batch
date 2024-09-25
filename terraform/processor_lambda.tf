@@ -173,7 +173,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
       },
       {
         name  = "ENVIRONMENT"
-        value = local.environment
+        value = "${local.environment}"
       },
       {
         name  = "CONFIG_BUCKET_NAME"
@@ -181,7 +181,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
       },
       {
         name  = "KINESIS_STREAM_ARN"
-        value = jsonencode(local.new_kinesis_arns)
+        value = "${local.new_kinesis_arn}"
       },
     ]
     logConfiguration = {

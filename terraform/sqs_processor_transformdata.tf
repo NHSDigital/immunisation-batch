@@ -4,5 +4,5 @@ resource "aws_kinesis_stream" "processor_data_streams" {
   shard_count = 15  
 }
 locals {
-  new_kinesis_arns = aws_kinesis_stream.processor_data_streams.name
+  new_kinesis_arn = aws_kinesis_stream.processor_data_streams.arn
 }
