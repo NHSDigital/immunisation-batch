@@ -191,20 +191,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
-# Define the ECS Service to Run the Task Definition
-# resource "aws_ecs_service" "ecs_service" {
-#   name            = "${local.prefix}-processor-service"
-#   cluster         = aws_ecs_cluster.ecs_cluster.id
-#   task_definition = aws_ecs_task_definition.ecs_task.arn
-#   desired_count   = 0
-#   launch_type     = "FARGATE"
-#   force_new_deployment = true
-#   network_configuration {
-#             subnets          = data.aws_subnets.default.ids
-#             assign_public_ip = true
-#         }
-# }
-
 # IAM Role for EventBridge Pipe
 resource "aws_iam_role" "fifo_pipe_role" {
 name = "${local.prefix}-eventbridge-pipe-role"
