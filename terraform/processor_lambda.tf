@@ -183,10 +183,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
         name  = "KINESIS_STREAM_ARN"
         value = jsonencode(local.new_kinesis_arns)
       },
-      {
-        name  = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
-        value = aws_iam_role.ecs_task_exec_role.arn
-      },
     ]
     logConfiguration = {
       logDriver = "awslogs"
