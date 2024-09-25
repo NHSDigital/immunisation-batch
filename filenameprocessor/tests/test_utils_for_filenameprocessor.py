@@ -1,6 +1,6 @@
 """Tests for utils_for_filenameprocessor functions"""
 
-import unittest
+from unittest import TestCase
 from unittest.mock import patch
 from moto import mock_s3
 from src.utils_for_filenameprocessor import (
@@ -9,27 +9,27 @@ from src.utils_for_filenameprocessor import (
     identify_supplier,
     extract_file_key_elements,
 )
-from tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file
+from tests.utils_for_tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file
 
 
-class TestUtilsForFilenameprocessor(unittest.TestCase):
+class TestUtilsForFilenameprocessor(TestCase):
     """Tests for utils_for_filenameprocessor functions"""
 
     def test_get_environment(self):
         "Tests that get_environment returns the correct environment"
-        # Test case tuples are stuctured as (input_value, expected_result)
-        test_cases = [
+        # Each test case tuple has the structure (environment, expected_result)
+        test_cases = (
             ("internal-dev", "internal-dev"),
             ("int", "int"),
             ("ref", "ref"),
             ("sandbox", "sandbox"),
             ("prod", "prod"),
             ("pr-22", "internal-dev"),
-        ]
+        )
 
-        for input_value, expected_result in test_cases:
-            with self.subTest():
-                with patch("src.utils_for_filenameprocessor.os.getenv", return_value=input_value):
+        for environment, expected_result in test_cases:
+            with self.subTest(f"SubTest for environment: {environment}"):
+                with patch.dict("os.environ", {"ENVIRONMENT": environment}):
                     self.assertEqual(get_environment(), expected_result)
 
     @mock_s3
@@ -48,8 +48,8 @@ class TestUtilsForFilenameprocessor(unittest.TestCase):
 
     def test_identify_supplier(self):
         """Test that identify_supplier correctly identifies supplier using ods_to_supplier_mappings"""
-        # Test case tuples are stuctured as (ods_code, expected_result)
-        test_cases = [
+        # Each test case tuple has the structure (ods_code, expected_result)
+        test_cases = (
             ("YGM41", "EMIS"),
             ("8J1100001", "PINNACLE"),
             ("8HK48", "SONAR"),
@@ -68,10 +68,10 @@ class TestUtilsForFilenameprocessor(unittest.TestCase):
             ("DPSREDUCED", "DPSREDUCED"),
             ("DPSFULL", "DPSFULL"),
             ("NOT_A_VALID_ODS_CODE", ""),  # Should default to empty string if ods code isn't in the mappings
-        ]
+        )
 
         for ods_code, expected_result in test_cases:
-            with self.subTest():
+            with self.subTest(f"SubTest for ODS code: {ods_code}"):
                 self.assertEqual(identify_supplier(ods_code), expected_result)
 
     def test_extract_file_key_elements(self):
@@ -151,16 +151,16 @@ class TestUtilsForFilenameprocessor(unittest.TestCase):
             "supplier": "",
         }
 
-        # Test case tuples are stuctured as (input_file_key, expected_result)
-        test_cases = [
+        # Each test case tuple has the structure (file_key, expected_result)
+        test_cases = (
             (file_key_1, expected_file_key_elements_1),
             (file_key_2, expected_file_key_elements_2),
             (file_key_3, expected_file_key_elements_3),
             (file_key_4, expected_file_key_elements_4),
             (file_key_5, expected_file_key_elements_5),
             (file_key_6, expected_file_key_elements_6),
-        ]
+        )
 
-        for input_file_key, expected_result in test_cases:
-            with self.subTest():
-                self.assertEqual(extract_file_key_elements(input_file_key), expected_result)
+        for file_key, expected_result in test_cases:
+            with self.subTest(f"SubTest for file key: {file_key}"):
+                self.assertEqual(extract_file_key_elements(file_key), expected_result)

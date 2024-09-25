@@ -13,8 +13,11 @@ from src.initial_file_validation import (
     validate_action_flag_permissions,
     initial_file_validation,
 )
-from tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file, convert_string_to_dict_reader
-from tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_FILE_CONTENT
+from tests.utils_for_tests.utils_for_filenameprocessor_tests import (
+    setup_s3_bucket_and_file,
+    convert_string_to_dict_reader,
+)
+from tests.utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_FILE_CONTENT
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
@@ -160,7 +163,6 @@ class TestInitialFileValidation(unittest.TestCase):
     @mock_s3
     def test_initial_file_validation(self):
         """Tests that initial_file_validation returns True if all elements pass validation, and False otherwise"""
-        # Set up
         bucket_name = "test_bucket"
         s3_client = boto3.client("s3", region_name="eu-west-2")
         s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
@@ -189,30 +191,40 @@ class TestInitialFileValidation(unittest.TestCase):
             (valid_file_key.replace("_", ""), valid_file_content, False),
             # File key with incorrect extension
             (valid_file_key.replace(".csv", ".dat"), valid_file_content, False),
+            # File key with missing extension
+            (valid_file_key.replace(".csv", ""), valid_file_content, False),
             # File key with invalid vaccine type
             (valid_file_key.replace("Flu", "Flue"), valid_file_content, False),
+            # File key with missing vaccine type
+            (valid_file_key.replace("Flu", ""), valid_file_content, False),
             # File key with invalid vaccinations element
             (valid_file_key.replace("Vaccinations", "Vaccination"), valid_file_content, False),
+            # File key with missing vaccinations element
+            (valid_file_key.replace("Vaccinations", ""), valid_file_content, False),
             # File key with invalid version
             (valid_file_key.replace("v5", "v4"), valid_file_content, False),
+            # File key with missing version
+            (valid_file_key.replace("v5", ""), valid_file_content, False),
             # File key with invalid ODS code
+            (valid_file_key.replace("YGA", "YGAM"), valid_file_content, False),
+            # File key with missing ODS code
             (valid_file_key.replace("YGA", "YGAM"), valid_file_content, False),
             # File key with invalid timestamp
             (valid_file_key.replace("20200101T12345600", "20200132T12345600"), valid_file_content, False),
+            # File key with missing timestamp
+            (valid_file_key.replace("20200101T12345600", ""), valid_file_content, False),
             # File with invalid content header
             (valid_file_key, valid_file_content.replace("PERSON_DOB", "PATIENT_DOB"), False),
         ]
 
         for file_key, file_content, expected_result in test_cases_for_full_permissions:
-            with self.subTest():
+            with self.subTest(f"SubTest for file key: {file_key}"):
                 # Mock full permissions for the supplier (Note that YGA ODS code maps to the supplier 'TPP')
                 with patch(
                     "src.initial_file_validation.get_permissions_config_json_from_s3",
                     return_value={"all_permissions": {"TPP": ["COVID19_FULL", "FLU_FULL"]}},
                 ):
-                    # Place the file in the bucket
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
-                    # Ensure that inital_file_validation passes or fails as expected
                     self.assertEqual(initial_file_validation(file_key, bucket_name), expected_result)
 
         # Test case tuples are stuctured as (file_key, file_content, expected_result)
@@ -226,13 +238,11 @@ class TestInitialFileValidation(unittest.TestCase):
         ]
 
         for file_key, file_content, expected_result in test_cases_for_partial_permissions:
-            with self.subTest():
+            with self.subTest(f"SubTest for file key: {file_key}"):
                 # Mock full permissions for the supplier (Note that YGA ODS code maps to the supplier 'TPP')
                 with patch(
                     "src.initial_file_validation.get_permissions_config_json_from_s3",
                     return_value={"all_permissions": {"TPP": ["FLU_CREATE"]}},
                 ):
-                    # Place the file in the bucket
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
-                    # Ensure that inital_file_validation passes or fails as expected
                     self.assertEqual(initial_file_validation(file_key, bucket_name), expected_result)

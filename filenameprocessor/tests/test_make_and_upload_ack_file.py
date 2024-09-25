@@ -9,7 +9,12 @@ from csv import DictReader
 from boto3 import client as boto3_client
 from moto import mock_s3
 from src.make_and_upload_ack_file import make_ack_data, upload_ack_file, make_and_upload_ack_file
-from tests.values_for_tests import MOCK_ENVIRONMENT_DICT
+from tests.utils_for_tests.values_for_tests import (
+    MOCK_ENVIRONMENT_DICT,
+    DESTINATION_BUCKET_NAME,
+    VALID_FLU_EMIS_FILE_KEY,
+    VALID_FLU_EMIS_ACK_FILE_KEY,
+)
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
@@ -18,9 +23,6 @@ class TestMakeAndUploadAckFile(TestCase):
 
     def setUp(self):
         """Set up test values to be used for the tests"""
-        self.file_key = "Flu_Vaccinations_v5_DPSFULL_20200101T12345600.csv"
-        self.ack_file_name = "ack/Flu_Vaccinations_v5_DPSFULL_20200101T12345600_response.csv"
-        self.ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         self.message_id = str(uuid4())
         self.created_at_formatted_string = "20200101T12345600"
         self.ack_data_validation_passed_and_message_delivered = {
@@ -91,7 +93,7 @@ class TestMakeAndUploadAckFile(TestCase):
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")
         s3_client.create_bucket(
-            Bucket=self.ack_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
+            Bucket=DESTINATION_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
 
         # Test case tuples are stuctured as (ack_data, expected_result)
@@ -104,15 +106,14 @@ class TestMakeAndUploadAckFile(TestCase):
         # Call the upload_ack_file function
         for ack_data in test_cases:
             with self.subTest():
-                with patch("src.make_and_upload_ack_file.s3_client", s3_client):
-                    upload_ack_file(self.file_key, ack_data)
+                upload_ack_file(VALID_FLU_EMIS_FILE_KEY, ack_data)
 
             # Note that the data downloaded from the CSV will contain the bool as a string
             expected_result = deepcopy(ack_data)
             expected_result["MESSAGE_DELIVERY"] = str(expected_result["MESSAGE_DELIVERY"])
 
             # Check that the uploaded data is as expected
-            ack_file_csv_obj = s3_client.get_object(Bucket=self.ack_bucket_name, Key=self.ack_file_name)
+            ack_file_csv_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=VALID_FLU_EMIS_ACK_FILE_KEY)
             csv_content_string = ack_file_csv_obj["Body"].read().decode("utf-8")
             csv_data = list(DictReader(StringIO(csv_content_string), delimiter="|"))
             self.assertEqual(list(csv_data)[0], expected_result)
@@ -123,7 +124,7 @@ class TestMakeAndUploadAckFile(TestCase):
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")
         s3_client.create_bucket(
-            Bucket=self.ack_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
+            Bucket=DESTINATION_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"}
         )
 
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
@@ -136,20 +137,19 @@ class TestMakeAndUploadAckFile(TestCase):
         # Call the make_and_upload_ack_file function
         for validation_passed, message_delivered, expected_result in test_cases:
             with self.subTest():
-                with patch("src.make_and_upload_ack_file.s3_client", s3_client):
-                    make_and_upload_ack_file(
-                        self.message_id,
-                        self.file_key,
-                        validation_passed,
-                        message_delivered,
-                        self.created_at_formatted_string,
-                    )
+                make_and_upload_ack_file(
+                    self.message_id,
+                    VALID_FLU_EMIS_FILE_KEY,
+                    validation_passed,
+                    message_delivered,
+                    self.created_at_formatted_string,
+                )
 
             # Note that the data downloaded from the CSV will contain the bool as a string
             expected_result["MESSAGE_DELIVERY"] = str(expected_result["MESSAGE_DELIVERY"])
 
             # Check that the uploaded data is as expected
-            ack_file_csv_obj = s3_client.get_object(Bucket=self.ack_bucket_name, Key=self.ack_file_name)
+            ack_file_csv_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=VALID_FLU_EMIS_ACK_FILE_KEY)
             csv_content_string = ack_file_csv_obj["Body"].read().decode("utf-8")
             csv_data = list(DictReader(StringIO(csv_content_string), delimiter="|"))
             self.assertEqual(list(csv_data)[0], expected_result)

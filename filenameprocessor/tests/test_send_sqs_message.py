@@ -1,38 +1,33 @@
 """Tests for send_sqs_message functions"""
 
-import unittest
+from unittest import TestCase
+from unittest.mock import patch, MagicMock
 import json
 from uuid import uuid4
-from unittest.mock import patch, MagicMock
 from moto import mock_sqs
-import boto3
+from boto3 import client as boto3_client
 from src.send_sqs_message import send_to_supplier_queue, make_message_body_for_sqs, make_and_send_sqs_message
-from tests.values_for_tests import MOCK_ENVIRONMENT_DICT
+from tests.utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, SQS_ATTRIBUTES
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
-class TestSendSQSMessage(unittest.TestCase):
+class TestSendSQSMessage(TestCase):
     """Tests for send_sqs_message functions"""
 
     @mock_sqs
     def test_send_to_supplier_queue_success(self):
         """Test send_to_supplier_queue function for a successful message send"""
-        mock_sqs_client = boto3.client("sqs", region_name="eu-west-2")
+        mock_sqs_client = boto3_client("sqs", region_name="eu-west-2")
 
-        # Set up message details
+        # Set up the queue
         supplier = "PINNACLE"
         message_body = {"supplier": supplier}
         # The short form of the supplier name is used for the queue name
         queue_name = "imms-batch-internal-dev-PINN-metadata-queue.fifo"
-
-        # Create a mock SQS queue
-        queue_url = mock_sqs_client.create_queue(
-            QueueName=queue_name, Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"}
-        )["QueueUrl"]
+        queue_url = mock_sqs_client.create_queue(QueueName=queue_name, Attributes=SQS_ATTRIBUTES)["QueueUrl"]
 
         # Call the send_to_supplier_queue function
-        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
-            self.assertTrue(send_to_supplier_queue(message_body))
+        self.assertTrue(send_to_supplier_queue(message_body))
 
         # Assert that correct message has reached the queue
         messages = mock_sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
@@ -40,34 +35,23 @@ class TestSendSQSMessage(unittest.TestCase):
 
     @mock_sqs
     def test_send_to_supplier_queue_failure_due_to_queue_does_not_exist(self):
-        """Test send_to_supplier_queue function for a failed message send"""
-        mock_sqs_client = boto3.client("sqs", region_name="eu-west-2")
-
-        # Set up message details
+        """Test send_to_supplier_queue function for a failed message send due to queue not existing"""
         supplier = "PINNACLE"
         message_body = {"supplier": supplier}
-
-        # Call the send_to_supplier_queue function without setting up the supplier queue
-        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
-            self.assertFalse(send_to_supplier_queue(message_body))
+        self.assertFalse(send_to_supplier_queue(message_body))
 
     @mock_sqs
     def test_send_to_supplier_queue_failure_due_to_absent_supplier(self):
         """Test send_to_supplier_queue function for a failed message send"""
-        mock_sqs_client = boto3.client("sqs", region_name="eu-west-2")
-        mock_send_message = MagicMock()
-        mock_sqs_client.send_message = mock_send_message
+        mock_sqs_client = boto3_client("sqs", region_name="eu-west-2")
+        mock_sqs_client.send_message = MagicMock()
 
-        # Set up message details
+        # Set up the queue
         supplier = ""
         message_body = {"supplier": supplier}
         # If attempt is made to send message then the queue name would be missing the supplier
         queue_name = "imms-batch-internal-dev--metadata-queue.fifo"
-
-        # Create a mock SQS queue
-        _ = mock_sqs_client.create_queue(
-            QueueName=queue_name, Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"}
-        )["QueueUrl"]
+        _ = mock_sqs_client.create_queue(QueueName=queue_name, Attributes=SQS_ATTRIBUTES)["QueueUrl"]
 
         # Call the send_to_supplier_queue function
         with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
@@ -91,7 +75,7 @@ class TestSendSQSMessage(unittest.TestCase):
     @mock_sqs
     def test_make_and_send_sqs_message_success(self):
         """Test make_and_send_sqs_message function for a successful message send"""
-        mock_sqs_client = boto3.client("sqs", region_name="eu-west-2")
+        mock_sqs_client = boto3_client("sqs", region_name="eu-west-2")
 
         # Set up message details, using the ODS code for MEDICAL_DIRECTOR in the file_key
         # The short form of the supplier name is used for the queue name
@@ -108,13 +92,10 @@ class TestSendSQSMessage(unittest.TestCase):
         }
 
         # Create a mock SQS queue
-        queue_url = mock_sqs_client.create_queue(
-            QueueName=queue_name, Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"}
-        )["QueueUrl"]
+        queue_url = mock_sqs_client.create_queue(QueueName=queue_name, Attributes=SQS_ATTRIBUTES)["QueueUrl"]
 
         # Call the send_to_supplier_queue function
-        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
-            self.assertTrue(make_and_send_sqs_message(file_key=file_key, message_id=message_id))
+        self.assertTrue(make_and_send_sqs_message(file_key=file_key, message_id=message_id))
 
         # Assert that correct message has reached the queue
         messages = mock_sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
@@ -123,12 +104,6 @@ class TestSendSQSMessage(unittest.TestCase):
     @mock_sqs
     def test_make_and_send_sqs_message_failure(self):
         """Test make_and_send_sqs_message function for a failure due to queue not existing"""
-        mock_sqs_client = boto3.client("sqs", region_name="eu-west-2")
-
-        # Set up message details, using the ODS code for MEDICAL_DIRECTOR in the file_key
         file_key = "Covid19_Vaccinations_v5_YGMYH_20200101T12345600.csv"
         message_id = str(uuid4())
-
-        # Call the send_to_supplier_queue function without setting up the queue
-        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
-            self.assertFalse(make_and_send_sqs_message(file_key=file_key, message_id=message_id))
+        self.assertFalse(make_and_send_sqs_message(file_key=file_key, message_id=message_id))

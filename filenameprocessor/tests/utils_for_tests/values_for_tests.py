@@ -6,7 +6,17 @@ MOCK_ENVIRONMENT_DICT = {
     "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
     "LOCAL_ACCOUNT_ID": "123456789012",
     "PROD_ACCOUNT_ID": "3456789109",
+    "CONFIG_BUCKET_NAME": "immunisation-batch-internal-dev-config",
 }
+
+SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-source"
+DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destination"
+
+VALID_FLU_EMIS_FILE_KEY = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
+VALID_FLU_EMIS_ACK_FILE_KEY = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
+
+SQS_ATTRIBUTES = {"FifoQueue": "true", "ContentBasedDeduplication": "true"}
+
 
 VALID_FILE_CONTENT = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
