@@ -1,9 +1,9 @@
 """Tests for initial_file_validation functions"""
 
-import unittest
+from unittest import TestCase
 from unittest.mock import patch
-import json
-import boto3
+from json import dumps as json_dumps
+from boto3 import client as boto3_client
 from moto import mock_s3
 from src.initial_file_validation import (
     is_valid_datetime,
@@ -21,7 +21,7 @@ from tests.utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
-class TestInitialFileValidation(unittest.TestCase):
+class TestInitialFileValidation(TestCase):
     """Tests for initial_file_validation functions"""
 
     def test_is_valid_datetime(self):
@@ -75,7 +75,7 @@ class TestInitialFileValidation(unittest.TestCase):
         setup_s3_bucket_and_file(
             test_bucket_name=config_bucket_name,
             test_file_key="permissions_config.json",
-            test_file_content=json.dumps(permissions_json),
+            test_file_content=json_dumps(permissions_json),
         )
 
         # Test case tuples are stuctured as (supplier, expected_result)
@@ -164,7 +164,7 @@ class TestInitialFileValidation(unittest.TestCase):
     def test_initial_file_validation(self):
         """Tests that initial_file_validation returns True if all elements pass validation, and False otherwise"""
         bucket_name = "test_bucket"
-        s3_client = boto3.client("s3", region_name="eu-west-2")
+        s3_client = boto3_client("s3", region_name="eu-west-2")
         s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
         valid_file_key = "Flu_Vaccinations_v5_YGA_20200101T12345600.csv"
         valid_file_content = VALID_FILE_CONTENT

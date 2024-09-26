@@ -1,10 +1,10 @@
 """e2e tests for lambda_handler, including specific tests for action flag permissions"""
 
 from unittest.mock import patch
-import unittest
-import json
+from unittest import TestCase
+from json import loads as json_loads
 from typing import Optional
-import boto3
+from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
 from src.router_lambda_function import lambda_handler
 from tests.utils_for_tests.values_for_tests import (
@@ -16,7 +16,7 @@ from tests.utils_for_tests.values_for_tests import (
 )
 
 
-class TestLambdaHandler(unittest.TestCase):
+class TestLambdaHandler(TestCase):
     """
     Tests for lambda_handler.
     NOTE: All helper functions default to use valid file content with 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
@@ -28,7 +28,7 @@ class TestLambdaHandler(unittest.TestCase):
         Sets up the source and destination buckets and uploads the test file to the source bucket.
         Returns the S3 client.
         """
-        s3_client = boto3.client("s3", region_name="eu-west-2")
+        s3_client = boto3_client("s3", region_name="eu-west-2")
 
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
@@ -70,13 +70,13 @@ class TestLambdaHandler(unittest.TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file()
 
         # Set up SQS
-        sqs_client = boto3.client("sqs", region_name="eu-west-2")
+        sqs_client = boto3_client("sqs", region_name="eu-west-2")
         queue_name = "imms-batch-internal-dev-EMIS-metadata-queue.fifo"
         attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full FLU permissions
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]):
+        with patch("src.initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]):
             response = lambda_handler(self.make_event(), None)
 
         # Assertions
@@ -86,7 +86,7 @@ class TestLambdaHandler(unittest.TestCase):
         # Check if the message was sent to the SQS queue
         messages = sqs_client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1)
         self.assertIn("Messages", messages)
-        received_message = json.loads(messages["Messages"][0]["Body"])
+        received_message = json_loads(messages["Messages"][0]["Body"])
 
         # Validate message content
         self.assertEqual(received_message["vaccine_type"], "FLU")
@@ -220,9 +220,9 @@ class TestLambdaHandler(unittest.TestCase):
         # Mock the get_supplier_permissions (with return value which includes the requested Flu permissions)
         # and send_to_supplier_queue functions
         with patch(
-            "initial_file_validation.get_supplier_permissions",
+            "src.initial_file_validation.get_supplier_permissions",
             return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
-        ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
+        ), patch("src.send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_called_once()

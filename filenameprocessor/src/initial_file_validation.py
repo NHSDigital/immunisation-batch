@@ -2,16 +2,13 @@
 
 import logging
 import os
-import re
+from re import match
 from datetime import datetime
-import boto3
-from constants import Constants
-from fetch_permissions import get_permissions_config_json_from_s3
-from utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
+from src.constants import Constants
+from src.fetch_permissions import get_permissions_config_json_from_s3
+from src.utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
 
 logger = logging.getLogger()
-
-s3_client = boto3.client("s3", region_name="eu-west-2")
 
 
 def is_valid_datetime(timestamp: str) -> bool:
@@ -93,7 +90,7 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
     appropriate permissions. Else returns False.
     """
     # Validate file name format (must contain four '_' a single '.' which occurs after the four '_'
-    if not re.search(r"^[^_.]*_[^_.]*_[^_.]*_[^_.]*_[^_.]*\.[^_.]*$", file_key):
+    if not match(r"^[^_.]*_[^_.]*_[^_.]*_[^_.]*_[^_.]*\.[^_.]*$", file_key):
         logger.error("Initial file validation failed: invalid file key format")
         return False
 

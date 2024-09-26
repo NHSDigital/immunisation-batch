@@ -2,14 +2,12 @@
 
 import logging
 import os
-import json
-import boto3
-from constants import Constants
-from utils_for_filenameprocessor import extract_file_key_elements
+from json import dumps as json_dumps
+from src.constants import Constants
+from src.utils_for_filenameprocessor import extract_file_key_elements
+from src.s3_clients import sqs_client
 
 logger = logging.getLogger()
-
-sqs_client = boto3.client("sqs", region_name="eu-west-2")
 
 
 def send_to_supplier_queue(message_body: dict) -> bool:
@@ -27,7 +25,7 @@ def send_to_supplier_queue(message_body: dict) -> bool:
 
     # Send to queue
     try:
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId="default")
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body), MessageGroupId="default")
         logger.info("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error("Failed to send message because queue %s does not exist", queue_url)

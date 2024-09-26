@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
-import json
+from json import loads as json_loads
 from uuid import uuid4
 from moto import mock_sqs
 from boto3 import client as boto3_client
@@ -31,7 +31,7 @@ class TestSendSQSMessage(TestCase):
 
         # Assert that correct message has reached the queue
         messages = mock_sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
-        self.assertEqual(json.loads(messages["Messages"][0]["Body"]), {"supplier": "PINNACLE"})
+        self.assertEqual(json_loads(messages["Messages"][0]["Body"]), {"supplier": "PINNACLE"})
 
     @mock_sqs
     def test_send_to_supplier_queue_failure_due_to_queue_does_not_exist(self):
@@ -99,7 +99,7 @@ class TestSendSQSMessage(TestCase):
 
         # Assert that correct message has reached the queue
         messages = mock_sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
-        self.assertEqual(json.loads(messages["Messages"][0]["Body"]), expected_message_body)
+        self.assertEqual(json_loads(messages["Messages"][0]["Body"]), expected_message_body)
 
     @mock_sqs
     def test_make_and_send_sqs_message_failure(self):

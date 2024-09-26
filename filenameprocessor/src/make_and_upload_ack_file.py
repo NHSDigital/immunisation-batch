@@ -1,12 +1,10 @@
 """Create ack file and upload to S3 bucket"""
 
-import csv
+from csv import writer
 import os
 from io import StringIO, BytesIO
-import boto3
-from utils_for_filenameprocessor import get_environment
-
-s3_client = boto3.client("s3", region_name="eu-west-2")
+from src.utils_for_filenameprocessor import get_environment
+from src.s3_clients import s3_client
 
 
 def make_ack_data(
@@ -38,7 +36,7 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
 
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
-    csv_writer = csv.writer(csv_buffer, delimiter="|")
+    csv_writer = writer(csv_buffer, delimiter="|")
     csv_writer.writerow(list(ack_data.keys()))
     csv_writer.writerow(list(ack_data.values()))
 
