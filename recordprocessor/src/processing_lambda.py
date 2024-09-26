@@ -79,7 +79,7 @@ def send_to_kinesis(supplier, message_body):
             StreamName=f"{imms_shrt_prefix}-processingdata-stream",
             StreamARN=os.getenv("KINESIS_STREAM_ARN"),
             Data=json.dumps(message_body, ensure_ascii=False),
-            PartitionKey=stream_name,  # Use a partition key
+            PartitionKey=supplier,  # Use a partition key
         )
         logger.info(
             f"Message sent to Kinesis stream:{stream_name} for supplier:{supplier} with resp:{resp}"
