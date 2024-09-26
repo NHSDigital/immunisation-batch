@@ -208,14 +208,14 @@ def send_to_supplier_queue(supplier, message_body):
         account_id = os.getenv("PROD_ACCOUNT_ID")
     else:
         account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{SQS_name}-metadata-queue.fifo"
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-metadata-queue.fifo"
     print(f"Queue_URL: {queue_url}")
 
     try:
         sqs_client.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message_body),
-            MessageGroupId="default",
+            MessageGroupId=SQS_name,
         )
         logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
     except sqs_client.exceptions.QueueDoesNotExist:
@@ -406,7 +406,8 @@ def validate_csv_column_count(bucket_name, file_key):
     if len(header) != 34:
         return False
 
-    if header != Constant.expected_csv_content:
-        return False
+    for item in header:
+        if item not in Constant.expected_csv_content:
+            return False
 
     return True

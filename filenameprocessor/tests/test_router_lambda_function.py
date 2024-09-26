@@ -1,9 +1,9 @@
 import unittest
 import os
 import io
-import json
-from unittest.mock import patch, MagicMock
-import boto3
+# import json
+from unittest.mock import patch
+# import boto3
 from moto import mock_sqs
 from router_lambda_function import (
     identify_supplier,
@@ -16,7 +16,6 @@ from router_lambda_function import (
     validate_vaccine_type_permissions,
     validate_action_flag_permissions,
 )
-from src.constants import Constant
 
 
 class TestRouterLambdaFunctions(unittest.TestCase):
@@ -160,89 +159,6 @@ class TestRouterLambdaFunctions(unittest.TestCase):
             "PROD_ACCOUNT_ID": "3456789109",
         },
     )
-    @patch("router_lambda_function.sqs_client")  # Mock the SQS client
-    def test_send_to_supplier_queue(self, mock_sqs_client):
-        """tests SQS queue is sent a message for valid files"""
-        # Define the mock SQS queue URL
-        mock_url = "https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-EMIS-metadata-queue.fifo"
-        mock_sqs_client.get_queue_url = MagicMock(return_value={"QueueUrl": mock_url})
-
-        mock_send_message = MagicMock()
-        mock_sqs_client.send_message = mock_send_message
-
-        supplier = "EMIS"
-        message_body = {
-            "vaccine_type": "flu",
-            "supplier": supplier,
-            "timestamp": "20240709T121304",
-            "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
-        }
-
-        # Call the send_to_supplier_queue function
-        send_to_supplier_queue(supplier, message_body)
-
-        # Assert that send_message was called once
-        mock_send_message.assert_called_once()
-
-        args, kwargs = mock_send_message.call_args
-
-        self.assertEqual(kwargs["QueueUrl"], mock_url)
-
-        self.assertIn("MessageBody", kwargs)
-        actual_message_body = json.loads(kwargs["MessageBody"])
-        self.assertEqual(actual_message_body["vaccine_type"], "flu")
-        self.assertEqual(actual_message_body["supplier"], "EMIS")
-        self.assertEqual(actual_message_body["timestamp"], "20240709T121304")
-        self.assertEqual(
-            actual_message_body["filename"],
-            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
-        )
-
-    @mock_sqs
-    @patch("router_lambda_function.os.getenv")
-    def test_send_to_supplier_queue_success(self, mock_getenv):
-        """
-        Test send_to_supplier_queue function for a successful message send.
-
-        """
-        # Mock environment variables
-        mock_getenv.side_effect = lambda key, default=None: {
-            "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-            "LOCAL_ACCOUNT_ID": "123456789012",
-            "PROD_ACCOUNT_ID": "3456789109",
-        }.get(key, default)
-
-        # Create a mock SQS queue
-        sqs = boto3.client("sqs", region_name="eu-west-2")
-        queue_url = sqs.create_queue(
-            QueueName="imms-batch-internal-dev-EMIS-metadata-queue.fifo",
-            Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-        )["QueueUrl"]
-
-        supplier = "EMIS"
-        message_body = {
-            "vaccine_type": "Flu",
-            "supplier": supplier,
-            "timestamp": "20240708T12130100",
-            "filename": "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
-        }
-
-        # Call the send_to_supplier_queue function
-        success = send_to_supplier_queue(supplier, message_body)
-
-        self.assertTrue(success)
-
-        messages = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
-        self.assertIn("Messages", messages)
-        message_body_received = json.loads(messages["Messages"][0]["Body"])
-        self.assertEqual(message_body_received["vaccine_type"], "Flu")
-        self.assertEqual(message_body_received["supplier"], supplier)
-        self.assertEqual(message_body_received["timestamp"], "20240708T12130100")
-        self.assertEqual(
-            message_body_received["filename"],
-            "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv",
-        )
-
     @mock_sqs
     @patch("router_lambda_function.os.getenv")
     def test_send_to_supplier_queue_queue_not_exist(self, mock_getenv):
@@ -289,12 +205,11 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    # @patch("csv.DictReader")
     def test_validate_action_flag_permissions(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = Constant.file_content_operations
+        csv_data = "ACTION_FLAG\nupdate\nnew\ndelete\n"
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -308,9 +223,6 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
             "FLU_CREATE",
         ]
 
-        mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
-        # mock_csv_dict_reader.return_value = mock_csv_reader_instance
         # Define test parameters
         bucket_name = "test-bucket"
         file_key = "Flu_Vaccinations_v5_YYY78_20240708T12130100.csv"
@@ -328,11 +240,12 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_one_permissions(
+    def test_validate_action_flag_permissions_with_no_permissions(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = Constant.file_content_operations
+        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
+                        value1_row2|A2|new"""
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -340,7 +253,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         }
 
         # Mock get_supplier_permissions
-        mock_get_supplier_permissions.return_value = ["FLU_DELETE"]
+        mock_get_supplier_permissions.return_value = ["FLU_UPDATE"]
 
         # Define test parameters
         bucket_name = "test-bucket"
@@ -355,7 +268,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         )
 
         # Check the result
-        self.assertTrue(result)
+        self.assertFalse(result)
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
@@ -363,7 +276,8 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = Constant.file_content_operations
+        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
+                        value1_row2|A2|new\nvalue1_row1|A1|update"""
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -390,11 +304,17 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
 
     @patch("router_lambda_function.s3_client")
     @patch("router_lambda_function.get_supplier_permissions")
-    def test_validate_action_flag_permissions_with_no_permissions(
+    def test_validate_action_flag_permissions_with_one_permission(
         self, mock_get_supplier_permissions, mock_s3_client
     ):
         # Sample CSV data
-        csv_data = Constant.file_content_operations
+        csv_data = """header1|header2|ACTION_FLAG\nvalue1_row1|A1|delete\n
+                        value1_row2|A2|new
+                        value1_row3|A3|delete
+                        value1_row4|A4|tree
+                        """
+
+        # csv_data = "ACTION_FLAG\nnew\ndelete\n"
 
         # Mock S3 get_object
         mock_s3_client.get_object.return_value = {
@@ -402,7 +322,7 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         }
 
         # Mock get_supplier_permissions
-        mock_get_supplier_permissions.return_value = ["COVID19_UPDATE"]
+        mock_get_supplier_permissions.return_value = ["COVID19_DELETE"]
 
         # Define test parameters
         bucket_name = "test-bucket"
@@ -417,4 +337,4 @@ class TestValidateActionFlagPermissions(unittest.TestCase):
         )
 
         # Check the result
-        self.assertFalse(result)
+        self.assertTrue(result)

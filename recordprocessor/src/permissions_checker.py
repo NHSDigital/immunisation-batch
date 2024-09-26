@@ -22,7 +22,7 @@ def get_json_from_s3(config_bucket_name):
 
         # Reload the JSON if the file has been modified
         if _cached_last_modified is None or last_modified > _cached_last_modified:
-            print("Fetching updated JSON from S3...")
+            print("Fetching permissions JSON from S3...")
             response = s3.get_object(Bucket=config_bucket_name, Key=json_file_key)
             json_content = response["Body"].read().decode("utf-8")
             _cached_json_data = json.loads(json_content)

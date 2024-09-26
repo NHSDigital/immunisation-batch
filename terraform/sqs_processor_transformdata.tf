@@ -1,28 +1,8 @@
-
-
-resource "aws_sqs_queue" "processor_fifo_queues" {
-    for_each                  = toset(var.suppliers)
-    name                      = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-queue.fifo"
-    fifo_queue                = true
-    visibility_timeout_seconds = 60
-    
-    # TO DO - enable content-based deduplication - will not record duplicate body sent to queue
-    content_based_deduplication  = true
-
-tags = {
-    supplier = each.key
+# Define the Kinesis Data Stream resource with 15 shards
+resource "aws_kinesis_stream" "processor_data_streams" {
+  name        = "${local.short_queue_prefix}-processingdata-stream"
+  shard_count = 15  
 }
-
-}
-data "aws_sqs_queue" "processingqueues" {
-  for_each = toset(var.suppliers)
-  name     = "${local.short_queue_prefix}-${lookup(var.supplier_name_map, each.key)}-processingdata-queue.fifo"
-
-  # Ensure the queue exists before looking it up
-  depends_on = [aws_sqs_queue.processor_fifo_queues]
-}
-
 locals {
-  new_sqs_arns = [for queue in data.aws_sqs_queue.processingqueues : queue.arn]
+  new_kinesis_arn = aws_kinesis_stream.processor_data_streams.arn
 }
-
