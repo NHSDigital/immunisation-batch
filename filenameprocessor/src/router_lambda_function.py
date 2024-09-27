@@ -215,8 +215,10 @@ def send_to_supplier_queue(supplier, message_body):
         sqs_client.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message_body),
-            MessageGroupId=SQS_name,
-        )
+            DelaySeconds=60,
+            MessageDeduplicationId='1',
+            MessageGroupId=SQS_name
+            )
         logger.info(f"Message sent to SQS queue '{SQS_name}' for supplier {supplier}")
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error(f"queue {queue_url} does not exist")
