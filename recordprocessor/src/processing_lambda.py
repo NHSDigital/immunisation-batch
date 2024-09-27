@@ -29,13 +29,8 @@ immunization_api_instance = ImmunizationApi(authenticator)
 
 def get_environment():
     _env = os.getenv("ENVIRONMENT")
-    non_prod = ["internal-dev", "int", "ref", "sandbox"]
-    if _env in non_prod:
-        return _env
-    elif _env == "prod":
-        return "prod"
-    else:
-        return "internal-dev"  # default to internal-dev for pr and user workspaces
+    # default to internal-dev for pr and user workspaces
+    return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
 def get_supplier_permissions(supplier, config_bucket_name):
