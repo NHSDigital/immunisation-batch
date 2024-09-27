@@ -4,6 +4,7 @@ from io import StringIO
 import io
 import os
 import re
+import base64
 from immunisation_api import ImmunizationApi
 import logging
 from botocore.exceptions import ClientError
@@ -14,7 +15,6 @@ from models.cache import Cache
 from ods_patterns import ODS_PATTERNS
 
 s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
-sqs_client = boto3.client("sqs", config=Config(region_name="eu-west-2"))
 logger = logging.getLogger()
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
@@ -113,7 +113,10 @@ def forward_lambda_handler(event, context):
     for record in event["Records"]:
         try:
             print(f"Records:{record}")
-            message_body = json.loads(record["body"])
+            # Extract the Kinesis data
+            kinesis_payload = record["kinesis"]["data"]
+            decoded_payload = base64.b64decode(kinesis_payload).decode("utf-8")
+            message_body = json.loads(decoded_payload)
             message_header = message_body.get("message_id")
             fhir_json = message_body.get("fhir_json")
             action_flag = message_body.get("action_flag")
