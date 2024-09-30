@@ -20,4 +20,4 @@ FROM base as build
 COPY src .
 RUN chmod 644 $(find . -type f)
 RUN chmod 755 $(find . -type d)
-CMD ["router_lambda_function.lambda_handler"]
+CMD ["file_name_processor.lambda_handler"]

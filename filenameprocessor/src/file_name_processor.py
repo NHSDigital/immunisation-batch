@@ -7,14 +7,13 @@ e.g. 'Flu_Vaccinations_v5_YYY78_20240708T12130100.csv' (ODS code has multiple le
 from json import dumps as json_dumps
 import logging
 from uuid import uuid4
-from src.initial_file_validation import initial_file_validation
-from src.send_sqs_message import make_and_send_sqs_message
-from src.make_and_upload_ack_file import make_and_upload_ack_file
-from src.s3_clients import s3_client
+from initial_file_validation import initial_file_validation
+from send_sqs_message import make_and_send_sqs_message
+from make_and_upload_ack_file import make_and_upload_ack_file
+from s3_clients import s3_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
-
 
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument

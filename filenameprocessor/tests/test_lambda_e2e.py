@@ -6,7 +6,7 @@ from json import loads as json_loads
 from typing import Optional
 from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
-from src.router_lambda_function import lambda_handler
+from src.file_name_processor import lambda_handler
 from tests.utils_for_tests.values_for_tests import (
     VALID_FILE_CONTENT,
     SOURCE_BUCKET_NAME,
