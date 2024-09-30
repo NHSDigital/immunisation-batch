@@ -19,7 +19,7 @@
 # class TestLambdaHandler(TestCase):
 #     """
 #     Tests for lambda_handler.
-#     NOTE: All helper functions default to use valid file content with 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+#     NOTE:All helper functions default to use valid file content with 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
 #     as the test_file_key and'ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv' as the ack_file_key
 #     """
 
@@ -34,7 +34,7 @@
 #             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
 
 #         s3_client.put_object(
-#             Bucket=SOURCE_BUCKET_NAME, Key=file_key or VALID_FLU_EMIS_FILE_KEY, Body=file_content or VALID_FILE_CONTENT
+#            Bucket=SOURCE_BUCKET_NAME, Key=file_key or VALID_FLU_EMIS_FILE_KEY, Body=file_content or VALID_FILE_CONTENT
 #         )
 
 #         return s3_client
