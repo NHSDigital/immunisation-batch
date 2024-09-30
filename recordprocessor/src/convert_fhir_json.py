@@ -1,3 +1,4 @@
+from constants import map_target_disease
 from datetime import datetime, timezone
 import logging
 logger = logging.getLogger()
@@ -5,64 +6,6 @@ logger = logging.getLogger()
 
 def convert_to_fhir_json(row, vaccine_type):
     vaccine_type = vaccine_type.lower()
-
-    def map_target_disease(vaccine_type):
-        if vaccine_type == "covid19":
-            return [
-                {
-                    "coding": [
-                        {
-                            "system": "http://snomed.info/sct",
-                            "code": "840539006",
-                            "display": "Disease caused by severe acute respiratory syndrome coronavirus 2"
-                        }
-                    ]
-                }
-            ]
-        elif vaccine_type == "flu":
-            return [
-                {
-                    "coding": [
-                        {
-                            "system": "http://snomed.info/sct",
-                            "code": "6142004",
-                            "display": "Influenza"
-                        }
-                    ]
-                }
-            ]
-        elif vaccine_type == "mmr":
-            return [
-                {
-                    "coding": [
-                        {
-                            "system": "http://snomed.info/sct",
-                            "code": "14189004",
-                            "display": "Measles"
-                        }
-                    ]
-                },
-                {
-                    "coding": [
-                        {
-                            "system": "http://snomed.info/sct",
-                            "code": "36989005",
-                            "display": "Mumps"
-                        }
-                    ]
-                },
-                {
-                    "coding": [
-                        {
-                            "system": "http://snomed.info/sct",
-                            "code": "36653000",
-                            "display": "Rubella"
-                        }
-                    ]
-                }
-            ]
-        else:
-            return []
 
     def convert_to_boolean(value):
         if value.lower() == 'true':

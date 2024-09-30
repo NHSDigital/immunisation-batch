@@ -1,35 +1,41 @@
-import boto3
-import json
+"""Function to get the permissions_config.json file from S3 config buckets"""
 
-# from datetime import datetime
+import json
+import logging
+import boto3
+
+logger = logging.getLogger()
 
 # Global variables to hold the cached JSON data and its last modified time
-_cached_json_data = None
-_cached_last_modified = None
+_CACHED_JSON_DATA = None
+_CACHED_LAST_MODIFIED = None
 
-json_file_key = "permissions_config.json"
+JSON_FILE_KEY = "permissions_config.json"
 
 
-def get_json_from_s3(config_bucket_name):
-    global _cached_json_data, _cached_last_modified
+def get_permissions_config_json_from_s3(config_bucket_name) -> dict:
+    """
+    Returns the permissions config json, loaded from the permissions config file in the S3 config bucket.
+    If an error occurs then the default return value is an empty dictionary.
+    """
+    global _CACHED_JSON_DATA, _CACHED_LAST_MODIFIED  # pylint: disable=global-statement
 
     s3 = boto3.client("s3", region_name="eu-west-2")
 
     try:
         # Fetch the file's metadata to get the LastModified time
-        response = s3.head_object(Bucket=config_bucket_name, Key=json_file_key)
+        response = s3.head_object(Bucket=config_bucket_name, Key=JSON_FILE_KEY)
         last_modified = response["LastModified"]
 
         # Reload the JSON if the file has been modified
-        if _cached_last_modified is None or last_modified > _cached_last_modified:
-            print("Fetching updated JSON from S3...")
-            response = s3.get_object(Bucket=config_bucket_name, Key=json_file_key)
+        if _CACHED_LAST_MODIFIED is None or last_modified > _CACHED_LAST_MODIFIED:
+            response = s3.get_object(Bucket=config_bucket_name, Key=JSON_FILE_KEY)
             json_content = response["Body"].read().decode("utf-8")
-            _cached_json_data = json.loads(json_content)
-            _cached_last_modified = last_modified
-            print(f"CACHED_JSON:{_cached_json_data}")
-    except Exception as e:
-        print(f"Error loading JSON file: {e}")
-        return None
+            _CACHED_JSON_DATA = json.loads(json_content)
+            _CACHED_LAST_MODIFIED = last_modified
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.error("Error loading permissions_config.json from config bucket: {%s}", error)
+        return {}
 
-    return _cached_json_data
+    logger.info("Permissions config json data retrieved")
+    return _CACHED_JSON_DATA
