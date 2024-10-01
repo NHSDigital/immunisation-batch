@@ -6,8 +6,8 @@ import boto3
 from moto import mock_s3, mock_sqs
 from src.constants import Constant
 import json
-from processing_lambda import (
-    process_lambda_handler,
+from batch_processing import (
+    main,
     fetch_file_from_s3,
     process_csv_to_fhir,
     get_environment,
@@ -19,20 +19,20 @@ from processing_lambda import (
 
 
 class TestProcessLambdaFunction(unittest.TestCase):
-    @patch("processing_lambda.sqs_client")
-    @patch("processing_lambda.process_csv_to_fhir")
-    @patch("processing_lambda.boto3.client")
-    @patch("processing_lambda.validate_full_permissions")
+    @patch("batch_processing.send_to_kinesis")
+    @patch("batch_processing.process_csv_to_fhir")
+    @patch("batch_processing.boto3.client")
+    @patch("batch_processing.validate_full_permissions")
     def test_lambda_handler(
         self,
         mock_validate_full_permissions,
         mock_boto_client,
         mock_process_csv_to_fhir,
-        mock_sqs_client,
+        mock_send_to_kinesis,
     ):
         # Mock SQS client.
         mock_sqs_client_instance = MagicMock()
-        mock_sqs_client.return_value = mock_sqs_client_instance
+        mock_send_to_kinesis.return_value = mock_sqs_client_instance
 
         # Mock S3 client.
         mock_s3_client_instance = MagicMock()
@@ -42,6 +42,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         # Set up the queue URL and message body.
         message_body = {
+            "message_id": "test",
             "vaccine_type": "COVID19",
             "supplier": "Pfizer",
             "filename": "testfile.csv",
@@ -70,19 +71,18 @@ class TestProcessLambdaFunction(unittest.TestCase):
             },
         ):
             # Invoke the lambda handler
-            event = {"Records": [{"body": json.dumps(message_body)}]}
-            process_lambda_handler(event, {})
+            test_event = json.dumps({
+                                "message_id": "123456",
+                                "vaccine_type": 'covid19',
+                                "supplier": "DPS_FULL",
+                                "filename": "COVID19_Vaccinations_v5_YGJ_20210730T12000000.csv"
+                            })
+            main(test_event)
 
             # Assert process_csv_to_fhir was called with correct arguments
             mock_process_csv_to_fhir.assert_called_once_with(
-                "source-bucket",
-                "testfile.csv",
-                "Pfizer",
-                "COVID19",
-                "ack-bucket",
-                None,
-                True,
-                set(),
+                'source-bucket', 'COVID19_Vaccinations_v5_YGJ_20210730T12000000.csv', 'DPS_FULL', 'covid19',
+                'ack-bucket', '123456', True, set()
             )
 
     @mock_s3
@@ -97,15 +97,15 @@ class TestProcessLambdaFunction(unittest.TestCase):
         )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body="test content")
 
-        with patch("processing_lambda.s3_client", s3_client):
+        with patch("batch_processing.s3_client", s3_client):
             content = fetch_file_from_s3(bucket_name, file_key)
             self.assertEqual(content, "test content")
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -146,7 +146,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
@@ -155,9 +155,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_positive_string_provided(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_positive_string_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -200,7 +200,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_positive_string)
@@ -220,13 +220,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
         self.assertIn("Success", content)
-        mock_send_to_sqs.assert_called()
+        mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_only_mandatory(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_only_mandatory(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -270,8 +270,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
-            mock_csv_reader_instance = MagicMock()
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -290,13 +289,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
         self.assertIn("Success", content)
-        mock_send_to_sqs.assert_called()
+        mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -339,7 +338,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_positive_string_missing)
@@ -358,13 +357,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
         self.assertIn("Success", content)
-        mock_send_to_sqs.assert_called()
+        mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_invalid(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_invalid(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -381,7 +380,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
-        with patch("processing_lambda.convert_to_fhir_json", return_value=({}, False)):
+        with patch("batch_processing.convert_to_fhir_json", return_value=({}, False)):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
@@ -401,13 +400,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
         self.assertIn("fatal-error", content)
-        mock_send_to_sqs.assert_called()
+        mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -424,8 +423,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
-        with patch("processing_lambda.convert_to_fhir_json", return_value=({}, True)):
-            mock_csv_reader_instance = MagicMock()
+        with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_params_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -444,13 +442,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
         self.assertIn("fatal-error", content)
-        mock_send_to_sqs.assert_called()
+        mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -469,8 +467,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_id_missing)
         results = {"total": 0}, 400
-        with patch("processing_lambda.convert_to_fhir_json", return_value=({}, True)), patch(
-            "processing_lambda.ImmunizationApi.get_imms_id", return_value=results
+        with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)), patch(
+            "batch_processing.ImmunizationApi.get_imms_id", return_value=results
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
@@ -491,13 +489,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
         self.assertIn("fatal-error", content)
-        mock_send_to_sqs.assert_called()
+        mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_successful(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_successful(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="us-west-2")
         bucket_name = "test-bucket"
         file_key = "test-file.csv"
@@ -543,7 +541,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
+            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
@@ -563,13 +561,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
             response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
             content = response["Body"].read().decode("utf-8")
             self.assertIn("Success", content)
-            mock_send_to_sqs.assert_called()
+            mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_successful_permissions(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_successful_permissions(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
         bucket_name = "test-bucket"
         file_key = "test_file.csv"
@@ -616,7 +614,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
+            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
@@ -636,13 +634,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
             response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
             content = response["Body"].read().decode("utf-8")
             self.assertIn("Success", content)
-            mock_send_to_sqs.assert_called()
+            mock_send_to_kinesis.assert_called()
 
     @mock_s3
     @mock_sqs
-    @patch("processing_lambda.send_to_sqs")
+    @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    def test_process_csv_to_fhir_incorrect_permissions(self, mock_csv_dict_reader, mock_send_to_sqs):
+    def test_process_csv_to_fhir_incorrect_permissions(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
         bucket_name = "test-bucket"
         file_key = "test_file.csv"
@@ -689,7 +687,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constant.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch("processing_lambda.ImmunizationApi.get_imms_id", return_value=results):
+            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
@@ -711,7 +709,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             content = response["Body"].read().decode("utf-8")
             print()
             self.assertIn("No permissions for operation", content)
-            mock_send_to_sqs.assert_called()
+            mock_send_to_kinesis.assert_called()
 
     def test_process_csv_to_fhir_successful_Practitioner(self):
         request = Constant.request
@@ -755,19 +753,19 @@ class TestProcessLambdaFunction(unittest.TestCase):
             self.assertIn("Not available", vaccine_code["coding"][0]["display"])
 
     def test_get_environment(self):
-        with patch("processing_lambda.os.getenv", return_value="internal-dev"):
+        with patch("batch_processing.os.getenv", return_value="internal-dev"):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
 
-        with patch("processing_lambda.os.getenv", return_value="prod"):
+        with patch("batch_processing.os.getenv", return_value="prod"):
             env = get_environment()
             self.assertEqual(env, "prod")
 
-        with patch("processing_lambda.os.getenv", return_value="unknown-env"):
+        with patch("batch_processing.os.getenv", return_value="unknown-env"):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
 
-    @patch("processing_lambda.get_supplier_permissions")
+    @patch("batch_processing.get_supplier_permissions")
     def test_no_permissions(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = [""]
         config_bucket_name = "test-bucket"
@@ -778,7 +776,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @patch("processing_lambda.get_json_from_s3")
+    @patch("batch_processing.get_json_from_s3")
     def test_get_supplier_permissions_success(self, mock_get_json_from_s3):
         # Mock S3 response
         mock_get_json_from_s3.return_value = Constant.test_permissions_config_file
@@ -790,7 +788,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(permissions, ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"])
 
-    @patch("processing_lambda.get_json_from_s3")
+    @patch("batch_processing.get_json_from_s3")
     def test_get_supplier_permissions_no_permissions(self, mock_get_json_from_s3):
         mock_get_json_from_s3.return_value = Constant.test_permissions_config_file
 
@@ -801,7 +799,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(permissions, [""])
 
-    @patch("processing_lambda.get_supplier_permissions")
+    @patch("batch_processing.get_supplier_permissions")
     def test_validate_full_permissions_valid(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["FLU_FULL", "MMR_CREATE"]
 
@@ -813,7 +811,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertTrue(result)
 
-    @patch("processing_lambda.get_supplier_permissions")
+    @patch("batch_processing.get_supplier_permissions")
     def test_validate_full_permissions_invalid(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["COVID19_CREATE"]
 
@@ -825,7 +823,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @patch("processing_lambda.get_supplier_permissions")
+    @patch("batch_processing.get_supplier_permissions")
     def test_get_permission_operations_success(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = [
             "MMR_FULL",
@@ -841,7 +839,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(operations, {"CREATE", "UPDATE", "NEW"})
 
-    @patch("processing_lambda.get_supplier_permissions")
+    @patch("batch_processing.get_supplier_permissions")
     def test_get_permission_operations_one_permission(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["MMR_UPDATE"]
 
