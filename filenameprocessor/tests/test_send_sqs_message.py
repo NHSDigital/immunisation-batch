@@ -23,7 +23,7 @@ class TestSendSQSMessage(TestCase):
         supplier = "PINNACLE"
         message_body = {"supplier": supplier}
         # The short form of the supplier name is used for the queue name
-        queue_name = "imms-batch-internal-dev-PINN-metadata-queue.fifo"
+        queue_name = "imms-batch-internal-dev-metadata-queue.fifo"
         queue_url = mock_sqs_client.create_queue(QueueName=queue_name, Attributes=SQS_ATTRIBUTES)["QueueUrl"]
 
         # Call the send_to_supplier_queue function
@@ -54,7 +54,7 @@ class TestSendSQSMessage(TestCase):
         _ = mock_sqs_client.create_queue(QueueName=queue_name, Attributes=SQS_ATTRIBUTES)["QueueUrl"]
 
         # Call the send_to_supplier_queue function
-        with patch("src.send_sqs_message.sqs_client", mock_sqs_client):
+        with patch("send_sqs_message.sqs_client", mock_sqs_client):
             self.assertFalse(send_to_supplier_queue(message_body))
             mock_sqs_client.send_message.assert_not_called()
 
@@ -79,7 +79,7 @@ class TestSendSQSMessage(TestCase):
 
         # Set up message details, using the ODS code for MEDICAL_DIRECTOR in the file_key
         # The short form of the supplier name is used for the queue name
-        queue_name = "imms-batch-internal-dev-M_D-metadata-queue.fifo"
+        queue_name = "imms-batch-internal-dev-metadata-queue.fifo"
         file_key = "Covid19_Vaccinations_v5_YGMYH_20200101T12345600.csv"
         message_id = str(uuid4())
 

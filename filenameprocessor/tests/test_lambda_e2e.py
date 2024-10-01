@@ -71,13 +71,12 @@ class TestLambdaHandler(TestCase):
 
         # Set up SQS
         sqs_client = boto3_client("sqs", region_name="eu-west-2")
-        queue_name = "imms-batch-internal-dev-EMIS-metadata-queue.fifo"
+        queue_name = "imms-batch-internal-dev-metadata-queue.fifo"
         attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full FLU permissions
-        with patch("initial_file_validation.get_supplier_permissions",
-             return_value=["FLU_FULL"]):
+        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]):
             response = lambda_handler(self.make_event(), None)
 
         # Assertions
@@ -222,10 +221,8 @@ class TestLambdaHandler(TestCase):
         # and send_to_supplier_queue functions
         with patch(
             "initial_file_validation.get_supplier_permissions",
-            return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"]
-        ), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+            return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
+        ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_called_once()
