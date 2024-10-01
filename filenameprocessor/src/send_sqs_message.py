@@ -21,11 +21,12 @@ def send_to_supplier_queue(message_body: dict) -> bool:
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
     supplier_sqs_name = Constants.SUPPLIER_TO_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{supplier_sqs_name}-metadata-queue.fifo"
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-metadata-queue.fifo"
 
     # Send to queue
     try:
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body), MessageGroupId="default")
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body), DelaySeconds=60,
+                                MessageDeduplicationId='1', MessageGroupId=supplier_sqs_name)
         logger.info("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error("Failed to send message because queue %s does not exist", queue_url)
