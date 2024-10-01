@@ -29,10 +29,10 @@ steps:
     displayName: Setup pytests
     condition: always()
 
-  - template: "azure/components/aws-assume-role.yml@common"
+  - template: ./aws-assume-role.yml
     parameters:
       role: "auto-ops"
-      profile: "apim-dev"
+      profile: "imms-dev"
       aws_account: "dev"
 
   - bash: |
@@ -45,7 +45,7 @@ steps:
   - bash: |
       set -e
       if ! [[ $APIGEE_ENVIRONMENT =~ .*-*sandbox ]]; then
-        export AWS_PROFILE=apim-dev
+        export AWS_PROFILE=imms-dev
         aws_account_no="$(aws sts get-caller-identity --query Account --output text)"
 
         service_name=$(FULLY_QUALIFIED_SERVICE_NAME)
