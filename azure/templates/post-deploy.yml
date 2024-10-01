@@ -32,7 +32,7 @@ steps:
   - template: ./aws-assume-role.yml
     parameters:
       role: "auto-ops"
-      profile: "imms-dev"
+      profile: "apim-dev"
       aws_account: "dev"
 
   - bash: |
@@ -45,7 +45,7 @@ steps:
   - bash: |
       set -e
       if ! [[ $APIGEE_ENVIRONMENT =~ .*-*sandbox ]]; then
-        export AWS_PROFILE=imms-dev
+        export AWS_PROFILE=apim-dev
         aws_account_no="$(aws sts get-caller-identity --query Account --output text)"
 
         service_name=$(FULLY_QUALIFIED_SERVICE_NAME)
