@@ -3,9 +3,9 @@
 import logging
 import os
 from json import dumps as json_dumps
-from src.constants import Constants
-from src.utils_for_filenameprocessor import extract_file_key_elements
-from src.s3_clients import sqs_client
+from constants import Constants
+from utils_for_filenameprocessor import extract_file_key_elements
+from s3_clients import sqs_client
 
 logger = logging.getLogger()
 
@@ -21,11 +21,12 @@ def send_to_supplier_queue(message_body: dict) -> bool:
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
     supplier_sqs_name = Constants.SUPPLIER_TO_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
-    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-{supplier_sqs_name}-metadata-queue.fifo"
+    queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-metadata-queue.fifo"
 
     # Send to queue
     try:
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body), MessageGroupId="default")
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body),
+                                MessageDeduplicationId='1', MessageGroupId=supplier)
         logger.info("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error("Failed to send message because queue %s does not exist", queue_url)

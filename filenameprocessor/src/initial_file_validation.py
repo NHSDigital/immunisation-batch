@@ -4,9 +4,9 @@ import logging
 import os
 from re import match
 from datetime import datetime
-from src.constants import Constants
-from src.fetch_permissions import get_permissions_config_json_from_s3
-from src.utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
+from constants import Constants
+from fetch_permissions import get_permissions_config_json_from_s3
+from utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
 
 logger = logging.getLogger()
 

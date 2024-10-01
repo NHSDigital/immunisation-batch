@@ -3,8 +3,8 @@
 from csv import writer
 import os
 from io import StringIO, BytesIO
-from src.utils_for_filenameprocessor import get_environment
-from src.s3_clients import s3_client
+from utils_for_filenameprocessor import get_environment
+from s3_clients import s3_client
 
 
 def make_ack_data(

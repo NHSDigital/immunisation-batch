@@ -4,8 +4,8 @@ import os
 from csv import DictReader
 from typing import Union
 from io import StringIO
-from src.constants import Constants
-from src.s3_clients import s3_client
+from constants import Constants
+from s3_clients import s3_client
 
 
 def get_environment() -> str:
