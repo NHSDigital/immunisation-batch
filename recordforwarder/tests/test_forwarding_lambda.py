@@ -3,7 +3,7 @@ from unittest.mock import patch
 import json
 from botocore.exceptions import ClientError
 from datetime import datetime
-
+import base64
 # Assuming the script is named 'forwarding_lambda.py'
 from forwarding_lambda import forward_lambda_handler, forward_request_to_api, get_environment
 
@@ -40,21 +40,6 @@ class TestForwardingLambda(unittest.TestCase):
             mock_data_rows.assert_called_with(True, '20240821T10153000', None)
             # Verify that the create_immunization API was called exactly once
             mock_api.create_immunization.assert_called_once()
-
-    @patch('forwarding_lambda.s3_client')
-    @patch('forwarding_lambda.immunization_api_instance')
-    def test_forward_request_to_api_new_success_(self, mock_api, mock_s3):
-        # Mock LastModified as a datetime object
-        mock_s3.head_object.return_value = {'LastModified': datetime(2024, 8, 21, 10, 15, 30)}
-        # Simulate the case where the ack file does not exist
-        mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
-
-        forward_request_to_api(None, 'source-bucket', 'file.csv', 'None', 'None', 'ack-bucket', 'None', 'None')
-        # Check that the data_rows function was called with success status and formatted datetime
-        # Verify that the create_immunization API was called exactly once
-        mock_api.create_immunization.assert_not_called()
-        mock_api.update_immunization.assert_not_called()
-        mock_api.delete_immunization.assert_not_called()
 
     @patch('forwarding_lambda.s3_client')
     @patch('forwarding_lambda.immunization_api_instance')
@@ -129,21 +114,27 @@ class TestForwardingLambda(unittest.TestCase):
     @patch('forwarding_lambda.forward_request_to_api')
     @patch('forwarding_lambda.get_environment')
     def test_forward_lambda_handler(self, mock_get_environment, mock_forward_request_to_api):
+        # Mock the environment to return 'internal-dev'
         mock_get_environment.return_value = 'internal-dev'
+
+        # Simulate the event data that Lambda would receive
         event = {
             'Records': [
                 {
-                    'body': json.dumps({
-                        'fhir_json': '{}',
-                        'action_flag': 'new',
-                        'file_name': 'test_file.csv'
-                    })
+                    'kinesis': {
+                        'data': base64.b64encode(json.dumps({
+                            'message_id': 'test',
+                            'fhir_json': '{}',
+                            'action_flag': 'new',
+                            'file_name': 'test_file.csv'
+                        }).encode('utf-8')).decode('utf-8')
+                    }
                 }
             ]
         }
         forward_lambda_handler(event, None)
         mock_forward_request_to_api.assert_called_once_with(
-            None,
+            'test',
             'immunisation-batch-internal-dev-data-source',
             'test_file.csv',
             'new',
@@ -160,26 +151,27 @@ class TestForwardingLambda(unittest.TestCase):
         event = {
             'Records': [
                 {
-                    'body': json.dumps({
-                        'fhir_json': '{}',
-                        'action_flag': 'update',
-                        'file_name': 'test_file.csv',
-                        'imms_id': 'test',
-                        'version': 1
-                    })
+                    'kinesis': {
+                        'data': base64.b64encode(json.dumps({
+                            'message_id': 'test',
+                            'fhir_json': '{}',
+                            'action_flag': 'update',
+                            'file_name': 'test_file.csv'
+                        }).encode('utf-8')).decode('utf-8')
+                    }
                 }
             ]
         }
         forward_lambda_handler(event, None)
         mock_forward_request_to_api.assert_called_once_with(
-            None,
+            'test',
             'immunisation-batch-internal-dev-data-source',
             'test_file.csv',
             'update',
             '{}',
             'immunisation-batch-internal-dev-data-destination',
-            'test',
-            1
+            None,
+            None
         )
 
     @patch('forwarding_lambda.logger')

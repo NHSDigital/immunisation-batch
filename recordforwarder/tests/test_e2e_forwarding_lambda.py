@@ -5,6 +5,7 @@ import json
 from moto import mock_s3, mock_sqs
 from forwarding_lambda import forward_lambda_handler
 from src.constants import Constant
+import base64
 
 
 class TestForwardingLambdaE2E(unittest.TestCase):
@@ -34,18 +35,20 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.create_immunization.return_value = ("", 201)
 
         message = {
+            "message_id": Constant.test_fhir_json,
             "fhir_json": Constant.test_fhir_json,
             "action_flag": "new",
             "file_name": test_file_key,
-            "imms_id": "test",
-            "version": 1,
+            "imms_id": "None",
+            "version": "None",
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -86,11 +89,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": "None",
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -137,11 +141,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": 1,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -186,11 +191,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": 1,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -234,11 +240,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": 1,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -283,11 +290,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": 1,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -332,12 +340,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": 1,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
-
+        forward_lambda_handler(kinesiss_message, None)
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
         ack_file_obj = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -381,11 +389,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "version": 1,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
@@ -429,11 +438,12 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "message_id": message_header,
         }
 
-        # Create a mock SQS message
-        sqs_message = {"Records": [{"body": json.dumps(message)}]}
+        # Create a mock kinesis message
+        kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+        kinesiss_message = {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
         # Invoke the Lambda handler function
-        forward_lambda_handler(sqs_message, None)
+        forward_lambda_handler(kinesiss_message, None)
 
         # Check that the acknowledgment file was created in the destination S3 bucket
         ack_filename = f'forwardedFile/{test_file_key.split(".")[0]}_response.csv'
