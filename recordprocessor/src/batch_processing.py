@@ -29,8 +29,13 @@ immunization_api_instance = ImmunizationApi(authenticator)
 
 def get_environment():
     _env = os.getenv("ENVIRONMENT")
-    # default to internal-dev for pr and user workspaces
-    return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
+    non_prod = ["internal-dev", "int", "ref", "sandbox"]
+    if _env in non_prod:
+        return _env
+    elif _env == "prod":
+        return "prod"
+    else:
+        return "internal-dev"  # default to internal-dev for pr and user workspaces
 
 
 def get_supplier_permissions(supplier, config_bucket_name):
@@ -39,21 +44,29 @@ def get_supplier_permissions(supplier, config_bucket_name):
     if supplier_permissions is None:
         return []
     all_permissions = supplier_permissions.get("all_permissions", {})
-    print(f"ALL_PERMISSIONS:{all_permissions}")
+    print(f"Extracted All Supplier permissions:{all_permissions}")
     return all_permissions.get(supplier, [])
 
 
 def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
+    print(f"Supplier Allowed Permissions: {allowed_permissions_set}")
+    return f"{vaccine_type.upper()}_FULL" in allowed_permissions_set
 
-    # Check if the supplier has full permissions for the vaccine type
-    if f"{vaccine_type.upper()}_FULL" in allowed_permissions_set:
-        logger.info(f"{supplier} has FULL permissions to create, update and delete")
-        print(f"{supplier} has full permissions to create, update and delete")
-        return True
-    print(f"{supplier} does not have full permissions to create, update and delete")
-    return False
+
+def get_permission_operations(supplier, config_bucket_name, vaccine_type):
+    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
+    permission_operations = {
+        perm.split("_")[1]
+        for perm in allowed_permissions
+        if perm.startswith(vaccine_type.upper())
+    }
+    if "CREATE" in permission_operations:
+        permission_operations.add("NEW")
+    print(f"Supplier Allowed Operation Permissions: {permission_operations}")
+
+    return permission_operations
 
 
 def send_to_kinesis(supplier, message_body):
@@ -61,12 +74,6 @@ def send_to_kinesis(supplier, message_body):
     print(f"message_body:{message_body}")
     stream_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     imms_shrt_prefix = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    # if "prod" in imms_env or "production" in imms_env:
-    #     account_id = os.getenv("PROD_ACCOUNT_ID")
-    # else:
-    #     account_id = os.getenv("LOCAL_ACCOUNT_ID")
-    # stream_url = f"https://kinesis.eu-west-2.amazonaws.com/{account_id}/{imms_env}-processingdata-stream"
-    # logger.info(f"Queue_URL: {stream_url}")
 
     try:
         # Send the message to the Kinesis stream
@@ -91,7 +98,14 @@ def fetch_file_from_s3(bucket_name, file_key):
 
 
 def process_csv_to_fhir(
-    bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id
+    bucket_name,
+    file_key,
+    supplier,
+    vaccine_type,
+    ack_bucket_name,
+    message_id,
+    full_permissions,
+    permission_operations,
 ):
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
@@ -117,8 +131,45 @@ def process_csv_to_fhir(
         row_count += 1
         message_header = f"{message_id}#{row_count}"
         print(f"messageheader : {message_header}")
-
         print(f"parsed_row:{row}")
+        action_flag_perms = row.get("ACTION_FLAG", "")
+        print(f"ACTION FLAG PERMISSIONS:  {action_flag_perms}")
+        if action_flag_perms is None:
+            action_flag_perms = ""
+            print(
+                f"FULL PERMISSIONS: {full_permissions} AND PERMISSIONS OPERATIONS {permission_operations}"
+            )
+        if not (full_permissions or action_flag_perms.upper() in permission_operations):
+            print(
+                f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
+            )
+
+            message_body = {
+                "message_id": message_header,
+                "fhir_json": "No_Permissions",
+                "action_flag": "No_Permissions",
+                "imms_id": "None",
+                "version": "None",
+                "file_name": file_key,
+            }
+
+            data_row = Constant.data_rows("no permissions", created_at_formatted, message_header)
+            data_row_str = [str(item) for item in data_row]
+            cleaned_row = (
+                "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
+            )
+            accumulated_csv_content.write(cleaned_row + "\n")
+            csv_file_like_object = io.BytesIO(
+                accumulated_csv_content.getvalue().encode("utf-8")
+            )
+            s3_client.upload_fileobj(
+                csv_file_like_object, ack_bucket_name, ack_filename
+            )
+            print(
+                f"CSV content before upload with perms:\n{accumulated_csv_content.getvalue()}"
+            )
+            status = send_to_kinesis(supplier, message_body)
+            continue
         if (
             row.get("ACTION_FLAG") in {"new", "update", "delete"}
             and row.get("UNIQUE_ID_URI")
@@ -163,14 +214,11 @@ def process_csv_to_fhir(
                     if status:
                         print("create successful")
                         logger.info("message sent successfully to Kinesis")
-                        data_row = Constant.data_rows(
-                            True, created_at_formatted, message_header
-                        )
+                        data_row = Constant.data_rows(True, created_at_formatted, message_header)
                     else:
                         logger.error("Error sending to Kinesis")
-                        data_row = Constant.data_rows(
-                            False, created_at_formatted, message_header
-                        )
+                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
+
                 else:
                     print(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
@@ -185,14 +233,10 @@ def process_csv_to_fhir(
                     if status:
                         print("create successful imms not found")
                         logger.info("message sent successfully to SQS")
-                        data_row = Constant.data_rows(
-                            "None", created_at_formatted, message_header
-                        )
+                        data_row = Constant.data_rows("None", created_at_formatted, message_header)
                     else:
                         logger.error("Error sending to SQS imms id not found")
-                        data_row = Constant.data_rows(
-                            False, created_at_formatted, message_header
-                        )
+                        data_row = Constant.data_rows(False, created_at_formatted, message_header)
             else:
                 logger.error(f"Invalid FHIR conversion for row: {row}")
                 message_body = {
@@ -207,14 +251,10 @@ def process_csv_to_fhir(
                 if status:
                     print("sent successful invalid_json")
                     logger.info("message sent successfully to SQS")
-                    data_row = Constant.data_rows(
-                        "None", created_at_formatted, message_header
-                    )
+                    data_row = Constant.data_rows("None", created_at_formatted, message_header)
                 else:
                     logger.error("Error sending to SQS for invliad json")
-                data_row = Constant.data_rows(
-                    False, created_at_formatted, message_header
-                )
+                    data_row = Constant.data_rows(False, created_at_formatted, message_header)
         else:
             logger.error(f"Invalid row format: {row}")
             message_body = {
@@ -229,14 +269,10 @@ def process_csv_to_fhir(
             if status:
                 print("sent successful invalid_json")
                 logger.info("message sent successfully to SQS")
-                data_row = Constant.data_rows(
-                    "None", created_at_formatted, message_header
-                )
+                data_row = Constant.data_rows("None", created_at_formatted, message_header)
             else:
                 logger.error("Error sending to SQS for invliad json")
-                data_row = Constant.data_rows(
-                    False, created_at_formatted, message_header
-                )
+                data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
         # Convert all elements in data_row to strings
         data_row_str = [str(item) for item in data_row]
@@ -265,11 +301,17 @@ def process_csv_to_fhir(
 
 
 def main(event):
-    """Process the message from command-line argument or environment variable."""
     imms_env = get_environment()
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{imms_env}-config")
+    bucket_name = os.getenv(
+        "SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source"
+    )
+    ack_bucket_name = os.getenv(
+        "ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination"
+    )
+    config_bucket_name = os.getenv(
+        "CONFIG_BUCKET_NAME",
+        f"immunisation-batch-{imms_env}-config",
+    )
     try:
         print("task started")
         message_body_json = json.loads(event)
@@ -278,10 +320,25 @@ def main(event):
         vaccine_type = message_body_json.get("vaccine_type")
         supplier = message_body_json.get("supplier")
         file_key = message_body_json.get("filename")
-        if validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-            process_csv_to_fhir(bucket_name, file_key, supplier, vaccine_type, ack_bucket_name, message_id)
-        else:
-            logger.info(f"{supplier} does not have full_permissions")
+
+        # Get permissions and determine processing logic
+        full_permissions = validate_full_permissions(
+            config_bucket_name, supplier, vaccine_type
+        )
+        permission_operations = get_permission_operations(
+            supplier, config_bucket_name, vaccine_type
+        )
+        process_csv_to_fhir(
+            bucket_name,
+            file_key,
+            supplier,
+            vaccine_type,
+            ack_bucket_name,
+            message_id,
+            full_permissions,
+            permission_operations,
+        )
+
     except Exception as e:
         logger.error(f"Error processing message: {e}")
 

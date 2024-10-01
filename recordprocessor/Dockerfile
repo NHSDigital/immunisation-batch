@@ -19,5 +19,5 @@ FROM base as build
 COPY src .
 RUN chmod 644 $(find . -type f)
 RUN chmod 755 $(find . -type d)
-CMD ["python", "processing_lambda.py"]
-ENTRYPOINT ["python", "processing_lambda.py"]
+CMD ["python", "batch_processing.py"]
+ENTRYPOINT ["python", "batch_processing.py"]

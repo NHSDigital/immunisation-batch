@@ -18,6 +18,7 @@ logger = logging.getLogger()
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument
     """Lambda handler for filenameprocessor lambda"""
+
     error_files = []
 
     # For each file
