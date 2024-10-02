@@ -352,7 +352,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
         with patch("batch_processing.convert_to_fhir_json", return_value=({}, False)):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
