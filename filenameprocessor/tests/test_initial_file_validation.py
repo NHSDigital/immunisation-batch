@@ -109,7 +109,7 @@
 #         for vaccine_type, vaccine_permissions, expected_result in test_cases:
 #             with self.subTest():
 #                 with patch("initial_file_validation.get_supplier_permissions", return_value=vaccine_permissions):
-#                     self.assertEqual(validate_vaccine_type_permissions("TEST_SUPPLIER", vaccine_type), 
+#                     self.assertEqual(validate_vaccine_type_permissions("TEST_SUPPLIER", vaccine_type),
 # expected_result)
 
 #     def test_validate_action_flag_permissions(self):
