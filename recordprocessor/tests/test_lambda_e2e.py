@@ -7,27 +7,26 @@ from datetime import datetime
 from src.constants import Constant
 from io import StringIO, BytesIO
 import csv
-from batch_processing import (
-    main,
-    validate_full_permissions
-)
+from batch_processing import main, validate_full_permissions
 import os
 
 
 class TestLambdaHandler(unittest.TestCase):
 
+    @mock_s3
+    @mock_kinesis
     def setUp(self):
-        # Start mock services
-        self.mock_s3 = mock_s3()
-        self.mock_kinesis = mock_kinesis()
-        self.mock_s3.start()
-        self.mock_kinesis.start()
+        # # Start mock services
+        # self.mock_s3 = mock_s3()
+        # self.mock_kinesis = mock_kinesis()
+        # self.mock_s3.start()
+        # self.mock_kinesis.start()
 
-        # Set dummy AWS credentials
-        os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-        os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-        os.environ["AWS_SECURITY_TOKEN"] = "testing"
-        os.environ["AWS_SESSION_TOKEN"] = "testing"
+        # # Set dummy AWS credentials
+        # os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+        # os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+        # os.environ["AWS_SECURITY_TOKEN"] = "testing"
+        # os.environ["AWS_SESSION_TOKEN"] = "testing"
 
         # Ensure no session conflicts
         boto3.setup_default_session()
@@ -112,7 +111,6 @@ class TestLambdaHandler(unittest.TestCase):
     @patch("batch_processing.ImmunizationApi.get_imms_id")
     @patch("batch_processing.s3_client.download_fileobj")
     @patch("batch_processing.convert_to_fhir_json")
-
     def execute_test(
         self,
         mock_convert_json,
@@ -152,23 +150,25 @@ class TestLambdaHandler(unittest.TestCase):
                 "LOCAL_ACCOUNT_ID": "123456",
                 "ACK_BUCKET_NAME": self.ack_bucket_name,
                 "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-                "KINESIS_STREAM_ARN": f"arn:aws:kinesis:{self.region}:123456789012:stream/{self.stream_name}"
+                "KINESIS_STREAM_ARN": f"arn:aws:kinesis:{self.region}:123456789012:stream/{self.stream_name}",
             },
         ):
             self.setup_acknowledgment_file(self.vaccine_type, self.ods_code)
 
-            test_event = json.dumps({
-                **self.test_event_base,
-                "vaccine_type": self.vaccine_type,
-                "supplier": self.supplier,
-                "filename": test_event_filename.format(vaccine_type=self.vaccine_type, ods_code=self.ods_code)
-            })
+            test_event = json.dumps(
+                {
+                    **self.test_event_base,
+                    "vaccine_type": self.vaccine_type,
+                    "supplier": self.supplier,
+                    "filename": test_event_filename.format(vaccine_type=self.vaccine_type, ods_code=self.ods_code),
+                }
+            )
 
             main(test_event)
 
-            response = (
-                self.s3_client.get_object(Bucket=self.ack_bucket_name, Key=self.acknowledgment_file(self.vaccine_type,
-                                                                                                    self.ods_code)))
+            response = self.s3_client.get_object(
+                Bucket=self.ack_bucket_name, Key=self.acknowledgment_file(self.vaccine_type, self.ods_code)
+            )
             content = response["Body"].read().decode("utf-8")
 
             self.assertIn(expected_ack_content, content)
@@ -184,7 +184,7 @@ class TestLambdaHandler(unittest.TestCase):
             fetch_file_content=Constant.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            convert_json=False
+            convert_json=False,
         )
 
     def test_e2e_processing_invalid_data(self):
