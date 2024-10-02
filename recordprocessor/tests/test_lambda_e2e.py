@@ -197,7 +197,7 @@ class TestLambdaHandler(unittest.TestCase):
             fetch_file_content=Constant.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
+            kinesis=False
         )
 
     @mock_s3
