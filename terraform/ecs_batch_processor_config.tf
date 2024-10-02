@@ -256,7 +256,7 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
 resource "aws_pipes_pipe" "fifo_pipe" {
   name       = "${local.prefix}-pipe"
   role_arn   = aws_iam_role.fifo_pipe_role.arn
-  source     = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
+  source     = "arn:aws:sqs:eu-west-2:345594581768:${local.short_prefix}-metadata-queue.fifo"
   target     = aws_ecs_cluster.ecs_cluster.arn
   
   target_parameters {
