@@ -8,25 +8,16 @@ from src.constants import Constant
 from io import StringIO, BytesIO
 import csv
 from batch_processing import main, validate_full_permissions
-import os
 
 
 class TestLambdaHandler(unittest.TestCase):
 
-    @mock_s3
-    @mock_kinesis
     def setUp(self):
-        # # Start mock services
-        # self.mock_s3 = mock_s3()
-        # self.mock_kinesis = mock_kinesis()
-        # self.mock_s3.start()
-        # self.mock_kinesis.start()
-
-        # # Set dummy AWS credentials
-        # os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-        # os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-        # os.environ["AWS_SECURITY_TOKEN"] = "testing"
-        # os.environ["AWS_SESSION_TOKEN"] = "testing"
+        # Start mock services
+        self.mock_s3 = mock_s3()
+        self.mock_kinesis = mock_kinesis()
+        self.mock_s3.start()
+        self.mock_kinesis.start()
 
         # Ensure no session conflicts
         boto3.setup_default_session()
@@ -110,10 +101,8 @@ class TestLambdaHandler(unittest.TestCase):
     @patch("batch_processing.s3_client.head_object")
     @patch("batch_processing.ImmunizationApi.get_imms_id")
     @patch("batch_processing.s3_client.download_fileobj")
-    @patch("batch_processing.convert_to_fhir_json")
     def execute_test(
         self,
-        mock_convert_json,
         mock_download_fileobj,
         mock_get_imms_id,
         mock_head_object,
@@ -122,23 +111,21 @@ class TestLambdaHandler(unittest.TestCase):
         mock_csv_dict_reader,
         mock_send_to_kinesis,
         expected_ack_content,
-        send_to_kinesis_called,
         fetch_file_content,
         get_imms_id_response,
         test_event_filename,
-        convert_json,
-        # kinesis,
+        kinesis
     ):
-        # if kinesis:
-        #     mock_kinesis.return_value = False
+
         mock_fetch_file.return_value = fetch_file_content
         mock_head_object.return_value = self.mock_head_object_response
         mock_get_imms_id.return_value = get_imms_id_response
         mock_download_fileobj.return_value = self.mock_download_fileobj
         mock_validate_full_permissions.return_value = True
-        if convert_json:
-            mock_convert_json.return_value = None, False
-
+        if kinesis:
+            mock_send_to_kinesis.return_value = False
+        else:
+            mock_send_to_kinesis.return_value = True
         mock_csv_reader_instance = MagicMock()
         mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
         mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -172,50 +159,45 @@ class TestLambdaHandler(unittest.TestCase):
             content = response["Body"].read().decode("utf-8")
 
             self.assertIn(expected_ack_content, content)
-            if send_to_kinesis_called:
-                mock_send_to_kinesis.assert_called()
-            else:
-                mock_send_to_kinesis.assert_not_called()
+            mock_send_to_kinesis.assert_called()
 
     def test_e2e_successful_conversion(self):
         self.execute_test(
             expected_ack_content="ok",
-            send_to_kinesis_called=True,
             fetch_file_content=Constant.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            convert_json=False,
+            kinesis=False
         )
 
-    def test_e2e_processing_invalid_data(self):
+    @patch("batch_processing.convert_to_fhir_json")
+    def test_e2e_processing_invalid_data(self, mock_convert_json):
+        mock_convert_json.return_value = None, False
         self.execute_test(
             expected_ack_content="fatal-error",
-            send_to_kinesis_called=True,
             fetch_file_content=Constant.invalid_file_content,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            convert_json=True,
+            kinesis=False
         )
 
     def test_e2e_processing_imms_id_missing(self):
         response = {"total": 0}, 404
         self.execute_test(
             expected_ack_content="fatal-error",
-            send_to_kinesis_called=True,
             fetch_file_content=Constant.string_update_return,
             get_imms_id_response=response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            convert_json=False,
+            kinesis=False
         )
 
-    def test_e2e_successful_conversion_sqs_failed(self):
+    def test_e2e_successful_conversion_kinesis_failed(self):
         self.execute_test(
             expected_ack_content="fatal-error",
-            send_to_kinesis_called=False,
             fetch_file_content=Constant.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            convert_json=False,
+            kinesis=True
         )
 
     @mock_s3
