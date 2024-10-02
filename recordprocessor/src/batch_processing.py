@@ -40,18 +40,18 @@ def get_environment():
 
 def get_supplier_permissions(supplier, config_bucket_name):
     supplier_permissions = get_json_from_s3(config_bucket_name)
-    # print(f"config_perms_check: {supplier_permissions}")
+    logger.info(f"config_perms_check: {supplier_permissions}")
     if supplier_permissions is None:
         return []
     all_permissions = supplier_permissions.get("all_permissions", {})
-    # print(f"Extracted All Supplier permissions:{all_permissions}")
+    logger.info(f"Extracted All Supplier permissions:{all_permissions}")
     return all_permissions.get(supplier, [])
 
 
 def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
     allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
     allowed_permissions_set = set(allowed_permissions)
-    # print(f"Supplier Allowed Permissions: {allowed_permissions_set}")
+    logger.info(f"Supplier Allowed Permissions: {allowed_permissions_set}")
     return f"{vaccine_type.upper()}_FULL" in allowed_permissions_set
 
 
@@ -63,14 +63,14 @@ def get_permission_operations(supplier, config_bucket_name, vaccine_type):
     if "CREATE" in permission_operations:
         permission_operations.add("NEW")
         permission_operations.remove("CREATE")
-    # print(f"Supplier Allowed Operation Permissions: {permission_operations}")
+    logger.info(f"Supplier Allowed Operation Permissions: {permission_operations}")
 
     return permission_operations
 
 
 def send_to_kinesis(supplier, message_body):
     """Send a message to the specified Kinesis stream."""
-    # print(f"message_body:{message_body}")
+    logger.info(f"message_body:{message_body}")
     stream_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     imms_shrt_prefix = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
 
@@ -120,18 +120,20 @@ def process_csv_to_fhir(
     row_count = 0  # Initialize a counter for rows
 
     for row in csv_reader:
-        # print(f"row:{row}")
+        logger.info(f"row:{row}")
         row_count += 1
         message_header = f"{message_id}#{row_count}"
-        # print(f"messageheader : {message_header}")
-        # print(f"parsed_row:{row}")
+        logger.info(f"messageheader : {message_header}")
+        logger.info(f"parsed_row:{row}")
         action_flag_perms = row.get("ACTION_FLAG", "")
-        # print(f"ACTION FLAG PERMISSIONS:  {action_flag_perms}")
+        logger.info(f"ACTION FLAG PERMISSIONS:  {action_flag_perms}")
         if action_flag_perms is None:
             action_flag_perms = ""
-            # print(f"FULL PERMISSIONS: {full_permissions} AND PERMISSIONS OPERATIONS {permission_operations}")
+            logger.info(f"FULL PERMISSIONS: {full_permissions} AND PERMISSIONS OPERATIONS {permission_operations}")
         if not (full_permissions or action_flag_perms.upper() in permission_operations):
-            # print(f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}")
+            logger.info(
+                f"Skipping row as supplier does not have the permissions for this csv operation {action_flag_perms}"
+            )
 
             message_body = {
                 "message_id": message_header,
@@ -148,7 +150,7 @@ def process_csv_to_fhir(
             accumulated_csv_content.write(cleaned_row + "\n")
             csv_file_like_object = io.BytesIO(accumulated_csv_content.getvalue().encode("utf-8"))
             s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
-            # print(f"CSV content before upload with perms:\n{accumulated_csv_content.getvalue()}")
+            logger.info(f"CSV content before upload with perms:\n{accumulated_csv_content.getvalue()}")
             status = send_to_kinesis(supplier, message_body)
             continue
         if row.get("ACTION_FLAG") in {"new", "update", "delete"} and row.get("UNIQUE_ID_URI") and row.get("UNIQUE_ID"):
@@ -157,7 +159,7 @@ def process_csv_to_fhir(
                 identifier_system = row.get("UNIQUE_ID_URI")
                 action_flag = row.get("ACTION_FLAG")
                 identifier_value = row.get("UNIQUE_ID")
-                # print(f"Successfully converted row to FHIR: {fhir_json}")
+                logger.info(f"Successfully converted row to FHIR: {fhir_json}")
                 flag = True
                 if action_flag in ("delete", "update"):
                     flag = False
@@ -187,7 +189,7 @@ def process_csv_to_fhir(
                         }
                     status = send_to_kinesis(supplier, message_body)
                     if status:
-                        # print("create successful")
+                        logger.info("create successful")
                         logger.info("message sent successfully to Kinesis")
                         data_row = Constant.data_rows(True, created_at_formatted, message_header)
                     else:
@@ -195,7 +197,7 @@ def process_csv_to_fhir(
                         data_row = Constant.data_rows(False, created_at_formatted, message_header)
 
                 else:
-                    # print(f"imms_id not found:{response} and status_code:{status_code}")
+                    logger.info(f"imms_id not found:{response} and status_code:{status_code}")
                     message_body = {
                         "message_id": message_header,
                         "fhir_json": fhir_json,
@@ -206,7 +208,7 @@ def process_csv_to_fhir(
                     }
                     status = send_to_kinesis(supplier, message_body)
                     if status:
-                        # print("create successful imms not found")
+                        logger.info("create successful imms not found")
                         logger.info("message sent successfully to SQS")
                         data_row = Constant.data_rows("None", created_at_formatted, message_header)
                     else:
@@ -224,7 +226,7 @@ def process_csv_to_fhir(
                 }
                 status = send_to_kinesis(supplier, message_body)
                 if status:
-                    # print("sent successful invalid_json")
+                    logger.info("sent successful invalid_json")
                     logger.info("message sent successfully to SQS")
                     data_row = Constant.data_rows("None", created_at_formatted, message_header)
                 else:
@@ -242,7 +244,7 @@ def process_csv_to_fhir(
             }
             status = send_to_kinesis(supplier, message_body)
             if status:
-                # print("sent successful invalid_json")
+                logger.info("sent successful invalid_json")
                 logger.info("message sent successfully to SQS")
                 data_row = Constant.data_rows("None", created_at_formatted, message_header)
             else:
@@ -261,7 +263,7 @@ def process_csv_to_fhir(
 
         # Upload to S3 after processing this row
         # csv_bytes = BytesIO(accumulated_csv_content.getvalue().encode('utf-8'))
-        # print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
+        logger.info(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
         csv_file_like_object = io.BytesIO(accumulated_csv_content.getvalue().encode("utf-8"))
         s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
         logger.info(f"Ack file updated to {ack_bucket_name}: {ack_filename}")
@@ -278,9 +280,9 @@ def main(event):
         f"immunisation-batch-{imms_env}-config",
     )
     try:
-        # print("task started")
+        logger.info("task started")
         message_body_json = json.loads(event)
-        # print(f"Event: {message_body_json}")
+        logger.info(f"Event: {message_body_json}")
         message_id = message_body_json.get("message_id")
         vaccine_type = message_body_json.get("vaccine_type")
         supplier = message_body_json.get("supplier")
@@ -307,5 +309,5 @@ def main(event):
 if __name__ == "__main__":
     event = os.environ.get("EVENT_DETAILS")
     creds = os.environ.get("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
-    # print(f"creds: {creds}")
+    logger.info(f"creds: {creds}")
     main(event)
