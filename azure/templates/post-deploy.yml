@@ -5,30 +5,6 @@ parameters:
     default: true
 
 steps:
-  - ${{ if parameters.is_ptl }}:
-    - template: "azure/components/aws-assume-role.yml@common"
-      parameters:
-        role: "auto-ops"
-        profile: "apm_ptl"
-
-    - template: "azure/components/get-aws-secrets-and-ssm-params.yml@common"
-      parameters:
-        secret_file_ids:
-          - ptl/app-credentials/jwt_testing/non-prod/JWT_TESTING_PRIVATE_KEY
-        secret_ids:
-          - ptl/app-credentials/immunisation-fhir-api-testing-app/non-prod/INTROSPECTION_CLIENT_ID
-          - ptl/app-credentials/immunisation-fhir-api-testing-app/non-prod/INTROSPECTION_CLIENT_SECRET
-          - ptl/app-credentials/immunisation-fhir-api-testing-app/non-prod/INTROSPECTION_CLIENT_ID_INT
-          - ptl/app-credentials/immunisation-fhir-api-testing-app/non-prod/INTROSPECTION_CLIENT_SECRET_INT
-          - ptl/app-credentials/immunisation-fhir-api-testing-app/non-prod/INT_CLIENT_ID
-          - ptl/app-credentials/immunisation-fhir-api-testing-app/non-prod/INT_CLIENT_SECRET
-
-  - bash: |
-      make install-python
-    workingDirectory: $(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)
-    displayName: Setup pytests
-    condition: always()
-
   - template: ./aws-assume-role.yml
     parameters:
       role: "auto-ops"
