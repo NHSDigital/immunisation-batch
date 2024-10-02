@@ -19,7 +19,8 @@
 # class TestLambdaHandler(TestCase):
 #     """
 #     Tests for lambda_handler.
-#     NOTE: All helper functions default to use valid file content with 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+#     NOTE: All helper functions default to use valid file content with
+# 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
 #     as the test_file_key and'ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv' as the ack_file_key
 #     """
 
