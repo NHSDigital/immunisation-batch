@@ -213,3 +213,30 @@ resource "aws_lambda_permission" "new_s3_invoke_permission" {
   principal     = "s3.amazonaws.com"
   source_arn    = aws_s3_bucket.batch_config_bucket.arn
 }
+resource "aws_iam_policy" "elasticache_permissions" {
+  name   = "${local.prefix}-elasticache-permissions"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticache:CreateCacheCluster",
+          "elasticache:DeleteCacheCluster",
+          "elasticache:DescribeCacheClusters",
+          "elasticache:ModifyCacheCluster",
+          "elasticache:ListTagsForResource",
+          "elasticache:AddTagsToResource",
+          "elasticache:RemoveTagsFromResource"
+        ]
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.account_id}:cluster/${local.prefix}-redis-cluster"
+      }
+    ]
+  })
+}
+
+# Attach the policy to the role
+resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
+  role       = "auto-ops/build-assume-role"
+  policy_arn = aws_iam_policy.elasticache_permissions.arn
+}
