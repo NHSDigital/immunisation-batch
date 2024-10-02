@@ -94,7 +94,6 @@ class TestLambdaHandler(unittest.TestCase):
                         return_value=mock_download_fileobj,
                     ):
                         mock_csv_reader_instance = MagicMock()
-                        mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance.__iter__.return_value = iter(
                             Constant.mock_request
                         )
@@ -234,7 +233,6 @@ class TestLambdaHandler(unittest.TestCase):
                         "processing_lambda.send_to_sqs", return_value=False
                     ):
                         # Mock SQS and send a test message
-                        mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance.__iter__.return_value = iter(
                             Constant.mock_request
@@ -376,7 +374,6 @@ class TestLambdaHandler(unittest.TestCase):
                         "processing_lambda.s3_client.download_fileobj",
                         return_value=mock_download_fileobj,
                     ):
-                        mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance.__iter__.return_value = iter(
                             Constant.mock_request

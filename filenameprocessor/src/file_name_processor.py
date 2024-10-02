@@ -11,6 +11,7 @@ from initial_file_validation import initial_file_validation
 from send_sqs_message import make_and_send_sqs_message
 from make_and_upload_ack_file import make_and_upload_ack_file
 from s3_clients import s3_client
+from elasticcache import upload_to_elasticache
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -34,12 +35,16 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
             # Process the file
-            validation_passed = initial_file_validation(file_key, bucket_name)
-            message_delivered = make_and_send_sqs_message(file_key, message_id) if validation_passed else False
-            make_and_upload_ack_file(
-                message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
-            )
-
+            if "data-source" in bucket_name:
+                # Process file from batch_data_source_bucket with validation
+                validation_passed = initial_file_validation(file_key, bucket_name)
+                message_delivered = make_and_send_sqs_message(file_key, message_id) if validation_passed else False
+                make_and_upload_ack_file(
+                    message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
+                )
+            elif "config" in bucket_name:
+                # For files in batch_config_bucket, upload to ElastiCache
+                upload_to_elasticache(file_key, bucket_name)  # Assume this uploads file content to ElastiCache
         except Exception as error:  # pylint: disable=broad-except
             # If an unexpected error occured, add the file to the error_files list, and upload an ack file
             message_id = message_id or "Message id was not created"
