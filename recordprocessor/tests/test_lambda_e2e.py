@@ -123,9 +123,9 @@ class TestLambdaHandler(unittest.TestCase):
         mock_download_fileobj.return_value = self.mock_download_fileobj
         mock_validate_full_permissions.return_value = True
         if kinesis:
-            mock_send_to_kinesis.return_value = False
-        else:
             mock_send_to_kinesis.return_value = True
+        else:
+            mock_send_to_kinesis.return_value = False
         mock_csv_reader_instance = MagicMock()
         mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
         mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -167,7 +167,7 @@ class TestLambdaHandler(unittest.TestCase):
             fetch_file_content=Constant.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=False
+            kinesis=True
         )
 
     @patch("batch_processing.convert_to_fhir_json")
@@ -178,7 +178,7 @@ class TestLambdaHandler(unittest.TestCase):
             fetch_file_content=Constant.invalid_file_content,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=False
+            kinesis=True
         )
 
     def test_e2e_processing_imms_id_missing(self):
@@ -188,7 +188,7 @@ class TestLambdaHandler(unittest.TestCase):
             fetch_file_content=Constant.string_update_return,
             get_imms_id_response=response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=False
+            kinesis=True
         )
 
     def test_e2e_successful_conversion_kinesis_failed(self):
