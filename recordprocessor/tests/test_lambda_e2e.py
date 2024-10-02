@@ -8,10 +8,9 @@ from datetime import datetime
 from src.constants import Constant
 from io import StringIO, BytesIO
 import csv
-from batch_processing import (
-    main,
-    validate_full_permissions
-)
+
+
+from batch_processing import main, validate_full_permissions
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -30,15 +29,9 @@ class TestLambdaHandler(unittest.TestCase):
         # Mock S3 and Kinesis setup
         s3 = boto3.client("s3", region_name="eu-west-2")
         bucket_name = "immunisation-batch-internal-dev-data-source"
-        s3.create_bucket(
-            Bucket=bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-        )
+        s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
         ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
-        s3.create_bucket(
-            Bucket=ack_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
-        )
+        s3.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
 
         # Create a mock Kinesis stream
         kinesis = boto3.client("kinesis", region_name="eu-west-2")
@@ -75,9 +68,9 @@ class TestLambdaHandler(unittest.TestCase):
             "total": 1,
         }, 200
 
-        vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
-        suppliers = Constant.valid_supplier
-        ods_codes = Constant.valid_ods_codes  # Example valid ODS codes
+        vaccine_types = Constant.valid_vaccine_type[0]  # Example valid vaccine types
+        suppliers = Constant.valid_supplier[0]
+        ods_codes = Constant.valid_ods_codes[0]  # Example valid ODS codes
 
         for vaccine_type in vaccine_types:
             for supplier in suppliers:
@@ -137,17 +130,7 @@ class TestLambdaHandler(unittest.TestCase):
                             main(test_event)
 
                             # Verify that the acknowledgment file has been updated in the destination bucket
-                            ack_file = (
-                                s3.get_object(Bucket=ack_bucket_name, Key=ack_key)[
-                                    "Body"
-                                ]
-                                .read()
-                                .decode("utf-8")
-                            )
-
-                            print(
-                                f"Content of ack file: {ack_file}"
-                            )  # Debugging print statement
+                            ack_file = s3.get_object(Bucket=ack_bucket_name, Key=ack_key)["Body"].read().decode("utf-8")
 
                             self.assertIn("ok", ack_file)
                             mock_send_to_kinesis.assert_called()
@@ -209,9 +192,9 @@ class TestLambdaHandler(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
-        suppliers = Constant.valid_supplier
-        ods_codes = Constant.valid_ods_codes
+        vaccine_types = Constant.valid_vaccine_type[0]  # Example valid vaccine types
+        suppliers = Constant.valid_supplier[0]
+        ods_codes = Constant.valid_ods_codes[0]
         for vaccine_type in vaccine_types:
             for supplier in suppliers:
                 for ods_code in ods_codes:
@@ -234,9 +217,7 @@ class TestLambdaHandler(unittest.TestCase):
                         # Mock SQS and send a test message
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
-                        mock_csv_reader_instance.__iter__.return_value = iter(
-                            Constant.mock_request
-                        )
+                        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
                         mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
                         # Mock environment variables
@@ -275,17 +256,8 @@ class TestLambdaHandler(unittest.TestCase):
                             main(test_event)
 
                             # Verify that the acknowledgment file has been created in the destination bucket
-                            ack_file = (
-                                s3.get_object(Bucket=ack_bucket_name, Key=ack_key)[
-                                    "Body"
-                                ]
-                                .read()
-                                .decode("utf-8")
-                            )
+                            ack_file = s3.get_object(Bucket=ack_bucket_name, Key=ack_key)["Body"].read().decode("utf-8")
 
-                            print(
-                                f"Content of ack file: {ack_file}"
-                            )  # Debugging print statement
                             self.assertIn("fatal-error", ack_file)
                             mock_send_to_kinesis.assert_not_called()
 
@@ -346,11 +318,11 @@ class TestLambdaHandler(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        vaccine_types = Constant.valid_vaccine_type  # Example valid vaccine types
-        suppilers = Constant.valid_supplier
-        ods_codes = Constant.valid_ods_codes
+        vaccine_types = Constant.valid_vaccine_type[0]  # Example valid vaccine types
+        suppliers = Constant.valid_supplier[0]
+        ods_codes = Constant.valid_ods_codes[0]
         for vaccine_type in vaccine_types:
-            for supplier in suppilers:
+            for supplier in suppliers:
                 for ods_code in ods_codes:
                     # Mock the fetch_file_from_s3 function
                     with patch(
@@ -371,9 +343,7 @@ class TestLambdaHandler(unittest.TestCase):
                     ):
                         mock_csv_reader_instance = MagicMock()
                         mock_csv_reader_instance = MagicMock()
-                        mock_csv_reader_instance.__iter__.return_value = iter(
-                            Constant.mock_request
-                        )
+                        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
                         mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
                         # Mock environment variables
@@ -412,17 +382,8 @@ class TestLambdaHandler(unittest.TestCase):
                             main(test_event)
 
                             # Verify that the acknowledgment file has been created in the destination bucket
-                            ack_file = (
-                                s3.get_object(Bucket=ack_bucket_name, Key=ack_key)[
-                                    "Body"
-                                ]
-                                .read()
-                                .decode("utf-8")
-                            )
+                            ack_file = s3.get_object(Bucket=ack_bucket_name, Key=ack_key)["Body"].read().decode("utf-8")
 
-                            print(
-                                f"Content of ack file: {ack_file}"
-                            )  # Debugging print statement
                             self.assertIn("fatal-error", ack_file)
                             mock_send_to_kinesis.assert_called()
 
