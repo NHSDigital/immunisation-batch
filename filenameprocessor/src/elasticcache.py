@@ -16,7 +16,7 @@ def upload_to_elasticache(file_key, bucket_name):
     Uploads the file content from S3 to ElastiCache (Redis).
     """
     # Get file content from S3
-    logger.info("upload_to_elasticache started")
+    print("upload_to_elasticache process started")
     response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     file_content = response['Body'].read().decode('utf-8')
 

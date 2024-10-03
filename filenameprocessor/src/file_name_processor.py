@@ -40,6 +40,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             # Process the file
             if "data-source" in bucket_name:
                 # Process file from batch_data_source_bucket with validation
+                print("source upload initiated started")
                 validation_passed = initial_file_validation(file_key, bucket_name)
                 message_delivered = make_and_send_sqs_message(file_key, message_id) if validation_passed else False
                 make_and_upload_ack_file(
@@ -47,6 +48,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 )
             elif "config" in bucket_name:
                 # For files in batch_config_bucket, upload to ElastiCache
+                print("cache upload initiated started")
                 logger.info("cache upload initiated started")
                 upload_to_elasticache(file_key, bucket_name)  # Assume this uploads file content to ElastiCache
         except Exception as error:  # pylint: disable=broad-except
