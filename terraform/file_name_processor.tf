@@ -170,42 +170,56 @@ resource "aws_lambda_function" "file_processor_lambda" {
   }
 }
 resource "aws_security_group" "lambda_security_group" {
-  name        = "${local.prefix}-lambda-security-group"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 6379
-    to_port     = 6379
-    protocol    = "tcp"
-    security_groups = [aws_security_group.redis_security_group.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  name   = "${local.prefix}-lambda-security-group"
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_security_group" "redis_security_group" {
-  name        = "${local.prefix}-redis-security-group"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 6379
-    to_port     = 6379
-    protocol    = "tcp"
-    security_groups = [aws_security_group.lambda_security_group.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  name   = "${local.prefix}-redis-security-group"
+  vpc_id = aws_vpc.main.id
 }
+
+
+# Ingress rule for Lambda security group allowing connections from Redis security group
+resource "aws_security_group_rule" "lambda_ingress_from_redis" {
+  type              = "ingress"
+  from_port         = 6379
+  to_port           = 6379
+  protocol          = "tcp"
+  security_group_id = aws_security_group.lambda_security_group.id
+  source_security_group_id = aws_security_group.redis_security_group.id
+}
+
+# Egress rule for Lambda security group allowing all outbound traffic
+resource "aws_security_group_rule" "lambda_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  security_group_id = aws_security_group.lambda_security_group.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+# Ingress rule for Redis security group allowing connections from Lambda security group
+resource "aws_security_group_rule" "redis_ingress_from_lambda" {
+  type              = "ingress"
+  from_port         = 6379
+  to_port           = 6379
+  protocol          = "tcp"
+  security_group_id = aws_security_group.redis_security_group.id
+  source_security_group_id = aws_security_group.lambda_security_group.id
+}
+
+# Egress rule for Redis security group allowing all outbound traffic
+resource "aws_security_group_rule" "redis_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  security_group_id = aws_security_group.redis_security_group.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
 
 
 resource "aws_elasticache_cluster" "redis_cluster" {
