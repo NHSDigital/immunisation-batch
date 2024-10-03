@@ -30,8 +30,11 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
             # Obtain the file details
             bucket_name = record["s3"]["bucket"]["name"]
+            print(f"bucket_name:{bucket_name}")
             file_key = record["s3"]["object"]["key"]
+            print(f"file_key:{file_key}")
             response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
+            print(f"response:{response}")
             created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
             # Process the file
