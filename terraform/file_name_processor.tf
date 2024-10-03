@@ -237,6 +237,6 @@ resource "aws_iam_policy" "elasticache_permissions" {
 
 # Attach the policy to the role
 resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
-  role       = "auto-ops/build-assume-role"
+  role       = "auto_ops_build_assume_role"
   policy_arn = aws_iam_policy.elasticache_permissions.arn
 }
