@@ -164,7 +164,49 @@ resource "aws_lambda_function" "file_processor_lambda" {
       REDIS_PORT           = aws_elasticache_cluster.redis_cluster.port
     }
   }
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+    security_group_ids = [aws_security_group.lambda_security_group.id]
+  }
 }
+resource "aws_security_group" "lambda_security_group" {
+  name        = "${local.prefix}-lambda-security-group"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    security_groups = [aws_security_group.redis_security_group.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "redis_security_group" {
+  name        = "${local.prefix}-redis-security-group"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    security_groups = [aws_security_group.lambda_security_group.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 
 resource "aws_elasticache_cluster" "redis_cluster" {
   cluster_id           = "${local.prefix}-redis-cluster"
