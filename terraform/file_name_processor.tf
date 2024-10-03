@@ -220,6 +220,17 @@ resource "aws_security_group_rule" "redis_egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+resource "aws_subnet" "private_subnet_1" {
+  vpc_id            = data.aws_vpc.default.id
+  cidr_block        = "10.0.1.0/24" 
+  availability_zone = "eu-west-1a"  
+}
+
+resource "aws_subnet" "private_subnet_2" {
+  vpc_id            = data.aws_vpc.default.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "eu-west-1b" 
+}
 
 
 resource "aws_elasticache_cluster" "redis_cluster" {
