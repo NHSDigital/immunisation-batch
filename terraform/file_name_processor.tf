@@ -213,6 +213,23 @@ resource "aws_lambda_permission" "new_s3_invoke_permission" {
   principal     = "s3.amazonaws.com"
   source_arn    = aws_s3_bucket.batch_config_bucket.arn
 }
+
+# IAM Role for ElastiCache
+resource "aws_iam_role" "elasticache_exec_role" {
+  name = "${local.prefix}-elasticache-exec-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Sid = "",
+      Principal = {
+        Service = "elasticache.amazonaws.com" # ElastiCache service principal
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
 resource "aws_iam_policy" "elasticache_permissions" {
   name   = "${local.prefix}-elasticache-permissions"
   policy = jsonencode({
@@ -229,14 +246,14 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:AddTagsToResource",
           "elasticache:RemoveTagsFromResource"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.account_id}:cluster/${local.prefix}-redis-cluster"
+        Resource = "*"
       }
     ]
   })
 }
 
-# Attach the policy to the role
+# Attach the policy to the ElastiCache role
 resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
-  role       = "auto_ops_build_assume_role"
+  role       = aws_iam_role.elasticache_exec_role.name
   policy_arn = aws_iam_policy.elasticache_permissions.arn
 }
