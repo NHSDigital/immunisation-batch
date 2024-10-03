@@ -222,13 +222,13 @@ resource "aws_security_group_rule" "redis_egress" {
 
 resource "aws_subnet" "private_subnet_1" {
   vpc_id            = data.aws_vpc.default.id
-  cidr_block        = "172.31.1.0/24"
+  cidr_block        = "172.31.100.0/24"
   availability_zone = "eu-west-2a"
 }
 
 resource "aws_subnet" "private_subnet_2" {
   vpc_id            = data.aws_vpc.default.id
-  cidr_block        = "172.31.2.0/24"
+  cidr_block        = "172.31.101.0/24"
   availability_zone = "eu-west-2b"
 }
 
