@@ -171,12 +171,12 @@ resource "aws_lambda_function" "file_processor_lambda" {
 }
 resource "aws_security_group" "lambda_security_group" {
   name   = "${local.prefix}-lambda-security-group"
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id
 }
 
 resource "aws_security_group" "redis_security_group" {
   name   = "${local.prefix}-redis-security-group"
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.default.id
 }
 
 
