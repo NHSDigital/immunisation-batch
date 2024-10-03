@@ -46,13 +46,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             main(json.dumps(message_body))
 
             # Assert process_csv_to_fhir was called with correct arguments
-            mock_process_csv_to_fhir.assert_called_once_with(
-                file_key="testfile.csv",
-                supplier="Pfizer",
-                vaccine_type="COVID19",
-                message_id=None,
-                permission_operations={"NEW", "UPDATE", "DELETE"},
-            )
+            mock_process_csv_to_fhir.assert_called_once_with(incoming_message_body=message_body)
 
     @mock_s3
     def test_fetch_file_from_s3(self):
@@ -106,11 +100,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, "covid19", None, {"NEW", "UPDATE", "DELETE"})
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -164,12 +161,15 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+            "batch_processing.get_action_flag_permissions", return_value=permission_operations
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_positive_string)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, "covid19", None, permission_operations)
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -224,12 +224,15 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+            "batch_processing.get_action_flag_permissions", return_value=permission_operations
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, "covid19", None, permission_operations)
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -283,12 +286,15 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+        with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+            "batch_processing.get_action_flag_permissions", return_value=permission_operations
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_positive_string_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, "covid19", None, permission_operations)
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
         content = response["Body"].read().decode("utf-8")
@@ -315,12 +321,15 @@ class TestProcessLambdaFunction(unittest.TestCase):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
-        with patch("batch_processing.convert_to_fhir_json", return_value=({}, False)):
+        with patch("batch_processing.convert_to_fhir_json", return_value=({}, False)), patch(
+            "batch_processing.get_action_flag_permissions", return_value=permission_operations
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, Constants.valid_vaccine_type[1], None, permission_operations)
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -348,11 +357,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
-        with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)):
+        with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)), patch(
+            "batch_processing.get_action_flag_permissions", return_value=permission_operations
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_params_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, Constants.valid_vaccine_type[1], None, permission_operations)
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -384,12 +396,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
         results = {"total": 0}, 400
         with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)), patch(
             "batch_processing.ImmunizationApi.get_imms_id", return_value=results
-        ):
+        ), patch("batch_processing.get_action_flag_permissions", return_value=permission_operations):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(file_key, supplier, "covid19", None, permission_operations)
+            message_body = {"filename": file_key, "supplier": supplier, "vaccine_type": "covid19", "message_id": None}
+            process_csv_to_fhir(message_body)
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -446,18 +459,20 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+                "batch_processing.get_action_flag_permissions", return_value=permission_operations
+            ):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
-                process_csv_to_fhir(
-                    file_key,
-                    supplier,
-                    vaccine_type,
-                    None,
-                    permission_operations,
-                )
+                message_body = {
+                    "filename": file_key,
+                    "supplier": supplier,
+                    "vaccine_type": "covid19",
+                    "message_id": None,
+                }
+                process_csv_to_fhir(message_body)
 
             ack_filename = "processedFile/test-file_response.csv"
             response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -515,12 +530,20 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+                "batch_processing.get_action_flag_permissions", return_value=permission_operations
+            ):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
-                process_csv_to_fhir(file_key, supplier, vaccine_type, message_id, permission_operations)
+                message_body = {
+                    "filename": file_key,
+                    "supplier": supplier,
+                    "vaccine_type": "covid19",
+                    "message_id": None,
+                }
+                process_csv_to_fhir(message_body)
 
             ack_filename = "processedFile/test_file_response.csv"
             response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -578,12 +601,20 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
-            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
+            with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results), patch(
+                "batch_processing.get_action_flag_permissions", return_value=permission_operations
+            ):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
-                process_csv_to_fhir(file_key, supplier, vaccine_type, message_id, permission_operations)
+                message_body = {
+                    "filename": file_key,
+                    "supplier": supplier,
+                    "vaccine_type": vaccine_type,
+                    "message_id": message_id,
+                }
+                process_csv_to_fhir(message_body)
 
             # Called once to send no permissions message to forwarder lambda
             ack_filename = "processedFile/test_file_response.csv"

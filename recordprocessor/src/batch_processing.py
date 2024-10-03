@@ -161,7 +161,17 @@ def process_row(vaccine_type, permission_operations, row):
     }
 
 
-def process_csv_to_fhir(file_key, supplier, vaccine_type, message_id, permission_operations):
+def process_csv_to_fhir(incoming_message_body):
+
+    logger.info(f"Event: {incoming_message_body}")
+
+    # Get details needed to process file
+    file_id = incoming_message_body.get("message_id")
+    vaccine_type = incoming_message_body.get("vaccine_type")
+    supplier = incoming_message_body.get("supplier")
+    file_key = incoming_message_body.get("filename")
+    action_flag_permissions = get_action_flag_permissions(supplier, vaccine_type)
+
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-source")
     csv_data = fetch_file_from_s3(bucket_name, file_key)
@@ -175,64 +185,45 @@ def process_csv_to_fhir(file_key, supplier, vaccine_type, message_id, permission
 
     for row in csv_reader:
         row_count += 1
-        message_header = f"{message_id}#{row_count}"
-        logger.info(f"MESSAGE HEADER : {message_header}")
+        message_id = f"{file_id}#{row_count}"
+        logger.info(f"MESSAGE ID : {message_id}")
 
-        details = process_row(vaccine_type, permission_operations, row)
+        # Process the row to obtain the details needed for the message_body and ack file
+        details_from_processing = process_row(vaccine_type, action_flag_permissions, row)
 
         # Create the message body for sending
         outgoing_message_body = {
-            "message_id": message_header,
-            "fhir_json": details["fhir_json"],
-            "action_flag": details["action_flag"],
+            "message_id": message_id,
+            "fhir_json": details_from_processing["fhir_json"],
+            "action_flag": details_from_processing["action_flag"],
             "file_name": file_key,
         }
-        if imms_id := details.get("imms_id"):
+        if imms_id := details_from_processing.get("imms_id"):
             outgoing_message_body["imms_id"] = imms_id
-        if version := details.get("version"):
+        if version := details_from_processing.get("version"):
             outgoing_message_body["version"] = version
 
-        # Send to kinesis. Add diagnostics if send fails
+        # Send to kinesis. Add diagnostics if send fails.
         message_delivered = send_to_kinesis(supplier, outgoing_message_body)
-        if (diagnostics := details["diagnostics"]) is None and message_delivered is False:
+        if (diagnostics := details_from_processing["diagnostics"]) is None and message_delivered is False:
             diagnostics = "Unsupported file type received as an attachment"
 
         # Update the ack file
         response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
         created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
-        ack_data_row = create_ack_data(created_at_formatted_string, message_header, message_delivered, diagnostics)
+        ack_data_row = create_ack_data(created_at_formatted_string, message_id, message_delivered, diagnostics)
         accumulated_ack_file_content = add_row_to_ack_file(ack_data_row, accumulated_ack_file_content, file_key)
 
     logger.info(f"Total rows processed: {row_count}")  # logger the total number of rows processed
 
 
 def main(event):
-
+    logger.info("task started")
     try:
-        logger.info("task started")
-        incoming_message_body = json.loads(event)
-        logger.info(f"Event: {incoming_message_body}")
-        message_id = incoming_message_body.get("message_id")
-        vaccine_type = incoming_message_body.get("vaccine_type")
-        supplier = incoming_message_body.get("supplier")
-        file_key = incoming_message_body.get("filename")
-
-        permission_operations = get_action_flag_permissions(supplier, vaccine_type)
-
-        process_csv_to_fhir(
-            file_key=file_key,
-            supplier=supplier,
-            vaccine_type=vaccine_type,
-            message_id=message_id,
-            permission_operations=permission_operations,
-        )
-
+        process_csv_to_fhir(incoming_message_body=json.loads(event))
     except Exception as e:
         logger.error(f"Error processing message: {e}")
 
 
 if __name__ == "__main__":
-    event = os.environ.get("EVENT_DETAILS")
-    creds = os.environ.get("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
-    logger.info(f"creds: {creds}")
-    main(event)
+    main(event=os.environ.get("EVENT_DETAILS"))
