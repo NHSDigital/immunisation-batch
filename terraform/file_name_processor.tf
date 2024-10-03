@@ -214,7 +214,7 @@ resource "aws_lambda_permission" "new_s3_invoke_permission" {
   source_arn    = aws_s3_bucket.batch_config_bucket.arn
 }
 
-# IAM Role for ElastiCache
+# IAM Role for ElastiCache.
 resource "aws_iam_role" "elasticache_exec_role" {
   name = "${local.prefix}-elasticache-exec-role"
   assume_role_policy = jsonencode({
