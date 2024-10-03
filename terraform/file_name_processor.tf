@@ -74,8 +74,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-source",           
-          "arn:aws:s3:::${local.prefix}-data-source/*"        
+          "arn:aws:s3:::${local.prefix}-data-source",
+          "arn:aws:s3:::${local.prefix}-data-source/*"
         ]
       },
       {
@@ -84,15 +84,26 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
-        ]
+        ],
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-destination",       
-          "arn:aws:s3:::${local.prefix}-data-destination/*"        
+          "arn:aws:s3:::${local.prefix}-data-destination",
+          "arn:aws:s3:::${local.prefix}-data-destination/*"
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = "kms:Decrypt"
+        Effect   = "Allow",
+        Action   = [
+          "kms:Decrypt"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface"
+        ],
         Resource = "*"
       },
       {
@@ -103,13 +114,14 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-config",           
-          "arn:aws:s3:::${local.prefix}-config/*"        
+          "arn:aws:s3:::${local.prefix}-config",
+          "arn:aws:s3:::${local.prefix}-config/*"
         ]
       }
     ]
   })
 }
+
 
 # Policy for Lambda to interact with SQS
 resource "aws_iam_policy" "lambda_sqs_policy" {
