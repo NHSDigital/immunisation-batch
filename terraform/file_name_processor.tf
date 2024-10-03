@@ -189,12 +189,16 @@ resource "aws_security_group" "redis_security_group" {
   name   = "${local.prefix}-redis-security-group"
   vpc_id = data.aws_vpc.default.id
 }
+# Fetch the default route table associated with the default VPC
+data "aws_route_table" "default" {
+  vpc_id = data.aws_vpc.default.id
+}
+
 resource "aws_vpc_endpoint" "s3_endpoint" {
   vpc_id       = data.aws_vpc.default.id
   service_name = "com.amazonaws.eu-west-2.s3"
-  route_table_ids = [aws_route_table.private_route_table.id]
+  route_table_ids = [data.aws_route_table.default.id]
 }
-
 
 # Ingress rule for Lambda security group allowing connections from Redis security group
 resource "aws_security_group_rule" "lambda_ingress_from_redis" {
