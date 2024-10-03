@@ -4,30 +4,29 @@ import boto3
 
 # from io import BytesIO
 from moto import mock_s3, mock_kinesis
-from src.constants import Constant
+from src.constants import Constants
 import json
 from batch_processing import (
     main,
     fetch_file_from_s3,
     process_csv_to_fhir,
     get_environment,
-    validate_full_permissions,
     get_supplier_permissions,
-    get_permission_operations,
+    get_action_flag_permissions,
     convert_to_fhir_json,
 )
 
 
 class TestProcessLambdaFunction(unittest.TestCase):
     @patch("batch_processing.process_csv_to_fhir")
-    @patch("batch_processing.validate_full_permissions")
+    @patch("batch_processing.get_action_flag_permissions")
     def test_lambda_handler(
         self,
-        mock_validate_full_permissions,
+        mock_get_action_flag_permissions,
         mock_process_csv_to_fhir,
     ):
 
-        mock_validate_full_permissions.return_value = True
+        mock_get_action_flag_permissions.return_value = {"NEW", "UPDATE", "DELETE"}
 
         # Set up the queue URL and message body.
         message_body = {"vaccine_type": "COVID19", "supplier": "Pfizer", "filename": "testfile.csv"}
@@ -54,8 +53,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 vaccine_type="COVID19",
                 ack_bucket_name="ack-bucket",
                 message_id=None,
-                full_permissions=True,
-                permission_operations=set(),
+                permission_operations={"NEW", "UPDATE", "DELETE"},
             )
 
     @mock_s3
@@ -83,7 +81,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         ack_bucket_name = "ack-bucket"
         s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
         s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
         results = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -112,9 +110,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
         with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(bucket_name, file_key, supplier, "covid19", ack_bucket_name, None, "True", "")
+            process_csv_to_fhir(
+                bucket_name, file_key, supplier, "covid19", ack_bucket_name, None, {"NEW", "UPDATE", "DELETE"}
+            )
 
         ack_filename = "processedFile/test-file_response.csv"
         response = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_filename)
@@ -132,8 +132,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -142,7 +141,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
         results = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -172,7 +171,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_positive_string)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_positive_string)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
                 bucket_name,
@@ -181,7 +180,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 "covid19",
                 ack_bucket_name,
                 None,
-                full_permissions,
                 permission_operations,
             )
 
@@ -201,8 +199,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
 
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -212,7 +209,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
         results = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -242,7 +239,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_only_mandatory)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
                 bucket_name,
@@ -251,7 +248,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 "covid19",
                 ack_bucket_name,
                 None,
-                full_permissions,
                 permission_operations,
             )
 
@@ -271,8 +267,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -281,7 +276,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
         results = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -311,7 +306,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_positive_string_missing)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_positive_string_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
                 bucket_name,
@@ -320,7 +315,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 "covid19",
                 ack_bucket_name,
                 None,
-                full_permissions,
                 permission_operations,
             )
         ack_filename = "processedFile/test-file_response.csv"
@@ -339,8 +333,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -349,20 +342,19 @@ class TestProcessLambdaFunction(unittest.TestCase):
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
         with patch("batch_processing.convert_to_fhir_json", return_value=({}, False)):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
                 bucket_name,
                 file_key,
                 supplier,
-                Constant.valid_vaccine_type[1],
+                Constants.valid_vaccine_type[1],
                 ack_bucket_name,
                 None,
-                full_permissions,
                 permission_operations,
             )
 
@@ -382,8 +374,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -392,19 +383,18 @@ class TestProcessLambdaFunction(unittest.TestCase):
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
         with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request_params_missing)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_params_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
                 bucket_name,
                 file_key,
                 supplier,
-                Constant.valid_vaccine_type[1],
+                Constants.valid_vaccine_type[1],
                 ack_bucket_name,
                 None,
-                full_permissions,
                 permission_operations,
             )
 
@@ -424,8 +414,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
 
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -435,14 +424,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
             Bucket=ack_bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
-        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constant.file_content_id_missing)
+        s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content_id_missing)
         results = {"total": 0}, 400
         with patch("batch_processing.convert_to_fhir_json", return_value=({}, True)), patch(
             "batch_processing.ImmunizationApi.get_imms_id", return_value=results
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(
                 bucket_name,
@@ -451,7 +440,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                 "covid19",
                 ack_bucket_name,
                 None,
-                full_permissions,
                 permission_operations,
             )
 
@@ -471,9 +459,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         file_key = "test-file.csv"
         supplier = "test"
         ack_bucket_name = "ack-bucket"
-        full_permissions = True
-        permission_operations = set()
-        csv_content = Constant.file_content
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
+        csv_content = Constants.file_content
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -509,12 +496,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
             with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
-                mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+                mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
                 process_csv_to_fhir(
                     bucket_name,
@@ -523,7 +510,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     vaccine_type,
                     ack_bucket_name,
                     None,
-                    full_permissions,
                     permission_operations,
                 )
 
@@ -544,9 +530,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         supplier = "test"
         message_id = "test-idr"
         ack_bucket_name = "ack-bucket"
-        full_permissions = None
-        permission_operations = {"CREATE", "NEW", "UPDATE"}
-        csv_content = Constant.file_content_operations
+        permission_operations = {"NEW", "UPDATE", "DELETE"}
+        csv_content = Constants.file_content_operations
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -582,12 +567,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
             with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
-                mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+                mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
                 process_csv_to_fhir(
                     bucket_name,
@@ -596,7 +581,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     vaccine_type,
                     ack_bucket_name,
                     message_id,
-                    full_permissions,
                     permission_operations,
                 )
 
@@ -617,9 +601,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         supplier = "test"
         message_id = "test-id"
         ack_bucket_name = "ack-bucket"
-        full_permissions = None
         permission_operations = {"DELETE"}
-        csv_content = Constant.file_content
+        csv_content = Constants.file_content
         s3_client.create_bucket(
             Bucket=bucket_name,
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
@@ -655,12 +638,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
             with patch("batch_processing.ImmunizationApi.get_imms_id", return_value=results):
                 mock_csv_reader_instance = MagicMock()
                 mock_csv_reader_instance = MagicMock()
-                mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_update_request)
+                mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
                 mock_csv_dict_reader.return_value = mock_csv_reader_instance
                 process_csv_to_fhir(
                     bucket_name,
@@ -669,7 +652,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
                     vaccine_type,
                     ack_bucket_name,
                     message_id,
-                    full_permissions,
                     permission_operations,
                 )
 
@@ -681,10 +663,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_send_to_kinesis.assert_called()
 
     def test_process_csv_to_fhir_successful_Practitioner(self):
-        request = Constant.request
+        request = Constants.request
         request["PERFORMING_PROFESSIONAL_FORENAME"] = ""
         request["PERFORMING_PROFESSIONAL_SURNAME"] = ""
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constants.valid_vaccine_type
         for vaccine_type in vaccine_types:
             json, valid = convert_to_fhir_json(request, vaccine_type)
 
@@ -700,9 +682,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
         )
 
     def test_process_csv_to_fhir_successful_qualitycode(self):
-        request = Constant.request
+        request = Constants.request
         request["DOSE_UNIT_CODE"] = ""
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constants.valid_vaccine_type
 
         for vaccine_type in vaccine_types:
             json, valid = convert_to_fhir_json(request, vaccine_type)
@@ -710,10 +692,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
             self.assertNotIn("system", dose_quality)
 
     def test_process_csv_to_fhir_successful_vaccine_code(self):
-        request = Constant.request
+        request = Constants.request
         request["VACCINE_PRODUCT_CODE"] = ""
         request["VACCINE_PRODUCT_TERM"] = ""
-        vaccine_types = Constant.valid_vaccine_type
+        vaccine_types = Constants.valid_vaccine_type
 
         for vaccine_type in vaccine_types:
             json, valid = convert_to_fhir_json(request, vaccine_type)
@@ -734,89 +716,86 @@ class TestProcessLambdaFunction(unittest.TestCase):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
 
-    @patch("batch_processing.get_supplier_permissions")
-    def test_no_permissions(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = [""]
-        config_bucket_name = "test-bucket"
-        supplier = "test-supplier"
-        vaccine_type = "COVID19"
+    # TODO: ADD NEW PERMISSIONS LOGIC
+    # @patch("batch_processing.get_supplier_permissions")
+    # def test_no_permissions(self, mock_get_supplier_permissions):
+    #     mock_get_supplier_permissions.return_value = [""]
+    #     config_bucket_name = "test-bucket"
+    #     supplier = "test-supplier"
+    #     vaccine_type = "COVID19"
 
-        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
+    #     result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
 
-        self.assertFalse(result)
+    #     self.assertFalse(result)
 
-    @patch("batch_processing.get_json_from_s3")
-    def test_get_supplier_permissions_success(self, mock_get_json_from_s3):
+    @patch("batch_processing.get_permissions_config_json_from_s3")
+    def test_get_supplier_permissions_success(self, mock_get_permissions_config_json_from_s3):
         # Mock S3 response
-        mock_get_json_from_s3.return_value = Constant.test_permissions_config_file
+        mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
         supplier = "SUPPLIER1"
         config_bucket_name = "test-config-bucket"
 
-        permissions = get_supplier_permissions(supplier, config_bucket_name)
+        permissions = get_supplier_permissions(supplier)
 
         self.assertEqual(permissions, ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"])
 
-    @patch("batch_processing.get_json_from_s3")
-    def test_get_supplier_permissions_no_permissions(self, mock_get_json_from_s3):
-        mock_get_json_from_s3.return_value = Constant.test_permissions_config_file
+    @patch("batch_processing.get_permissions_config_json_from_s3")
+    def test_get_supplier_permissions_no_permissions(self, mock_get_permissions_config_json_from_s3):
+        mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
         supplier = "SUPPLIER4"
         config_bucket_name = "test-config-bucket"
 
-        permissions = get_supplier_permissions(supplier, config_bucket_name)
+        permissions = get_supplier_permissions(supplier)
 
         self.assertEqual(permissions, [""])
 
+    # TODO: REPLACE WITH NEW PERMISSIONS LOGIC
+    # @patch("batch_processing.get_supplier_permissions")
+    # def test_validate_full_permissions_valid(self, mock_get_supplier_permissions):
+    #     mock_get_supplier_permissions.return_value = ["FLU_FULL", "MMR_CREATE"]
+
+    #     supplier = "supplier1"
+    #     config_bucket_name = "test-config-bucket"
+    #     vaccine_type = "FLU"
+
+    #     result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
+
+    #     self.assertTrue(result)
+
+    # TODO: REPLACE WITH NEW PERMISSIONS LOGIC
+    #  @patch("batch_processing.get_supplier_permissions")
+    # def test_validate_full_permissions_invalid(self, mock_get_supplier_permissions):
+    #     mock_get_supplier_permissions.return_value = ["COVID19_CREATE"]
+
+    #     supplier = "supplier1"
+    #     config_bucket_name = "test-config-bucket"
+    #     vaccine_type = "COVID19"
+
+    #     result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
+
+    #     self.assertFalse(result)
+
     @patch("batch_processing.get_supplier_permissions")
-    def test_validate_full_permissions_valid(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = ["FLU_FULL", "MMR_CREATE"]
+    def test_get_action_flag_permissions_success(self, mock_get_supplier_permissions):
+        mock_get_supplier_permissions.return_value = ["MMR_FULL", "FLU_CREATE", "FLU_UPDATE"]
 
         supplier = "supplier1"
-        config_bucket_name = "test-config-bucket"
         vaccine_type = "FLU"
 
-        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-
-        self.assertTrue(result)
-
-    @patch("batch_processing.get_supplier_permissions")
-    def test_validate_full_permissions_invalid(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = ["COVID19_CREATE"]
-
-        supplier = "supplier1"
-        config_bucket_name = "test-config-bucket"
-        vaccine_type = "COVID19"
-
-        result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-
-        self.assertFalse(result)
-
-    @patch("batch_processing.get_supplier_permissions")
-    def test_get_permission_operations_success(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = [
-            "MMR_FULL",
-            "FLU_CREATE",
-            "FLU_UPDATE",
-        ]
-
-        supplier = "supplier1"
-        config_bucket_name = "test-config-bucket"
-        vaccine_type = "FLU"
-
-        operations = get_permission_operations(supplier, config_bucket_name, vaccine_type)
+        operations = get_action_flag_permissions(supplier, vaccine_type)
 
         self.assertEqual(operations, {"UPDATE", "NEW"})
 
     @patch("batch_processing.get_supplier_permissions")
-    def test_get_permission_operations_one_permission(self, mock_get_supplier_permissions):
+    def test_get_action_flag_permissions_one_permission(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["MMR_UPDATE"]
 
         supplier = "supplier1"
-        config_bucket_name = "test-config-bucket"
         vaccine_type = "MMR"
 
-        operations = get_permission_operations(supplier, config_bucket_name, vaccine_type)
+        operations = get_action_flag_permissions(supplier, vaccine_type)
 
         self.assertEqual(operations, {"UPDATE"})
 

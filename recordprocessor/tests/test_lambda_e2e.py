@@ -4,10 +4,10 @@ import json
 from unittest.mock import patch, MagicMock
 from moto import mock_s3, mock_kinesis
 from datetime import datetime
-from src.constants import Constant
+from src.constants import Constants
 from io import StringIO, BytesIO
 import csv
-from batch_processing import main, validate_full_permissions
+from batch_processing import main
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -43,7 +43,7 @@ class TestLambdaHandler(unittest.TestCase):
         self.kinesis_client.create_stream(StreamName=self.stream_name, ShardCount=1)
 
         self.mock_head_object_response = {"LastModified": datetime(2024, 7, 30, 15, 22, 17)}
-        self.mock_download_fileobj = Constant.mock_download_fileobj
+        self.mock_download_fileobj = Constants.mock_download_fileobj
         self.response = {
             "resourceType": "Bundle",
             "type": "searchset",
@@ -70,16 +70,16 @@ class TestLambdaHandler(unittest.TestCase):
             ],
             "total": 1,
         }, 200
-        self.vaccine_type = Constant.valid_vaccine_type[2]
-        self.supplier = Constant.valid_supplier[0]
-        self.ods_code = Constant.valid_ods_codes[0]
+        self.vaccine_type = Constants.valid_vaccine_type[2]
+        self.supplier = "EMIS"
+        self.ods_code = Constants.valid_ods_codes[0]
         self.test_event_base = {
             "message_id": "123456",
             "vaccine_type": None,
             "supplier": None,
             "filename": None,
         }
-        self.mock_headers = Constant.header
+        self.mock_headers = Constants.ack_headers
 
     def setup_acknowledgment_file(self, vaccine_type, ods_code):
         ack_key = f"processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000_response.csv"
@@ -96,7 +96,7 @@ class TestLambdaHandler(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("csv.DictReader")
-    @patch("batch_processing.validate_full_permissions")
+    @patch("batch_processing.get_action_flag_permissions")
     @patch("batch_processing.fetch_file_from_s3")
     @patch("batch_processing.s3_client.head_object")
     @patch("batch_processing.ImmunizationApi.get_imms_id")
@@ -107,27 +107,27 @@ class TestLambdaHandler(unittest.TestCase):
         mock_get_imms_id,
         mock_head_object,
         mock_fetch_file,
-        mock_validate_full_permissions,
+        mock_get_action_flag_permissions,
         mock_csv_dict_reader,
         mock_send_to_kinesis,
         expected_ack_content,
         fetch_file_content,
         get_imms_id_response,
         test_event_filename,
-        kinesis
+        kinesis,
     ):
 
         mock_fetch_file.return_value = fetch_file_content
         mock_head_object.return_value = self.mock_head_object_response
         mock_get_imms_id.return_value = get_imms_id_response
         mock_download_fileobj.return_value = self.mock_download_fileobj
-        mock_validate_full_permissions.return_value = True
+        mock_get_action_flag_permissions.return_value = {"NEW", "UPDATE", "DELETE"}
         if kinesis:
             mock_send_to_kinesis.return_value = True
         else:
             mock_send_to_kinesis.return_value = False
         mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
+        mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request)
         mock_csv_dict_reader.return_value = mock_csv_reader_instance
 
         with patch.dict(
@@ -164,10 +164,10 @@ class TestLambdaHandler(unittest.TestCase):
     def test_e2e_successful_conversion(self):
         self.execute_test(
             expected_ack_content="ok",
-            fetch_file_content=Constant.string_return,
+            fetch_file_content=Constants.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
+            kinesis=True,
         )
 
     @patch("batch_processing.convert_to_fhir_json")
@@ -175,56 +175,57 @@ class TestLambdaHandler(unittest.TestCase):
         mock_convert_json.return_value = None, False
         self.execute_test(
             expected_ack_content="fatal-error",
-            fetch_file_content=Constant.invalid_file_content,
+            fetch_file_content=Constants.invalid_file_content,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
+            kinesis=True,
         )
 
     def test_e2e_processing_imms_id_missing(self):
         response = {"total": 0}, 404
         self.execute_test(
             expected_ack_content="fatal-error",
-            fetch_file_content=Constant.string_update_return,
+            fetch_file_content=Constants.string_update_return,
             get_imms_id_response=response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
+            kinesis=True,
         )
 
     def test_e2e_successful_conversion_kinesis_failed(self):
         self.execute_test(
             expected_ack_content="fatal-error",
-            fetch_file_content=Constant.string_return,
+            fetch_file_content=Constants.string_return,
             get_imms_id_response=self.response,
             test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=False
+            kinesis=False,
         )
 
-    @mock_s3
-    def test_validate_full_permissions_end_to_end(self):
-        config_bucket_name = "test-bucket"
-        self.s3_client.create_bucket(
-            Bucket=config_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": self.region},
-        )
+    # TODO: REPLACE THIS TEST WITH NEW PERMISSIONS LOGIC
+    # @mock_s3
+    # def test_validate_full_permissions_end_to_end(self):
+    #     config_bucket_name = "test-bucket"
+    #     self.s3_client.create_bucket(
+    #         Bucket=config_bucket_name,
+    #         CreateBucketConfiguration={"LocationConstraint": self.region},
+    #     )
 
-        permissions_data = {"all_permissions": {"DP": ["FLU_FULL"]}}
-        self.s3_client.put_object(
-            Bucket=config_bucket_name,
-            Key="permissions.json",
-            Body=json.dumps(permissions_data),
-        )
+    #     permissions_data = {"all_permissions": {"DP": ["FLU_FULL"]}}
+    #     self.s3_client.put_object(
+    #         Bucket=config_bucket_name,
+    #         Key="permissions.json",
+    #         Body=json.dumps(permissions_data),
+    #     )
 
-        def mock_get_json_from_s3(config_bucket_name):
-            return permissions_data
+    #     def mock_get_permissions_config_json_from_s3(config_bucket_name):
+    #         return permissions_data
 
-        with patch("batch_processing.get_json_from_s3", mock_get_json_from_s3):
-            result = validate_full_permissions(config_bucket_name, "DP", "FLU")
-            self.assertTrue(result)
+    #     with patch("batch_processing.get_permissions_config_json_from_s3", mock_get_permissions_config_json_from_s3):
+    #         result = validate_full_permissions(config_bucket_name, "DP", "FLU")
+    #         self.assertTrue(result)
 
-            permissions_data["all_permissions"]["DP"] = ["FLU_CREATE"]
-            result = validate_full_permissions(config_bucket_name, "DP", "FLU")
-            self.assertFalse(result)
+    #         permissions_data["all_permissions"]["DP"] = ["FLU_CREATE"]
+    #         result = validate_full_permissions(config_bucket_name, "DP", "FLU")
+    #         self.assertFalse(result)
 
 
 if __name__ == "__main__":
