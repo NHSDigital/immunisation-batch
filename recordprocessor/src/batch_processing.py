@@ -47,6 +47,23 @@ def get_action_flag_permissions(supplier, vaccine_type):
     return permission_operations
 
 
+def create_ack_data(created_at_formatted, message_header, delivered, diagnostics=None):
+
+    return {
+        "MESSAGE_HEADER_ID": message_header,
+        "HEADER_RESPONSE_CODE": "fatal-error" if diagnostics else "ok",
+        "ISSUE_SEVERITY": "error" if diagnostics else "information",
+        "ISSUE_CODE": "error" if diagnostics else "informational",
+        "RESPONSE_TYPE": "business",
+        "RESPONSE_CODE": "20005" if diagnostics else "20013",
+        "RESPONSE_DISPLAY": diagnostics if diagnostics else "Success",
+        "RECEIVED_TIME": created_at_formatted,
+        "MAILBOX_FROM": "TBC",
+        "LOCAL_ID": "DPS",
+        "MESSAGE_DELIVERY": delivered,
+    }
+
+
 def send_to_kinesis(supplier, message_body):
     """Send a message to the specified Kinesis stream."""
     logger.info(f"message_body:{message_body}")
@@ -74,73 +91,49 @@ def fetch_file_from_s3(bucket_name, file_key):
     return response["Body"].read().decode("utf-8")
 
 
-def add_row_to_ack_file(data_row, accumulated_ack_file_content, ack_bucket_name, ack_filename):
-    data_row_str = [str(item) for item in data_row]
+def add_row_to_ack_file(ack_data, accumulated_ack_file_content, file_key):
+    data_row_str = [str(item) for item in ack_data.values()]
     cleaned_row = "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
     accumulated_ack_file_content.write(cleaned_row + "\n")
     csv_file_like_object = io.BytesIO(accumulated_ack_file_content.getvalue().encode("utf-8"))
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
+    ack_filename = f"processedFile/{file_key.replace('.csv', '_response.csv')}"
     s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
     logger.info(f"CSV content before upload with perms:\n{accumulated_ack_file_content.getvalue()}")
     return accumulated_ack_file_content
 
 
-def handle_row(
-    message_header,
-    file_key,
-    supplier,
-    vaccine_type,
-    ack_bucket_name,
-    permission_operations,
-    ack_filename,
-    accumulated_ack_file_content,
-    row,
-    created_at_formatted_string,
-):
-    logger.info(f"messageheader : {message_header}")
-    action_flag = row.get("ACTION_FLAG") or ""
-    action_flag = action_flag.upper()
+def process_row(vaccine_type, permission_operations, row):
+    action_flag = action_flag.upper() if (action_flag := row.get("ACTION_FLAG")) is not None else ""
     logger.info(f"ACTION FLAG PERMISSIONS:  {action_flag}")
     logger.info(f"PERMISSIONS OPERATIONS {permission_operations}")
-
-    message_body = {
-        "message_id": message_header,
-        "fhir_json": "No_Permissions",
-        "action_flag": "No_Permissions",
-        "imms_id": "None",
-        "version": "None",
-        "file_name": file_key,
-    }
 
     # Handle no permissions
     if not (action_flag in permission_operations):
         logger.info(f"Skipping row as supplier does not have the permissions for this csv operation {action_flag}")
 
-        data_row = Constants.data_rows("no permissions", created_at_formatted_string, message_header)
-        status = send_to_kinesis(supplier, message_body)
-        accumulated_ack_file_content = add_row_to_ack_file(
-            data_row, accumulated_ack_file_content, ack_bucket_name, ack_filename
-        )
-        return accumulated_ack_file_content
+        return {
+            "fhir_json": "No_Permissions",
+            "action_flag": "No_Permissions",
+            "imms_id": None,
+            "version": None,
+            "diagnostics": "No permissions for operation",
+        }
 
     fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
 
-    # Hanlde missing UNIQUE_ID or UNIQUE_ID_URI or invalid conversion
+    # Handle missing UNIQUE_ID or UNIQUE_ID_URI or invalid conversion
     if not ((identifier_system := row.get("UNIQUE_ID_URI")) and (identifier_value := row.get("UNIQUE_ID")) and valid):
         logger.error(f"Invalid row format: row is missing either UNIQUE_ID or UNIQUE_ID_URI")
-        message_body["fhir_json"] = "None"
-        message_body["action_flag"] = "None"
-        status = send_to_kinesis(supplier, message_body)
-        if status:
-            logger.info("sent successful invalid_json")
-            data_row = Constants.data_rows("None", created_at_formatted_string, message_header)
-        else:
-            logger.error("Error sending to SQS for invliad json")
-            data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
-        accumulated_ack_file_content = add_row_to_ack_file(
-            data_row, accumulated_ack_file_content, ack_bucket_name, ack_filename
-        )
-        return accumulated_ack_file_content
+        return {
+            "fhir_json": "None",
+            "action_flag": "None",
+            "imms_id": "None",
+            "version": "None",
+            "diagnostics": "Unsupported file type received as an attachment",
+        }
 
+    # Obtain the imms id and version from the ieds if required
     all_values_obtained = True if action_flag == "NEW" else False
     if action_flag in ("DELETE", "UPDATE"):
         response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
@@ -150,104 +143,86 @@ def handle_row(
     # Handle unable to find in IEDS
     if not all_values_obtained:
         logger.info(f"imms_id not found:{response} and status_code:{status_code}")
-        message_body["fhir_json"] = fhir_json
-        message_body["action_flag"] = "None"
-        status = send_to_kinesis(supplier, message_body)
-        if status:
-            logger.info("create successful imms not found")
-            data_row = Constants.data_rows("None", created_at_formatted_string, message_header)
-        else:
-            logger.error("Error sending to SQS imms id not found")
-            data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
-        accumulated_ack_file_content = add_row_to_ack_file(
-            data_row, accumulated_ack_file_content, ack_bucket_name, ack_filename
-        )
-        return accumulated_ack_file_content
+        return {
+            "fhir_json": fhir_json,
+            "action_flag": "None",
+            "imms_id": "None",
+            "version": "None",
+            "diagnostics": "Unsupported file type received as an attachment",
+        }
 
-    # Prepare the message for Kinesis
-    message_body["fhir_json"] = fhir_json
-    message_body["action_flag"] = action_flag
-    if action_flag in ("DELETE", "UPDATE"):
-        entry = response.get("entry", [])[0]
-        message_body["imms_id"] = entry["resource"].get("id")
-        message_body["version"] = entry["resource"].get("meta", {}).get("versionId")
-
-    status = send_to_kinesis(supplier, message_body)
-    if status:
-        logger.info("message sent successfully to Kinesis")
-        data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
-    else:
-        logger.error("Error sending to Kinesis")
-        data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
-
-    accumulated_ack_file_content = add_row_to_ack_file(
-        data_row, accumulated_ack_file_content, ack_bucket_name, ack_filename
-    )
-    return accumulated_ack_file_content
+    resource = response.get("entry", [])[0]["resource"] if action_flag in ("DELETE", "UPDATE") else None
+    return {
+        "fhir_json": fhir_json,
+        "action_flag": action_flag,
+        "imms_id": resource.get("id") if resource else None,
+        "version": resource.get("meta", {}).get("versionId") if resource else None,
+        "diagnostics": None,
+    }
 
 
-def process_csv_to_fhir(
-    bucket_name,
-    file_key,
-    supplier,
-    vaccine_type,
-    ack_bucket_name,
-    message_id,
-    permission_operations,
-):
+def process_csv_to_fhir(file_key, supplier, vaccine_type, message_id, permission_operations):
+    # Fetch the data
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-source")
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
-    response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-    created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
-    headers = Constants.ack_headers
-    ack_filename = f"processedFile/{file_key.replace('.csv', '_response.csv')}"
-
+    # Initialise the accumulated_ack_file_content with the headers
     accumulated_ack_file_content = StringIO()  # Initialize a variable to accumulate CSV content
-    accumulated_ack_file_content.write("|".join(headers) + "\n")  # Write the header once at the start
+    accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")  # Write the header once at the start
 
     row_count = 0  # Initialize a counter for rows
 
     for row in csv_reader:
         row_count += 1
         message_header = f"{message_id}#{row_count}"
-        accumulated_ack_file_content = handle_row(
-            message_header,
-            file_key,
-            supplier,
-            vaccine_type,
-            ack_bucket_name,
-            permission_operations,
-            ack_filename,
-            accumulated_ack_file_content,
-            row,
-            created_at_formatted_string,
-        )
+        logger.info(f"MESSAGE HEADER : {message_header}")
+
+        details = process_row(vaccine_type, permission_operations, row)
+
+        # Create the message body for sending
+        outgoing_message_body = {
+            "message_id": message_header,
+            "fhir_json": details["fhir_json"],
+            "action_flag": details["action_flag"],
+            "file_name": file_key,
+        }
+        if imms_id := details.get("imms_id"):
+            outgoing_message_body["imms_id"] = imms_id
+        if version := details.get("version"):
+            outgoing_message_body["version"] = version
+
+        # Send to kinesis. Add diagnostics if send fails
+        message_delivered = send_to_kinesis(supplier, outgoing_message_body)
+        if (diagnostics := details["diagnostics"]) is None and message_delivered is False:
+            diagnostics = "Unsupported file type received as an attachment"
+
+        # Update the ack file
+        response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
+        created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
+        ack_data_row = create_ack_data(created_at_formatted_string, message_header, message_delivered, diagnostics)
+        accumulated_ack_file_content = add_row_to_ack_file(ack_data_row, accumulated_ack_file_content, file_key)
 
     logger.info(f"Total rows processed: {row_count}")  # logger the total number of rows processed
 
 
 def main(event):
-    imms_env = get_environment()
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
+
     try:
         logger.info("task started")
-        message_body_json = json.loads(event)
-        logger.info(f"Event: {message_body_json}")
-        message_id = message_body_json.get("message_id")
-        vaccine_type = message_body_json.get("vaccine_type")
-        supplier = message_body_json.get("supplier")
-        file_key = message_body_json.get("filename")
+        incoming_message_body = json.loads(event)
+        logger.info(f"Event: {incoming_message_body}")
+        message_id = incoming_message_body.get("message_id")
+        vaccine_type = incoming_message_body.get("vaccine_type")
+        supplier = incoming_message_body.get("supplier")
+        file_key = incoming_message_body.get("filename")
 
-        # Get permissions and determine processing logic
         permission_operations = get_action_flag_permissions(supplier, vaccine_type)
+
         process_csv_to_fhir(
-            bucket_name=bucket_name,
             file_key=file_key,
             supplier=supplier,
             vaccine_type=vaccine_type,
-            ack_bucket_name=ack_bucket_name,
             message_id=message_id,
             permission_operations=permission_operations,
         )
