@@ -153,15 +153,26 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   environment {
     variables = {
-      SOURCE_BUCKET_NAME = "${local.prefix}-data-source"
-      ACK_BUCKET_NAME = "${local.prefix}-data-destination"
-      ENVIRONMENT     = local.environment
-      LOCAL_ACCOUNT_ID = local.local_account_id
-      SHORT_QUEUE_PREFIX = local.short_queue_prefix
-      PROD_ACCOUNT_ID   = local.account_id
-      CONFIG_BUCKET_NAME = "${local.prefix}-config"
+      SOURCE_BUCKET_NAME   = "${local.prefix}-data-source"
+      ACK_BUCKET_NAME      = "${local.prefix}-data-destination"
+      ENVIRONMENT          = local.environment
+      LOCAL_ACCOUNT_ID     = local.local_account_id
+      SHORT_QUEUE_PREFIX   = local.short_queue_prefix
+      PROD_ACCOUNT_ID      = local.account_id
+      CONFIG_BUCKET_NAME   = "${local.prefix}-config"
+      REDIS_HOST           = aws_elasticache_cluster.redis_cluster.cache_nodes[0].address
+      REDIS_PORT           = aws_elasticache_cluster.redis_cluster.port
     }
   }
+}
+
+resource "aws_elasticache_cluster" "redis_cluster" {
+  cluster_id           = "${local.prefix}-redis-cluster"
+  engine               = "redis"
+  node_type            = "cache.t2.micro"
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+  port                 = 6379
 }
 
 # Permission for S3 to invoke Lambda function
@@ -181,4 +192,67 @@ resource "aws_s3_bucket_notification" "lambda_notification" {
     lambda_function_arn = aws_lambda_function.file_processor_lambda.arn
     events              = ["s3:ObjectCreated:*"]
   }
+}
+
+# S3 Bucket notification to trigger Lambda function for config bucket
+resource "aws_s3_bucket_notification" "new_lambda_notification" {
+  bucket = aws_s3_bucket.batch_config_bucket.bucket
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.file_processor_lambda.arn
+    events              = ["s3:ObjectCreated:*"]
+  }
+}
+
+# Permission for the new S3 bucket to invoke the Lambda function
+resource "aws_lambda_permission" "new_s3_invoke_permission" {
+  statement_id  = "AllowExecutionFromNewS3"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.file_processor_lambda.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.batch_config_bucket.arn
+}
+
+# IAM Role for ElastiCache.
+resource "aws_iam_role" "elasticache_exec_role" {
+  name = "${local.prefix}-elasticache-exec-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Sid = "",
+      Principal = {
+        Service = "elasticache.amazonaws.com" # ElastiCache service principal
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_policy" "elasticache_permissions" {
+  name   = "${local.prefix}-elasticache-permissions"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticache:CreateCacheCluster",
+          "elasticache:DeleteCacheCluster",
+          "elasticache:DescribeCacheClusters",
+          "elasticache:ModifyCacheCluster",
+          "elasticache:ListTagsForResource",
+          "elasticache:AddTagsToResource",
+          "elasticache:RemoveTagsFromResource"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach the policy to the ElastiCache role
+resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
+  role       = aws_iam_role.elasticache_exec_role.name
+  policy_arn = aws_iam_policy.elasticache_permissions.arn
 }
