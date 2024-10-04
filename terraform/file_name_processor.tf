@@ -151,7 +151,7 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }
 
-# Lambda Function using Docker Image
+# Lambda Function with Security Group and VPC
 resource "aws_lambda_function" "file_processor_lambda" {
   function_name   = "${local.prefix}-file_processor_lambda"
   role            = aws_iam_role.lambda_exec_role.arn
@@ -159,6 +159,11 @@ resource "aws_lambda_function" "file_processor_lambda" {
   image_uri       = module.file_processor_docker_image.image_uri
   architectures   = ["x86_64"]
   timeout         = 60
+
+  vpc_config {
+    subnet_ids         = data.aws_subnet_ids.default.ids
+    security_group_ids = [aws_security_group.lambda_sg.id]
+  }
 
   environment {
     variables = {
@@ -175,6 +180,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
   }
 }
 
+# ElastiCache Cluster for Redis with Security Group
 resource "aws_elasticache_cluster" "redis_cluster" {
   cluster_id           = "${local.prefix}-redis-cluster"
   engine               = "redis"
@@ -182,6 +188,14 @@ resource "aws_elasticache_cluster" "redis_cluster" {
   num_cache_nodes      = 1
   parameter_group_name = "default.redis7"
   port                 = 6379
+  security_group_ids   = [aws_security_group.redis_sg.id]
+  subnet_group_name    = aws_elasticache_subnet_group.redis_subnet_group.name
+}
+
+# Subnet Group for Redis
+resource "aws_elasticache_subnet_group" "redis_subnet_group" {
+  name       = "${local.prefix}-redis-subnet-group"
+  subnet_ids = data.aws_subnet_ids.default.ids
 }
 
 # Permission for S3 to invoke Lambda function
@@ -264,4 +278,69 @@ resource "aws_iam_policy" "elasticache_permissions" {
 resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
   role       = aws_iam_role.elasticache_exec_role.name
   policy_arn = aws_iam_policy.elasticache_permissions.arn
+}
+# Security Group for Lambda
+resource "aws_security_group" "lambda_sg" {
+  name        = "${local.prefix}-lambda-sg"
+  vpc_id      = data.aws_vpc.default.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow Lambda to access Redis on port 6379
+  egress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    security_groups = [aws_security_group.redis_sg.id]
+  }
+}
+
+# Security Group for Redis
+resource "aws_security_group" "redis_sg" {
+  name        = "${local.prefix}-redis-sg"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    security_groups = [aws_security_group.lambda_sg.id] # Allow inbound from Lambda SG
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+# VPC Endpoint for S3
+resource "aws_vpc_endpoint" "s3_endpoint" {
+  vpc_id       = data.aws_vpc.default.id
+  service_name = "com.amazonaws.${var.aws_region}.s3"
+
+  route_table_ids = [
+    for rt in data.aws_route_tables.default_route_tables: rt.id
+  ]
+
+  # Control access to the VPC endpoint
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:*"
+      Resource  = "*"
+    }]
+  })
+}
+
+# Get the Route Tables for the default VPC
+data "aws_route_tables" "default_route_tables" {
+  vpc_id = data.aws_vpc.default.id
 }
