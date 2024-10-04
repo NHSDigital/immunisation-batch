@@ -337,7 +337,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
   service_name = "com.amazonaws.${var.aws_region}.s3"
 
   route_table_ids = [
-    for rt in data.aws_route_tables.default_route_tables: rt.id
+    for rt in data.aws_route_tables.default_route_tables.ids : rt
   ]
 
   # Control access to the VPC endpoint
