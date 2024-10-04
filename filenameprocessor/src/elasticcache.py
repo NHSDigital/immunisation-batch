@@ -11,9 +11,10 @@ logger = logging.getLogger()
 redis_client = redis.StrictRedis(
     host=os.getenv('REDIS_HOST'),
     port=os.getenv('REDIS_PORT'),
-    socket_timeout=5,  # Set a 5-second timeout for connection
+    socket_timeout=10,  # Set a 5-second timeout for connection
     decode_responses=True
 )
+print(f"redis_client:{redis_client}")
 s3_client = boto3.client('s3')
 
 
@@ -48,6 +49,8 @@ def upload_to_elasticache(file_key, bucket_name):
         file_content = response['Body'].read().decode('utf-8')
         print(f"File content fetched from S3 for key {file_key}: {file_content}")
 
+        test_redis_connection()
+
         # Try setting the value in Redis with retries
         retry_redis_set(file_key, file_content)
 
@@ -55,3 +58,11 @@ def upload_to_elasticache(file_key, bucket_name):
         logger.error(f"Error fetching file {file_key} from S3: {str(e)}")
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
+
+
+def test_redis_connection():
+    try:
+        redis_client.ping()
+        print("Successfully connected to Redis.")
+    except redis.ConnectionError as e:
+        print(f"Failed to connect to Redis: {str(e)}")
