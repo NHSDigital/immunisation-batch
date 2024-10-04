@@ -283,11 +283,12 @@ def main(event):
         logger.info("task started")
         message_body_json = json.loads(event)
         logger.info(f"Event: {message_body_json}")
+        permission = message_body_json.get("permission")
         message_id = message_body_json.get("message_id")
         vaccine_type = message_body_json.get("vaccine_type")
         supplier = message_body_json.get("supplier")
         file_key = message_body_json.get("filename")
-
+        print(f"permission:{permission}")
         # Get permissions and determine processing logic
         full_permissions = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
         permission_operations = get_permission_operations(supplier, config_bucket_name, vaccine_type)

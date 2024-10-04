@@ -35,7 +35,7 @@ def send_to_supplier_queue(message_body: dict) -> bool:
     return True
 
 
-def make_message_body_for_sqs(file_key: str, message_id: str) -> dict:
+def make_message_body_for_sqs(file_key: str, message_id: str, permission: str) -> dict:
     """Returns the message body for the message which will be sent to SQS"""
     file_key_elements = extract_file_key_elements(file_key)
     return {
@@ -44,14 +44,15 @@ def make_message_body_for_sqs(file_key: str, message_id: str) -> dict:
         "supplier": file_key_elements["supplier"],
         "timestamp": file_key_elements["timestamp"],
         "filename": file_key,
+        "permission": permission
     }
 
 
-def make_and_send_sqs_message(file_key: str, message_id: str) -> bool:
+def make_and_send_sqs_message(file_key: str, message_id: str, permission: str) -> bool:
     """
     Attempts to send a message to the SQS queue.
     Returns a bool to indication if the message has been sent successfully.
     """
-    message_body = make_message_body_for_sqs(file_key=file_key, message_id=message_id)
+    message_body = make_message_body_for_sqs(file_key=file_key, message_id=message_id, permission=permission)
     print(f"message_body:{message_body}")
     return send_to_supplier_queue(message_body)

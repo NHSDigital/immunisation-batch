@@ -82,7 +82,7 @@ def validate_action_flag_permissions(csv_content_dict_reader, supplier: str, vac
     return False
 
 
-def initial_file_validation(file_key: str, bucket_name: str) -> bool:
+def initial_file_validation(file_key: str, bucket_name: str):
     """
     Returns True if all elements of file key are valid, content headers are valid and the supplier has the
     appropriate permissions. Else returns False.
@@ -129,4 +129,4 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
         )
         return False
 
-    return True
+    return True, get_permissions_config_json_from_cache().get("all_permissions", {}).get(supplier, [])
