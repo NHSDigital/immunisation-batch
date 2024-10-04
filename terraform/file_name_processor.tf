@@ -370,12 +370,17 @@ data "aws_route_tables" "default_route_tables" {
 resource "aws_vpc_endpoint" "sqs_endpoint" {
   vpc_id       = data.aws_vpc.default.id
   service_name = "com.amazonaws.eu-west-2.sqs"  # Adjust based on your region
-  
-  route_table_ids = [
-    for rt in data.aws_route_tables.default_route_tables.ids : rt
+  vpc_endpoint_type = "Interface"
+
+  subnet_ids = data.aws_subnets.default.ids  # Ensure this is the correct subnet for your VPC
+
+  security_group_ids = [
+    aws_security_group.lambda_sg.id
   ]
-  
-  # You can control access to the VPC endpoint if needed
+
+  private_dns_enabled = true
+
+  # Policy to control access to the endpoint
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
