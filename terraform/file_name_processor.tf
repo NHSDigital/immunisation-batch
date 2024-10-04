@@ -269,6 +269,16 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:RemoveTagsFromResource"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticache:CreateCacheSubnetGroup",
+          "elasticache:DeleteCacheSubnetGroup",
+          "elasticache:DescribeCacheSubnetGroups",
+          "elasticache:ModifyCacheSubnetGroup"
+        ]
+        Resource = "*"
       }
     ]
   })
