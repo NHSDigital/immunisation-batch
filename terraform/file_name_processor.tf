@@ -161,7 +161,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
   timeout         = 60
 
   vpc_config {
-    subnet_ids         = data.aws_subnet_ids.default.ids
+    subnet_ids         = data.aws_subnets.default.ids
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
 
