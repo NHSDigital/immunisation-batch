@@ -273,11 +273,11 @@ def process_csv_to_fhir(
 
 def main(event):
     imms_env = get_environment()
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-source")
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destination")
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destinations")
     config_bucket_name = os.getenv(
         "CONFIG_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-config",
+        f"immunisation-batch-{imms_env}-configs",
     )
     try:
         logger.info("task started")

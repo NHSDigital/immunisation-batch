@@ -64,7 +64,7 @@ class TestInitialFileValidation(TestCase):
     @mock_s3
     def test_get_supplier_permissions(self):
         """Test that get_supplier_permissions returns the correct permsisions for the given supplier"""
-        config_bucket_name = "immunisation-batch-internal-dev-config"
+        config_bucket_name = "immunisation-batch-internal-dev-configs"
         permissions_json = {
             "all_permissions": {
                 "TEST_SUPPLIER_1": ["COVID19_FULL", "FLU_FULL"],

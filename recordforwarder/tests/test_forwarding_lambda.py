@@ -135,11 +135,11 @@ class TestForwardingLambda(unittest.TestCase):
         forward_lambda_handler(event, None)
         mock_forward_request_to_api.assert_called_once_with(
             'test',
-            'immunisation-batch-internal-dev-data-source',
+            'immunisation-batch-internal-dev-data-sources',
             'test_file.csv',
             'new',
             '{}',
-            'immunisation-batch-internal-dev-data-destination',
+            'immunisation-batch-internal-dev-data-destinations',
             None,
             None
         )
@@ -165,11 +165,11 @@ class TestForwardingLambda(unittest.TestCase):
         forward_lambda_handler(event, None)
         mock_forward_request_to_api.assert_called_once_with(
             'test',
-            'immunisation-batch-internal-dev-data-source',
+            'immunisation-batch-internal-dev-data-sources',
             'test_file.csv',
             'update',
             '{}',
-            'immunisation-batch-internal-dev-data-destination',
+            'immunisation-batch-internal-dev-data-destinations',
             None,
             None
         )

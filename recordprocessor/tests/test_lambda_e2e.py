@@ -26,8 +26,8 @@ class TestLambdaHandler(unittest.TestCase):
         self.s3_client = boto3.client("s3", region_name=self.region)
         self.kinesis_client = boto3.client("kinesis", region_name=self.region)
 
-        self.bucket_name = "immunisation-batch-internal-dev-data-source"
-        self.ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        self.bucket_name = "immunisation-batch-internal-dev-data-sources"
+        self.ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         self.stream_name = "imms-batch-internal-dev-processingdata-stream"
         # Set up S3 buckets
         self.s3_client.create_bucket(
