@@ -340,6 +340,15 @@ resource "aws_security_group_rule" "redis_sg_inbound_management" {
   security_group_id = aws_security_group.redis_sg.id
   cidr_blocks       = ["0.0.0.0/0"] # Replace with your trusted CIDR range if needed
 }
+# Allow Lambda to communicate with SQS over HTTPS (port 443)
+resource "aws_security_group_rule" "lambda_to_sqs_https" {
+  type              = "egress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  security_group_id = aws_security_group.lambda_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
 
 # VPC Endpoint for S3
 resource "aws_vpc_endpoint" "s3_endpoint" {
@@ -368,11 +377,11 @@ data "aws_route_tables" "default_route_tables" {
 }
 # VPC Endpoint for SQS
 resource "aws_vpc_endpoint" "sqs_endpoint" {
-  vpc_id       = data.aws_vpc.default.id
-  service_name = "com.amazonaws.eu-west-2.sqs"  # Adjust based on your region
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.eu-west-2.sqs"  # Adjust for your region
   vpc_endpoint_type = "Interface"
 
-  subnet_ids = data.aws_subnets.default.ids  # Ensure this is the correct subnet for your VPC
+  subnet_ids = data.aws_subnets.default.ids  # Use your subnets associated with Lambda
 
   security_group_ids = [
     aws_security_group.lambda_sg.id
@@ -380,7 +389,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
 
   private_dns_enabled = true
 
-  # Policy to control access to the endpoint
+  # Policy to control access to the SQS endpoint
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -391,4 +400,3 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     }]
   })
 }
-
