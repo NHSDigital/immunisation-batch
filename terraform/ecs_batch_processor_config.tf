@@ -98,12 +98,12 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "s3:PutObject"
         ],
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-source",
-          "arn:aws:s3:::${local.prefix}-data-source/*",
-          "arn:aws:s3:::${local.prefix}-data-destination",
-          "arn:aws:s3:::${local.prefix}-data-destination/*",
-          "arn:aws:s3:::${local.prefix}-config",
-          "arn:aws:s3:::${local.prefix}-config/*"
+          "arn:aws:s3:::${local.prefix}-data-sources",
+          "arn:aws:s3:::${local.prefix}-data-sources/*",
+          "arn:aws:s3:::${local.prefix}-data-destinations",
+          "arn:aws:s3:::${local.prefix}-data-destinations/*",
+          "arn:aws:s3:::${local.prefix}-configs",
+          "arn:aws:s3:::${local.prefix}-configs/*"
         ]
       },
       {
@@ -165,11 +165,11 @@ resource "aws_ecs_task_definition" "ecs_task" {
     environment = [
       {
         name  = "SOURCE_BUCKET_NAME"
-        value = "${local.prefix}-data-source"
+        value = "${local.prefix}-data-sources"
       },
       {
         name  = "ACK_BUCKET_NAME"
-        value = "${local.prefix}-data-destination"
+        value = "${local.prefix}-data-destinations"
       },
       {
         name  = "ENVIRONMENT"
@@ -181,7 +181,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
       },
       {
         name  = "CONFIG_BUCKET_NAME"
-        value = "${local.prefix}-config"
+        value = "${local.prefix}-configs"
       },
       {
         name  = "KINESIS_STREAM_ARN"
@@ -256,7 +256,7 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
 resource "aws_pipes_pipe" "fifo_pipe" {
   name       = "${local.prefix}-pipe"
   role_arn   = aws_iam_role.fifo_pipe_role.arn
-  source     = "arn:aws:sqs:eu-west-2:790083933819:${local.short_prefix}-metadata-queue.fifo"
+  source     = "arn:aws:sqs:eu-west-2:${local.local_account_id}:${local.short_prefix}-metadata-queue.fifo"
   target     = aws_ecs_cluster.ecs_cluster.arn
   
   target_parameters {

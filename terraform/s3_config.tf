@@ -2,7 +2,7 @@ locals {
     policy_path = "${path.root}/policies"
     is_temp = length(regexall("[a-z]{2,4}-?[0-9]+", local.environment)) > 0
     account_id = local.environment == "prod" ? 232116723729 : 603871901111
-    local_account_id = local.environment == "prod" ? 790083933819 : 790083933819
+    local_account_id = local.environment == "prod" ? 345594581768 : 345594581768
 }
 
  resource "aws_kms_key" "shared_key" {
@@ -60,7 +60,7 @@ resource "aws_kms_alias" "shared_key" {
 }
 
 resource "aws_s3_bucket" "batch_data_source_bucket" {
-    bucket        = "${local.prefix}-data-source"
+    bucket        = "${local.prefix}-data-sources"
     force_destroy = local.is_temp
 }
 
@@ -91,6 +91,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "s3_batch_encrypti
 }
 
 resource "aws_s3_bucket" "batch_data_destination_bucket" {
-    bucket        = "${local.prefix}-data-destination"
+    bucket        = "${local.prefix}-data-destinations"
     force_destroy = local.is_temp
 }

@@ -6,11 +6,11 @@ MOCK_ENVIRONMENT_DICT = {
     "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
     "LOCAL_ACCOUNT_ID": "123456789012",
     "PROD_ACCOUNT_ID": "3456789109",
-    "CONFIG_BUCKET_NAME": "immunisation-batch-internal-dev-config",
+    "CONFIG_BUCKET_NAME": "immunisation-batch-internal-dev-configs",
 }
 
-SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-source"
-DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destination"
+SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
+DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 
 VALID_FLU_EMIS_FILE_KEY = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
 VALID_FLU_EMIS_ACK_FILE_KEY = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
