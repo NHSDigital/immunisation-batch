@@ -49,10 +49,9 @@ def upload_to_elasticache(file_key, bucket_name):
         file_content = response['Body'].read().decode('utf-8')
         print(f"File content fetched from S3 for key {file_key}: {file_content}")
 
-        test_redis_connection()
-
         # Try setting the value in Redis with retries
         retry_redis_set(file_key, file_content)
+        test_redis_connection()
 
     except boto3.exceptions.Boto3Error as e:
         logger.error(f"Error fetching file {file_key} from S3: {str(e)}")
