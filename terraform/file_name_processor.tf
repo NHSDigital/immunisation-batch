@@ -74,8 +74,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-source",           
-          "arn:aws:s3:::${local.prefix}-data-source/*"        
+          "arn:aws:s3:::${local.prefix}-data-sources",           
+          "arn:aws:s3:::${local.prefix}-data-sources/*"        
         ]
       },
       {
@@ -86,8 +86,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-destination",       
-          "arn:aws:s3:::${local.prefix}-data-destination/*"        
+          "arn:aws:s3:::${local.prefix}-data-destinations",       
+          "arn:aws:s3:::${local.prefix}-data-destinations/*"        
         ]
       },
       {
@@ -103,8 +103,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-config",           
-          "arn:aws:s3:::${local.prefix}-config/*"        
+          "arn:aws:s3:::${local.prefix}-configs",           
+          "arn:aws:s3:::${local.prefix}-configs/*"        
         ]
       }
     ]
@@ -153,13 +153,13 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   environment {
     variables = {
-      SOURCE_BUCKET_NAME = "${local.prefix}-data-source"
-      ACK_BUCKET_NAME = "${local.prefix}-data-destination"
+      SOURCE_BUCKET_NAME = "${local.prefix}-data-sources"
+      ACK_BUCKET_NAME = "${local.prefix}-data-destinations"
       ENVIRONMENT     = local.environment
       LOCAL_ACCOUNT_ID = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
       PROD_ACCOUNT_ID   = local.account_id
-      CONFIG_BUCKET_NAME = "${local.prefix}-config"
+      CONFIG_BUCKET_NAME = "${local.prefix}-configs"
     }
   }
 }

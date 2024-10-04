@@ -12,8 +12,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
     def setUp(self):
         self.region_name = "eu-west-2"
-        self.source_bucket_name = "immunisation-batch-internal-dev-data-source"
-        self.ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        self.source_bucket_name = "immunisation-batch-internal-dev-data-sources"
+        self.ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         self.test_file_key = "test_file.csv"
 
     def setup_s3(self):

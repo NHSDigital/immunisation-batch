@@ -72,8 +72,8 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-source",           
-          "arn:aws:s3:::${local.prefix}-data-source/*"        
+          "arn:aws:s3:::${local.prefix}-data-sources",           
+          "arn:aws:s3:::${local.prefix}-data-sources/*"        
         ]
       },
       {
@@ -84,8 +84,8 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-data-destination",       
-          "arn:aws:s3:::${local.prefix}-data-destination/*"        
+          "arn:aws:s3:::${local.prefix}-data-destinations",       
+          "arn:aws:s3:::${local.prefix}-data-destinations/*"        
         ]
       },
       {
@@ -129,8 +129,8 @@ resource "aws_lambda_function" "forwarding_lambda" {
 
   environment {
     variables = {
-      SOURCE_BUCKET_NAME = "${local.prefix}-data-source"
-      ACK_BUCKET_NAME    = "${local.prefix}-data-destination"
+      SOURCE_BUCKET_NAME = "${local.prefix}-data-sources"
+      ACK_BUCKET_NAME    = "${local.prefix}-data-destinations"
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
@@ -142,13 +142,6 @@ resource "aws_lambda_function" "forwarding_lambda" {
     aws_iam_role_policy_attachment.forwarding_lambda_exec_policy_attachment
   ]
 }
-
-# # Create a map with index-based keys to use in for_each
-# locals {
-#   kinesis_stream_map = {
-#     for idx, arn in local.new_stream_arns : idx => arn
-#   }
-# }
 
  resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
     event_source_arn  = local.new_kinesis_arn
