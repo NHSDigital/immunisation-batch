@@ -366,3 +366,24 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
 data "aws_route_tables" "default_route_tables" {
   vpc_id = data.aws_vpc.default.id
 }
+# VPC Endpoint for SQS
+resource "aws_vpc_endpoint" "sqs_endpoint" {
+  vpc_id       = data.aws_vpc.default.id
+  service_name = "com.amazonaws.eu-west-2.sqs"  # Adjust based on your region
+  
+  route_table_ids = [
+    for rt in data.aws_route_tables.default_route_tables.ids : rt
+  ]
+  
+  # You can control access to the VPC endpoint if needed
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = "*",
+      Action    = "sqs:*",
+      Resource  = "*"
+    }]
+  })
+}
+
