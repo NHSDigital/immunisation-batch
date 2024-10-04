@@ -2,9 +2,7 @@
 
 import os
 from csv import DictReader
-from typing import Union
 from io import StringIO
-from constants import Constants
 from s3_clients import s3_client
 
 

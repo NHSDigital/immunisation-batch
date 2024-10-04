@@ -123,7 +123,7 @@ def process_row(vaccine_type, permission_operations, row):
 
     # Handle missing UNIQUE_ID or UNIQUE_ID_URI or invalid conversion
     if not ((identifier_system := row.get("UNIQUE_ID_URI")) and (identifier_value := row.get("UNIQUE_ID")) and valid):
-        logger.error(f"Invalid row format: row is missing either UNIQUE_ID or UNIQUE_ID_URI")
+        logger.error("Invalid row format: row is missing either UNIQUE_ID or UNIQUE_ID_URI")
         return {
             "fhir_json": "None",
             "action_flag": "None",

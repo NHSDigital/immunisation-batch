@@ -489,7 +489,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         bucket_name = "immunisation-batch-internal-dev-data-source"
         file_key = "test_file.csv"
         supplier = "test"
-        message_id = "test-idr"
         ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         csv_content = Constants.file_content_operations
@@ -695,7 +694,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
         supplier = "SUPPLIER1"
-        config_bucket_name = "test-config-bucket"
 
         permissions = get_supplier_permissions(supplier)
 
@@ -706,7 +704,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
         supplier = "SUPPLIER4"
-        config_bucket_name = "test-config-bucket"
 
         permissions = get_supplier_permissions(supplier)
 
