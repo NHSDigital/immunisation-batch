@@ -321,7 +321,7 @@ resource "aws_security_group_rule" "redis_from_lambda" {
   source_security_group_id = aws_security_group.lambda_sg.id
 }
 
-# Egress rule to allow all outbound traffic from Lambda to internet (if needed)
+# Egress rule to allow all outbound traffic from Lambda to internet
 resource "aws_security_group_rule" "lambda_sg_internet_egress" {
   type              = "egress"
   from_port         = 0
@@ -378,10 +378,10 @@ data "aws_route_tables" "default_route_tables" {
 # VPC Endpoint for SQS
 resource "aws_vpc_endpoint" "sqs_endpoint" {
   vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.eu-west-2.sqs"  # Adjust for your region
+  service_name      = "com.amazonaws.eu-west-2.sqs"
   vpc_endpoint_type = "Interface"
 
-  subnet_ids = data.aws_subnets.default.ids  # Use your subnets associated with Lambda
+  subnet_ids = data.aws_subnets.default.ids
 
   security_group_ids = [
     aws_security_group.lambda_sg.id
@@ -399,4 +399,12 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
       Resource  = "*"
     }]
   })
+}
+resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  security_group_id = aws_security_group.lambda_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
 }
