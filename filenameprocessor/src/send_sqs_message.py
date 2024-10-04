@@ -29,29 +29,8 @@ def send_to_supplier_queue(message_body: dict) -> bool:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body),
                                 MessageDeduplicationId='1', MessageGroupId=supplier)
         print("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
-    except sqs_client.exceptions.QueueDoesNotExist:
-        logger.error("Failed to send message because queue %s does not exist", queue_url)
-        return False
-    except sqs_client.exceptions.InvalidMessageContents:
-        logger.error("Failed to send message because the message contents are invalid")
-        return False
-    except sqs_client.exceptions.UnsupportedOperation:
-        logger.error("Failed to send message because the operation is unsupported on the queue %s", queue_url)
-        return False
-    except sqs_client.exceptions.MessageTooLong:
-        logger.error("Failed to send message because the message is too long for queue %s", queue_url)
-        return False
-    except sqs_client.exceptions.InvalidParameterValue as e:
-        logger.error("Invalid parameter value: %s", e)
-        return False
-    except sqs_client.exceptions.RequestThrottled:
-        logger.error("Request throttled when trying to send message to queue %s", queue_url)
-        return False
-    except sqs_client.exceptions.AWSSimpleQueueServiceException as e:
-        logger.error("An AWS SQS exception occurred: %s", e)
-        return False
     except Exception as e:
-        logger.error("An unexpected error occurred: %s", e)
+        print("An unexpected error occurred: %s", e)
         return False
     return True
 
