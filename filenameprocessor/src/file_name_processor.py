@@ -38,7 +38,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
             # Process the file
-            if "data-source" in bucket_name:
+            if "data-sources" in bucket_name:
                 # Process file from batch_data_source_bucket with validation
                 print("source upload initiated started")
                 validation_passed, permission = initial_file_validation(file_key, bucket_name)
@@ -49,7 +49,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 make_and_upload_ack_file(
                     message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
                 )
-            elif "config" in bucket_name:
+            elif "configs" in bucket_name:
                 # For files in batch_config_bucket, upload to ElastiCache
                 print("cache upload initiated started")
                 logger.info("cache upload initiated started")
