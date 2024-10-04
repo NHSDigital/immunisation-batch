@@ -50,7 +50,11 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 # For files in batch_config_bucket, upload to ElastiCache
                 print("cache upload initiated started")
                 logger.info("cache upload initiated started")
-                upload_to_elasticache(file_key, bucket_name)  # Assume this uploads file content to ElastiCache
+                try:
+                    upload_to_elasticache(file_key, bucket_name)
+                except Exception as cache_error:
+                    # Handle ElastiCache-specific errors
+                    print(f"Error uploading to ElastiCache for file '{file_key}': {cache_error}")
         except Exception as error:  # pylint: disable=broad-except
             # If an unexpected error occured, add the file to the error_files list, and upload an ack file
             message_id = message_id or "Message id was not created"

@@ -23,6 +23,4 @@ def upload_to_elasticache(file_key, bucket_name):
     print(f"file_content:{file_content}")
     # Use the file_key as the Redis key and file content as the value
     redis_client.set(file_key, file_content)
-    content = redis_client.get(file_key)
     print(f"File {file_key} successfully uploaded to ElastiCache.")
-    print(f"File {content} successfully retrived from ElastiCache.")

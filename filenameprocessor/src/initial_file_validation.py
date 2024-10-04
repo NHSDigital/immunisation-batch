@@ -1,12 +1,11 @@
 """Functions for initial file validation"""
 
 import logging
-import os
 from re import match
 from datetime import datetime
 from constants import Constants
-from fetch_permissions import get_permissions_config_json_from_s3
-from utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
+from fetch_permissions import get_permissions_config_json_from_cache
+from utils_for_filenameprocessor import extract_file_key_elements, get_csv_content_dict_reader
 
 logger = logging.getLogger()
 
@@ -40,9 +39,7 @@ def get_supplier_permissions(supplier: str) -> list:
     Returns the permissions for the given supplier. Returns an empty list if the permissions config json could not
     be downloaded, or the supplier has no permissions.
     """
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-configs")
-    print(config_bucket_name, "CONFIG BUCKET NAME")
-    return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
+    return get_permissions_config_json_from_cache().get("all_permissions", {}).get(supplier, [])
 
 
 def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
@@ -113,12 +110,12 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
 
     # Obtain the file content
     csv_content_dict_reader = get_csv_content_dict_reader(bucket_name=bucket_name, file_key=file_key)
-
+    print("ongoing")
     # Validate the content headers
     if not validate_content_headers(csv_content_dict_reader):
         logger.error("Initial file validation failed: incorrect column headers")
         return False
-
+    print("2")
     # Validate has permissions for the vaccine type
     if not validate_vaccine_type_permissions(supplier, vaccine_type):
         logger.error("Initial file validation failed: %s does not have permissions for %s", supplier, vaccine_type)
