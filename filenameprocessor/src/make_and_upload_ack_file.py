@@ -52,4 +52,5 @@ def make_and_upload_ack_file(
 ) -> None:
     """Creates the ack file and uploads it to the S3 ack bucket"""
     ack_data = make_ack_data(message_id, validation_passed, message_delivered, created_at_formatted_string)
+    print(f"ack_data:{ack_data}")
     upload_ack_file(file_key=file_key, ack_data=ack_data)

@@ -45,6 +45,7 @@ def get_supplier_permissions(supplier: str) -> list:
 def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
     """Returns True if the given supplier has any permissions for the given vaccine type, else False"""
     allowed_permissions = get_supplier_permissions(supplier)
+    print(f"allowed_permissions:{allowed_permissions}")
     return vaccine_type in " ".join(allowed_permissions)
 
 
@@ -55,7 +56,7 @@ def validate_action_flag_permissions(csv_content_dict_reader, supplier: str, vac
     """
     # Obtain the allowed permissions for the supplier
     allowed_permissions_set = set(get_supplier_permissions(supplier))
-
+    print(f"allowed_permissions_set:{allowed_permissions_set}")
     # If the supplier has full permissions for the vaccine type return True
     if f"{vaccine_type}_FULL" in allowed_permissions_set:
         logger.info("%s has FULL permissions to create, update and delete", supplier)
