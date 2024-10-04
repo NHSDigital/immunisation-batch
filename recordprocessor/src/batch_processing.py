@@ -48,17 +48,15 @@ def get_supplier_permissions(supplier, config_bucket_name):
     return all_permissions.get(supplier, [])
 
 
-def validate_full_permissions(config_bucket_name, supplier, vaccine_type):
-    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
-    allowed_permissions_set = set(allowed_permissions)
+def validate_full_permissions(permission, vaccine_type):
+    allowed_permissions_set = set(permission)
     logger.info(f"Supplier Allowed Permissions: {allowed_permissions_set}")
     return f"{vaccine_type.upper()}_FULL" in allowed_permissions_set
 
 
-def get_permission_operations(supplier, config_bucket_name, vaccine_type):
-    allowed_permissions = get_supplier_permissions(supplier, config_bucket_name)
+def get_permission_operations(permission, vaccine_type):
     permission_operations = {
-        perm.split("_")[1] for perm in allowed_permissions if perm.startswith(vaccine_type.upper())
+        perm.split("_")[1] for perm in permission if perm.startswith(vaccine_type.upper())
     }
     if "CREATE" in permission_operations:
         permission_operations.add("NEW")
@@ -275,10 +273,6 @@ def main(event):
     imms_env = get_environment()
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destinations")
-    config_bucket_name = os.getenv(
-        "CONFIG_BUCKET_NAME",
-        f"immunisation-batch-{imms_env}-configs",
-    )
     try:
         logger.info("task started")
         message_body_json = json.loads(event)
@@ -290,8 +284,8 @@ def main(event):
         file_key = message_body_json.get("filename")
         print(f"permission:{permission}")
         # Get permissions and determine processing logic
-        full_permissions = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-        permission_operations = get_permission_operations(supplier, config_bucket_name, vaccine_type)
+        full_permissions = validate_full_permissions(permission, vaccine_type)
+        permission_operations = get_permission_operations(permission, vaccine_type)
         process_csv_to_fhir(
             bucket_name=bucket_name,
             file_key=file_key,
