@@ -195,7 +195,7 @@ resource "aws_elasticache_cluster" "redis_cluster" {
 # Subnet Group for Redis
 resource "aws_elasticache_subnet_group" "redis_subnet_group" {
   name       = "${local.prefix}-redis-subnet-group"
-  subnet_ids = data.aws_subnet_ids.default.ids
+  subnet_ids = data.aws_subnets.default.ids
 }
 
 # Permission for S3 to invoke Lambda function
