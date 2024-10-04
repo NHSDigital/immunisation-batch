@@ -66,7 +66,6 @@ def create_ack_data(created_at_formatted, message_header, delivered, diagnostics
 
 def send_to_kinesis(supplier, message_body):
     """Send a message to the specified Kinesis stream."""
-    logger.info(f"message_body:{message_body}")
     stream_name = SUPPLIER_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     kinesis_queue_prefix = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
 
