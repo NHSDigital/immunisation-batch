@@ -1,8 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import boto3
-
-# from io import BytesIO
 from moto import mock_s3, mock_kinesis
 from src.constants import Constant
 import json
@@ -30,7 +28,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_validate_full_permissions.return_value = True
 
         # Set up the queue URL and message body.
-        message_body = {"vaccine_type": "COVID19", "supplier": "Pfizer", "filename": "testfile.csv", 
+        message_body = {"vaccine_type": "COVID19", "supplier": "Pfizer", "filename": "testfile.csv",
                         "permission": "FLU_FULL"}
 
         # Patch environment variables
