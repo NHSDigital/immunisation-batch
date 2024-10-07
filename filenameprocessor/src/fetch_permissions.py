@@ -1,5 +1,4 @@
 import redis
-import boto3
 import os
 import logging
 import json
@@ -9,13 +8,13 @@ logger = logging.getLogger()
 
 # Initialize Redis connection
 redis_client = redis.StrictRedis(host=os.getenv('REDIS_HOST'), port=os.getenv('REDIS_PORT'), decode_responses=True)
-s3_client = boto3.client('s3')
+
 file_key = "permissions_config.json"
 
 
 def get_permissions_config_json_from_cache():
     """
-    Uploads the file content from S3 to ElastiCache (Redis).
+    get the file content from ElastiCache.
     """
     # Get file content from cache
     print("fetch_from_elasticache process started")
