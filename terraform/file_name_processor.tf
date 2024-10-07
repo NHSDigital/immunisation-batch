@@ -158,7 +158,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
   package_type    = "Image"
   image_uri       = module.file_processor_docker_image.image_uri
   architectures   = ["x86_64"]
-  timeout         = 240
+  timeout         = 60
 
   vpc_config {
     subnet_ids         = data.aws_subnets.default.ids
