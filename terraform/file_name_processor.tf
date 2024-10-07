@@ -151,7 +151,7 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }
 
-# Lambda Function with Security Group and VPC
+# Lambda Function with Security Group and VPC.
 resource "aws_lambda_function" "file_processor_lambda" {
   function_name   = "${local.prefix}-file_processor_lambda"
   role            = aws_iam_role.lambda_exec_role.arn
