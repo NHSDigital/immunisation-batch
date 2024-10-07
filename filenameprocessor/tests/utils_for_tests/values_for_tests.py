@@ -8,7 +8,7 @@ MOCK_ENVIRONMENT_DICT = {
     "PROD_ACCOUNT_ID": "3456789109",
     "CONFIG_BUCKET_NAME": "immunisation-batch-internal-dev-configs",
 }
-
+CONFIGS_BUCKET_NAME = "immunisation-batch-internal-dev-data-configs"
 SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
 DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 

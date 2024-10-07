@@ -63,7 +63,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+        Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${var.project_name}-${local.environment}-forwarding_lambda:*",
       },
       {
         Effect   = "Allow"
@@ -96,7 +96,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
       {
         Effect   = "Allow"
         Action   = "secretsmanager:GetSecretValue"
-        Resource = "*"
+        Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/${local.environment}/jwt-secrets"]
       },
       {
         Effect   = "Allow"
@@ -106,7 +106,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:DescribeStream",
           "kinesis:ListStreams"
         ]
-        Resource = "*"
+       Resource = ["arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${var.project_name}-${local.environment}-processingdata-stream"]
       }
     ]
   })

@@ -88,7 +88,8 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        Resource = "*"
+        Resource = ["arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${var.project_name}-${local.environment}-processor-task:*",
+                   "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${var.project_name}-${local.environment}-pipe-logs:*"]
       },
       {
         Effect   = "Allow",
@@ -114,7 +115,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
       {
         Effect   = "Allow",
         Action   = "secretsmanager:GetSecretValue",
-        Resource = "*"
+        Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/${local.environment}/jwt-secrets"]
       },
       {
         Effect   = "Allow",
@@ -122,14 +123,14 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kinesis:PutRecord",
           "kinesis:PutRecords"
         ],
-        Resource = "*"
+        Resource = ["arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${var.project_name}-${local.environment}-processingdata-stream"]
       },
       {
         Effect   = "Allow",
         Action   = [
           "ecr:GetAuthorizationToken"
         ],
-        Resource = "*"
+        Resource = "arn:aws:ecr:${var.aws_region}:${local.local_account_id}:repository/${var.project_name}-${local.environment}-processing-repo"
       }
     ]
   })
@@ -233,7 +234,13 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
            "logs:PutLogEvents"
          ]
          Effect = "Allow"
-         Resource = "*"
+         Resource  = ["arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${var.project_name}-${local.environment}-metadata-queue.fifo",
+                      "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${var.project_name}-${local.environment}-pipe-logs:*",
+                      "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${var.project_name}-${local.environment}-processingdata-stream",
+                      "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:task-definition/${var.project_name}-${local.environment}-task:*",
+                      "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:cluster/${var.project_name}-${local.environment}-cluster"
+
+         ]
        },
        {
          Effect   = "Allow",

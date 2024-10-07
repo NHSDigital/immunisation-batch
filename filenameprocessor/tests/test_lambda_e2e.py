@@ -1,6 +1,6 @@
 """e2e tests for lambda_handler, including specific tests for action flag permissions"""
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from unittest import TestCase
 from json import loads as json_loads
 from typing import Optional
@@ -13,6 +13,7 @@ from tests.utils_for_tests.values_for_tests import (
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
+    CONFIGS_BUCKET_NAME
 )
 
 
@@ -50,6 +51,22 @@ NOTE: All helper functions default to use valid file content with
                 {
                     "s3": {
                         "bucket": {"name": SOURCE_BUCKET_NAME},
+                        "object": {"key": (file_key or VALID_FLU_EMIS_FILE_KEY)},
+                    }
+                }
+            ]
+        }
+
+    def make_event_configs(self, file_key: Optional[str] = None):
+        """
+        Makes an event with s3 bucket name set to SOURCE_BUCKET_NAME and
+        and s3 object key set to the file_key if given, else the VALID_FLU_EMIS_FILE_KEY
+        """
+        return {
+            "Records": [
+                {
+                    "s3": {
+                        "bucket": {"name": CONFIGS_BUCKET_NAME},
                         "object": {"key": (file_key or VALID_FLU_EMIS_FILE_KEY)},
                     }
                 }
@@ -102,6 +119,32 @@ NOTE: All helper functions default to use valid file content with
         self.assertEqual(received_message["supplier"], "EMIS")
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
         self.assertEqual(received_message["filename"], "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv")
+
+    @patch('elasticcache.s3_client.get_object')
+    @patch('elasticcache.redis_client.set')
+    @patch('s3_clients.s3_client.head_object')
+    def test_successful_processing_from_configs(self, mock_head_object, mock_redis_set, mock_s3_get_object):
+        # Mock S3 head_object response
+        mock_head_object.return_value = {
+            "LastModified": MagicMock(strftime=lambda fmt: "20240708T12130100")
+        }
+
+        # Mock S3 get_object response for retrieving file content
+        mock_s3_get_object.return_value = {
+            "Body": MagicMock(read=lambda: "mock_file_content".encode("utf-8"))
+        }
+        # Invoke the Lambda function with the mocked event
+        response = lambda_handler(self.make_event_configs(), None)
+
+        # Assert that S3 get_object was called with the correct parameters
+        mock_s3_get_object.assert_called_once_with(Bucket=CONFIGS_BUCKET_NAME, Key=VALID_FLU_EMIS_FILE_KEY)
+
+        # Assert that Redis set was called with the correct key and content
+        mock_redis_set.assert_called_once_with(VALID_FLU_EMIS_FILE_KEY, "mock_file_content")
+
+        # Assert Lambda response
+        assert response["statusCode"] == 200
+        assert response["body"] == '"File content upload to cache from S3 bucket completed"'
 
     @mock_s3
     def test_lambda_invalid_csv_header(self):

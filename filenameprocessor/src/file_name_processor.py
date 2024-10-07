@@ -73,6 +73,9 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))
-
-    logger.info("Completed processing all file metadata in current batch")
-    return {"statusCode": 200, "body": json_dumps("File processing for S3 bucket completed")}
+    if "configs" in bucket_name:
+        logger.info("The upload of file content from the S3 bucket to the cache has been successfully completed")
+        return {"statusCode": 200, "body": json_dumps("File content upload to cache from S3 bucket completed")}
+    else:
+        logger.info("Completed processing all file metadata in current batch")
+        return {"statusCode": 200, "body": json_dumps("File processing for S3 bucket completed")}

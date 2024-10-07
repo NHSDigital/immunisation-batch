@@ -65,7 +65,10 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+         Resource = [
+          "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${var.project_name}-${local.environment}-file_processor_lambda:*",
+          
+        ]
       },
       {
         Effect   = "Allow"
@@ -102,7 +105,9 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface"
         ],
-        Resource = "*"
+        Resource = [
+        "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:network-interface/*", 
+        "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:vpc/*"]
       },
       {
         Effect   = "Allow"
@@ -158,7 +163,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
   package_type    = "Image"
   image_uri       = module.file_processor_docker_image.image_uri
   architectures   = ["x86_64"]
-  timeout         = 240
+  timeout         = 60
 
   vpc_config {
     subnet_ids         = data.aws_subnets.default.ids
@@ -268,7 +273,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:AddTagsToResource",
           "elasticache:RemoveTagsFromResource"
         ]
-        Resource = "*"
+        Resource = ["arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster:${var.project_name}-${local.environment}-redis-cluster"]
       },
       {
         Effect = "Allow"
@@ -278,7 +283,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:DescribeCacheSubnetGroups",
           "elasticache:ModifyCacheSubnetGroup"
         ]
-        Resource = "*"
+        Resource = ["arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnetgroup:${var.project_name}-${local.environment}-redis-subnet-group"]
       }
     ]
   })
@@ -364,9 +369,21 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow"
-      Principal = "*"
-      Action    = "s3:*"
-      Resource  = "*"
+      Principal = {
+      Service = "s3.amazonaws.com"
+    },
+      "Action": [
+         "s3:ListBucket",
+         "s3:GetObject",
+         "s3:PutObject"
+      ],
+      Resource=[ "arn:aws:s3:::${local.prefix}-data-destinations",       
+          "arn:aws:s3:::${local.prefix}-data-destinations/*",
+          "arn:aws:s3:::${local.prefix}-configs",           
+          "arn:aws:s3:::${local.prefix}-configs/*",
+          "arn:aws:s3:::${local.prefix}-data-sources",           
+          "arn:aws:s3:::${local.prefix}-data-sources/*"      
+            ]
     }]
   })
 }
@@ -394,9 +411,17 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow",
-      Principal = "*",
+      Principal = {
+      Service = "sqs.amazonaws.com"
+    },
       Action    = "sqs:*",
-      Resource  = "*"
+      Action = [
+           "sqs:ReceiveMessage",
+           "sqs:DeleteMessage",
+           "sqs:GetQueueAttributes",
+           "sqs:SendMessage"
+         ]
+      Resource  = ["arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${var.project_name}-${local.environment}-metadata-queue.fifo"]
     }]
   })
 }
