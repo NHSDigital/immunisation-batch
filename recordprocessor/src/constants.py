@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class Constant:
     """A class to hold various constants used in the application."""
 
-    valid_vaccine_type = ["mmr", "covid19", "flu"]
+    valid_vaccine_type = ["mmr", "covid19", "flu", "rsv"]
     valid_versions = ["v5"]
     valid_ods_codes = [
         "YGM41",
@@ -765,6 +765,7 @@ class Constant:
 @dataclass
 class DiseaseCodes:
     """Disease Codes"""
+
     covid_19: str = "840539006"
     flu: str = "6142004"
     measles: str = "14189004"
@@ -774,6 +775,7 @@ class DiseaseCodes:
 
 class DiseaseDisplayTerms:
     """Disease display terms which correspond to disease codes"""
+
     covid_19: str = "Disease caused by severe acute respiratory syndrome coronavirus 2"
     flu: str = "Influenza"
     measles: str = "Measles"
@@ -799,7 +801,7 @@ def map_target_disease(vaccine_type):
                 {
                     "system": "http://snomed.info/sct",
                     "code": getattr(DiseaseCodes, disease),
-                    "display": getattr(DiseaseDisplayTerms, disease)
+                    "display": getattr(DiseaseDisplayTerms, disease),
                 }
             ]
         }
