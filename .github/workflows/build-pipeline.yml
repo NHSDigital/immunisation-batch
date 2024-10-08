@@ -21,6 +21,6 @@ jobs:
      - name: Install dependencies
        run: poetry install --no-interaction --no-root  
      - name: Change to test directory
-       run: cd filenameprocessor
+       run: cd filenameprocessor/tests
      - name: Run tests
        run: python -m unittest discover
