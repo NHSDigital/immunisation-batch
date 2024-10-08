@@ -10,8 +10,8 @@ FROM base as test
 
 RUN poetry install --no-interaction --no-ansi --no-root
 
-COPY src src
-COPY tests tests
+COPY filenameprocessor/src filenameprocessor/src
+COPY filenameprocessor/tests filenameprocessor/tests
 RUN python -m unittest
 
 # -----------------------------
