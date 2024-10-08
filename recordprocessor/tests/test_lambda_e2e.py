@@ -1,7 +1,9 @@
 "E2e tests for recordprocessor"
 
 import unittest
+import json
 from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
 from copy import deepcopy
 from moto import mock_s3, mock_kinesis
 from boto3 import client as boto3_client
@@ -9,6 +11,8 @@ from src.batch_processing import main
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
+    CONFIG_BUCKET_NAME,
+    PERMISSIONS_FILE_KEY,
     AWS_REGION,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
     API_RESPONSE_WITH_ID_AND_VERSION,
@@ -23,6 +27,8 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
 
+yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 @mock_s3
@@ -31,42 +37,52 @@ class TestRecordProcessor(unittest.TestCase):
     """E2e tests for RecordProcessor"""
 
     def setUp(self) -> None:
-        for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
+        # Tests run too quickly for cache to work. The workaround is to set _cached_last_modified to an earlier time
+        # than the tests are run so that the _cached_json_data will always be updated by the test
+        self.patcher = patch("permissions_checker._cached_last_modified", yesterday).start()
+
+        for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME, CONFIG_BUCKET_NAME]:
             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
 
+        kinesis_client.create_stream(StreamName=STREAM_NAME, ShardCount=1)
+
     def tearDown(self) -> None:
+        # Delete all of the buckets (the contents of each bucket must be deleted first)
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
             for obj in s3_client.list_objects_v2(Bucket=bucket_name).get("Contents", []):
                 s3_client.delete_object(Bucket=bucket_name, Key=obj["Key"])
             s3_client.delete_bucket(Bucket=bucket_name)
 
+        # Delete the kinesis stream
+        try:
+            kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
+        except kinesis_client.exceptions.ResourceNotFoundException:
+            pass
+
     @staticmethod
-    def upload_source_file(file_content):
+    def upload_files(sourc_file_content, mock_permissions=MOCK_PERMISSIONS):  # pylint: disable=dangerous-default-value
         """
         Uploads a test file with the TEST_FILE_KEY (Flu EMIS file) the given file content to the source bucket
         """
-        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=file_content)
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=sourc_file_content)
+        s3_client.put_object(Bucket=CONFIG_BUCKET_NAME, Key=PERMISSIONS_FILE_KEY, Body=json.dumps(mock_permissions))
 
     @staticmethod
-    def setup_kinesis(stream_name=STREAM_NAME):
-        """Sets up the kinesis stream. Obtains a shard iterator. Returns the kinesis client and shard iterator"""
-        kinesis_client.create_stream(StreamName=stream_name, ShardCount=1)
-
+    def get_shard_iterator(stream_name=STREAM_NAME):
+        """Obtains and returns a shard iterator"""
         # Obtain the first shard
         response = kinesis_client.describe_stream(StreamName=stream_name)
         shards = response["StreamDescription"]["Shards"]
         shard_id = shards[0]["ShardId"]
 
         # Get a shard iterator (using iterator type "TRIM_HORIZON" to read from the beginning)
-        shard_iterator = kinesis_client.get_shard_iterator(
+        return kinesis_client.get_shard_iterator(
             StreamName=stream_name, ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"
         )["ShardIterator"]
 
-        return shard_iterator
-
     @staticmethod
     def get_ack_file_content():
-        """Downloads the ack file, decodes its content and returns the content"""
+        """Downloads the ack file, decodes its content and returns the decoded content"""
         response = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_ACK_FILE_KEY)
         return response["Body"].read().decode("utf-8")
 
@@ -75,17 +91,14 @@ class TestRecordProcessor(unittest.TestCase):
         Tests that, for a file with valid content and supplier with full permissions, the ack file is successfully
         created and a message sent to kinesis.
         """
-        self.upload_source_file(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-        shard_iterator = self.setup_kinesis()
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
-        with patch(
-            "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
-        ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS):
+        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("ok", self.get_ack_file_content())
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=shard_iterator, Limit=10)["Records"]
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
         self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
         self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
@@ -97,19 +110,16 @@ class TestRecordProcessor(unittest.TestCase):
         """
         permissions = deepcopy(MOCK_PERMISSIONS)
         permissions["all_permissions"]["EMIS"] = []
-        self.upload_source_file(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-        shard_iterator = self.setup_kinesis()
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
 
-        with patch(
-            "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
-        ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=permissions):
+        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         ack_file = self.get_ack_file_content()
         self.assertIn("123456#1|fatal-error", ack_file)
         self.assertIn("123456#2|fatal-error", ack_file)
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=shard_iterator, Limit=10)["Records"]
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
         self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
         self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
@@ -122,20 +132,16 @@ class TestRecordProcessor(unittest.TestCase):
         """
         permissions = deepcopy(MOCK_PERMISSIONS)
         permissions["all_permissions"]["EMIS"] = ["FLU_NEW"]
-        self.upload_source_file(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-        shard_iterator = self.setup_kinesis()
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
 
-        with patch(
-            "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
-        ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=permissions):
+        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         ack_file = self.get_ack_file_content()
         self.assertIn("123456#1|ok", ack_file)
         self.assertIn("123456#2|fatal-error", ack_file)
-        print(ack_file)
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=shard_iterator, Limit=10)["Records"]
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
         self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
         self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
@@ -145,19 +151,16 @@ class TestRecordProcessor(unittest.TestCase):
         Tests that, for a file with invalid content and supplier with full permissions, the ack file is successfully
         created and documents an error and a message is sent to kinesis.
         """
-        self.upload_source_file(
+        self.upload_files(
             VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace('"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"', "")
         )
-        shard_iterator = self.setup_kinesis()
 
-        with patch(
-            "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
-        ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS):
+        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=shard_iterator, Limit=10)["Records"]
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
         self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
         self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
@@ -167,17 +170,14 @@ class TestRecordProcessor(unittest.TestCase):
         Tests that when the imms id can't be found for an update, the ack file is successfully
         created and documents an error and a message is sent to kinesis.
         """
-        self.upload_source_file(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-        shard_iterator = self.setup_kinesis()
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)), patch(
-            "src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS
-        ):
+        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=shard_iterator, Limit=10)["Records"]
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
         self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
         self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
@@ -187,19 +187,14 @@ class TestRecordProcessor(unittest.TestCase):
         Tests that, for a file with valid content and supplier with full permissions, when the kinesis send fails, the
         ack file created and documents an erro and a message in not sent to kinesis.
         """
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
+        # Delete the kinesis stream, to cause kinesis send to fail
+        kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
 
-        self.upload_source_file(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-        shard_iterator = self.setup_kinesis(stream_name="INVALID_STREAM")
-
-        with patch(
-            "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
-        ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS):
+        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
-
-        kinesis_records = kinesis_client.get_records(ShardIterator=shard_iterator, Limit=10)["Records"]
-        self.assertEqual(kinesis_records, [])
 
 
 if __name__ == "__main__":

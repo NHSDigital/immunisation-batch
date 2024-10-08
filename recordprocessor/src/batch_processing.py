@@ -11,8 +11,8 @@ from botocore.exceptions import ClientError
 from constants import Constants
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
-from permissions_checker import get_permissions_config_json_from_s3
 from utils_for_recordprocessor import get_environment
+from get_action_flag_permissions import get_action_flag_permissions
 from s3_clients import s3_client, kinesis_client
 
 
@@ -21,26 +21,6 @@ logger = logging.getLogger()
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
-
-
-def get_supplier_permissions(supplier: str) -> list:
-    """
-    Returns the permissions for the given supplier.
-    Returns an empty list if the permissions config json could not be downloaded, or the supplier has no permissions.
-    """
-    return get_permissions_config_json_from_s3().get("all_permissions", {}).get(supplier, [])
-
-
-def get_action_flag_permissions(supplier, vaccine_type):
-    """Returns the set of allowed action flags."""
-    allowed_permissions = get_supplier_permissions(supplier)
-    return (
-        {"NEW", "UPDATE", "DELETE"}
-        if f"{vaccine_type}_FULL" in allowed_permissions
-        else {
-            perm.split("_")[1].replace("CREATE", "NEW") for perm in allowed_permissions if perm.startswith(vaccine_type)
-        }
-    )
 
 
 def create_ack_data(created_at_formatted, message_header, delivered, diagnostics=None):
@@ -82,7 +62,8 @@ def send_to_kinesis(supplier, message_body):
 
 def fetch_file_from_s3(bucket_name, file_key):
     response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-    return response["Body"].read().decode("utf-8")
+    csv_data = response["Body"].read().decode("utf-8")
+    return csv.DictReader(StringIO(csv_data), delimiter="|")
 
 
 def add_row_to_ack_file(ack_data, accumulated_ack_file_content, file_key):
@@ -153,6 +134,10 @@ def process_row(vaccine_type, permission_operations, row):
 
 
 def process_csv_to_fhir(incoming_message_body):
+    """
+    For each row of the csv, attempts to transform into FHIR format, sends a message to kinesis,
+    and documents the outcome for each row in the ack file.
+    """
 
     logger.info("Event: %s", incoming_message_body)
 
@@ -161,12 +146,13 @@ def process_csv_to_fhir(incoming_message_body):
     vaccine_type = incoming_message_body.get("vaccine_type").upper()
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
+    print("HERE1")
     action_flag_permissions = get_action_flag_permissions(supplier, vaccine_type)
+    print("HERE2")
 
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
-    csv_data = fetch_file_from_s3(bucket_name, file_key)
-    csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
+    csv_reader = fetch_file_from_s3(bucket_name, file_key)
 
     # Initialise the accumulated_ack_file_content with the headers
     accumulated_ack_file_content = StringIO()  # Initialize a variable to accumulate CSV content
@@ -207,10 +193,11 @@ def process_csv_to_fhir(incoming_message_body):
 
 
 def main(event):
+    """Process each row of the file"""
     logger.info("task started")
     try:
         process_csv_to_fhir(incoming_message_body=json.loads(event))
-    except Exception as error:
+    except Exception as error:  # pylint: disable=broad-exception-caught
         logger.error("Error processing message: %s", error)
 
 

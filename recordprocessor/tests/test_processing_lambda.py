@@ -5,16 +5,17 @@ import boto3
 # from io import BytesIO
 from moto import mock_s3, mock_kinesis
 from src.constants import Constants
+from io import StringIO
 import json
+import csv
 from batch_processing import (
     main,
     fetch_file_from_s3,
     process_csv_to_fhir,
     get_environment,
-    get_supplier_permissions,
-    get_action_flag_permissions,
     convert_to_fhir_json,
 )
+from get_action_flag_permissions import get_supplier_permissions, get_action_flag_permissions
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
@@ -68,7 +69,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         }, 200
 
     def tearDown(self) -> None:
-        print(s3_client.list_buckets()["Buckets"])
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
             for obj in s3_client.list_objects_v2(Bucket=bucket_name).get("Contents", []):
                 s3_client.delete_object(Bucket=bucket_name, Key=obj["Key"])
@@ -116,7 +116,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     def test_fetch_file_from_s3(self):
         self.upload_source_file(TEST_FILE_KEY, VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-        self.assertEqual(fetch_file_from_s3(SOURCE_BUCKET_NAME, TEST_FILE_KEY), VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
+        expected_output = csv.DictReader(StringIO(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE), delimiter="|")
+        result = fetch_file_from_s3(SOURCE_BUCKET_NAME, TEST_FILE_KEY)
+        self.assertEqual(list(result), list(expected_output))
 
     @patch("batch_processing.send_to_kinesis")
     def test_process_csv_to_fhir(self, mock_send_to_kinesis):
@@ -313,7 +315,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
 
-    @patch("batch_processing.get_permissions_config_json_from_s3")
+    @patch("get_action_flag_permissions.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_success(self, mock_get_permissions_config_json_from_s3):
         mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
@@ -323,7 +325,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(permissions, ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"])
 
-    @patch("batch_processing.get_permissions_config_json_from_s3")
+    @patch("get_action_flag_permissions.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_no_permissions(self, mock_get_permissions_config_json_from_s3):
         mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
@@ -334,20 +336,20 @@ class TestProcessLambdaFunction(unittest.TestCase):
         self.assertEqual(permissions, [""])
 
     def test_no_permissions(self):
-        with patch("batch_processing.get_supplier_permissions", return_value=[]):
+        with patch("get_action_flag_permissions.get_supplier_permissions", return_value=[]):
             self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), set())
 
     def test_full_permissions(self):
-        with patch("batch_processing.get_supplier_permissions", return_value=["FLU_FULL", "MMR_CREATE"]):
+        with patch("get_action_flag_permissions.get_supplier_permissions", return_value=["FLU_FULL", "MMR_CREATE"]):
             self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), {"NEW", "UPDATE", "DELETE"})
 
     def test_partial_permissions(self):
         with patch(
-            "batch_processing.get_supplier_permissions", return_value=["FLU_CREATE", "FLU_DELETE", "MMR_CREATE"]
+            "get_action_flag_permissions.get_supplier_permissions", return_value=["FLU_CREATE", "FLU_DELETE", "MMR_CREATE"]
         ):
             self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), {"NEW", "DELETE"})
 
-    @patch("batch_processing.get_supplier_permissions")
+    @patch("get_action_flag_permissions.get_supplier_permissions")
     def test_get_action_flag_permissions_success(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["MMR_FULL", "FLU_CREATE", "FLU_UPDATE"]
 
@@ -358,7 +360,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(operations, {"UPDATE", "NEW"})
 
-    @patch("batch_processing.get_supplier_permissions")
+    @patch("get_action_flag_permissions.get_supplier_permissions")
     def test_get_action_flag_permissions_one_permission(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["MMR_UPDATE"]
 

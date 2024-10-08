@@ -15,10 +15,9 @@ json_file_key = "permissions_config.json"
 
 def get_permissions_config_json_from_s3():
     global _cached_json_data, _cached_last_modified
-
     try:
         # Fetch the file's metadata to get the LastModified time
-        config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
+        config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-configs")
         response = s3_client.head_object(Bucket=config_bucket_name, Key=json_file_key)
         last_modified = response["LastModified"]
 
