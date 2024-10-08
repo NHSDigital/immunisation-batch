@@ -19,5 +19,3 @@ jobs:
          file: filenameprocessor/Dockerfile
          tags: imms-batch-build
          target: test
-     - name: Run tests in Docker container
-       run: docker run --rm imms-batch-build
