@@ -43,7 +43,7 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
     # Upload the CSV file to S3
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode("utf-8"))
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destinations")
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
 
 

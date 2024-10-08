@@ -90,7 +90,7 @@ def add_row_to_ack_file(ack_data, accumulated_ack_file_content, file_key):
     cleaned_row = "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
     accumulated_ack_file_content.write(cleaned_row + "\n")
     csv_file_like_object = io.BytesIO(accumulated_ack_file_content.getvalue().encode("utf-8"))
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destination")
+    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destinations")
     ack_filename = f"processedFile/{file_key.replace('.csv', '_response.csv')}"
     s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
     logger.info(f"CSV content before upload with perms:\n{accumulated_ack_file_content.getvalue()}")
@@ -164,7 +164,7 @@ def process_csv_to_fhir(incoming_message_body):
     action_flag_permissions = get_action_flag_permissions(supplier, vaccine_type)
 
     # Fetch the data
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-source")
+    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
     csv_data = fetch_file_from_s3(bucket_name, file_key)
     csv_reader = csv.DictReader(StringIO(csv_data), delimiter="|")
 

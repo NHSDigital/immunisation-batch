@@ -40,7 +40,7 @@ def get_supplier_permissions(supplier: str) -> list:
     Returns the permissions for the given supplier. Returns an empty list if the permissions config json could not
     be downloaded, or the supplier has no permissions.
     """
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
+    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-configs")
     return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
 
 
