@@ -364,11 +364,24 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow"
-      Principal = "*"
+      Principal = {
+      AWS = "arn:aws:iam::${local.local.account_id}:root"
+    }
       Action    = "s3:*"
-      Resource  = "*"
+      Resource  = [
+      # Bucket 1
+      "arn:aws:s3:::${local.prefix}-configs",
+      "arn:aws:s3:::${local.prefix}-configs/*",
+      "arn:aws:s3:::${local.prefix}--data-sources", 
+      "arn:aws:s3:::${local.prefix}--data-sources/*",
+      "arn:aws:s3:::${local.prefix}--data-destinations",
+      "arn:aws:s3:::${local.prefix}--data-destinations/*"
+    ]
     }]
   })
+   tags = {
+    Name = "${var.project_name}-${local.environment}-s3-endpoint"
+  }
 }
 
 # Get the Route Tables for the default VPC
@@ -394,11 +407,18 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow",
-      Principal = "*",
+      Principal = {
+      AWS = "arn:aws:iam::${local.local.account_id}:root"
+    }
       Action    = "sqs:*",
-      Resource  = "*"
+      Resource  = [
+        "arn:aws:sqs:eu-west-2:${local.local.account_id}:${local.short_prefix}-${local.environment}-metadata-queue.fifo",
+      ]
     }]
   })
+  tags = {
+    Name = "${var.project_name}-${local.environment}-sqs-endpoint"
+  }
 }
 resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
   type              = "ingress"
