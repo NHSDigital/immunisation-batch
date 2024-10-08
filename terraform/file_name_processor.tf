@@ -404,8 +404,14 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow",
-      Principal = "*"
-      Action    = "sqs:*",
+      Principal = "*",
+      Action    = [
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+      ],
       Resource  = [
         "arn:aws:sqs:eu-west-2:${local.local_account_id}:${local.short_prefix}-${local.environment}-metadata-queue.fifo",
       ]
