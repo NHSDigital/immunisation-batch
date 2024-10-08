@@ -365,7 +365,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Statement = [{
       Effect    = "Allow"
       Principal = {
-      AWS = "arn:aws:iam::${local.local.account_id}:root"
+      AWS = "arn:aws:iam::${local.local_account_id}:root"
     }
       Action    = "s3:*"
       Resource  = [
@@ -408,11 +408,11 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Statement = [{
       Effect    = "Allow",
       Principal = {
-      AWS = "arn:aws:iam::${local.local.account_id}:root"
+      AWS = "arn:aws:iam::${local.local_account_id}:root"
     }
       Action    = "sqs:*",
       Resource  = [
-        "arn:aws:sqs:eu-west-2:${local.local.account_id}:${local.short_prefix}-${local.environment}-metadata-queue.fifo",
+        "arn:aws:sqs:eu-west-2:${local.local_account_id}:${local.short_prefix}-${local.environment}-metadata-queue.fifo",
       ]
     }]
   })
