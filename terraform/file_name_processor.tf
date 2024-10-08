@@ -371,11 +371,8 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
       {
         Effect    = "Allow"
         Principal = {
-          "Service": [
-            "lambda.amazonaws.com",
-            "ecs-tasks.amazonaws.com"
-          ]
-        }
+          AWS = aws_iam_role.lambda_exec_role.arn
+        },
         Action    = [
           "s3:GetObject",
           "s3:PutObject",
