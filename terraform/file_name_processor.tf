@@ -364,11 +364,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow"
-      Principal = {
-      AWS = [
-        "arn:aws:iam::${local.local_account_id}:role/${aws_iam_role.lambda_exec_role.name}"
-      ]
-    }
+      Principal = "*"
       Action    = "s3:*"
       Resource  = [ 
                     "arn:aws:s3:::${local.prefix}-configs",
@@ -408,9 +404,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow",
-      Principal = {
-      AWS = "arn:aws:iam::${local.local_account_id}:root"
-    }
+      Principal = "*"
       Action    = "sqs:*",
       Resource  = [
         "arn:aws:sqs:eu-west-2:${local.local_account_id}:${local.short_prefix}-${local.environment}-metadata-queue.fifo",
