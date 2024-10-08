@@ -366,14 +366,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
       Effect    = "Allow"
       Principal = "*"
       Action    = "s3:*"
-      Resource  = [ 
-                    "arn:aws:s3:::${local.prefix}-configs",
-                    "arn:aws:s3:::${local.prefix}-configs/*",
-                    "arn:aws:s3:::${local.prefix}-data-sources", 
-                    "arn:aws:s3:::${local.prefix}-data-sources/*",
-                    "arn:aws:s3:::${local.prefix}-data-destinations",
-                    "arn:aws:s3:::${local.prefix}-data-destinations/*"
-                  ]
+      Resource  = "*"
     }]
   })
    tags = {
@@ -405,13 +398,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Statement = [{
       Effect    = "Allow",
       Principal = "*",
-      Action    = [
-        "sqs:SendMessage",
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:GetQueueUrl",
-      ],
+      Action    = "sqs:*",
       Resource  = "*"
     }]
   })

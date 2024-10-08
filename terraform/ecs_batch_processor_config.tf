@@ -233,7 +233,7 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
            "logs:PutLogEvents"
          ]
          Effect = "Allow"
-         Resource  = "*"
+         Resource = "*"
        },
        {
          Effect   = "Allow",
@@ -265,10 +265,9 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       launch_type         = "FARGATE"
       network_configuration {
         aws_vpc_configuration {
-            subnets         = data.aws_subnets.default.ids  # Ensure these subnets are part of the VPC with the S3 endpoint
-            security_groups = [aws_security_group.ecs_security_group.id]  # Ensure the security group allows traffic to the S3 VPC endpoint
-            assign_public_ip = "DISABLED"  # Recommended if using VPC endpoints
-          }
+          subnets         = data.aws_subnets.default.ids
+          assign_public_ip = "ENABLED"
+        }
       }
       overrides {
         container_override {
@@ -298,40 +297,4 @@ resource "aws_pipes_pipe" "fifo_pipe" {
 # Custom Log Group
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
   name = "/aws/vendedlogs/pipes/${local.prefix}-pipe-logs"
-}
-# Define the security group for ECS tasks
-resource "aws_security_group" "ecs_security_group" {
-  name   = "${local.prefix}-ecs-sg"
-  vpc_id = data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# Create VPC Endpoints for ECR
-resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.ecs_security_group.id]
-}
-
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.ecs_security_group.id]
 }
