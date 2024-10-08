@@ -14,5 +14,11 @@ jobs:
        uses: actions/checkout@v3
      - name: Change to test directory
        run: cd filenameprocessor
-     - name: Run tests
-       run: docker build --target test -t imms-batch-build -f Dockerfile .
+     - name: Build the Docker image
+       uses: docker/build-push-action@v4
+       with:
+         context: test
+         file: ./Dockerfile
+         tags: imms-batch-build
+     - name: Run tests in Docker container
+       run: docker run --rm imms-batch-build
