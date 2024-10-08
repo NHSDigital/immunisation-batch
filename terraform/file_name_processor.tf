@@ -412,9 +412,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
         "sqs:GetQueueAttributes",
         "sqs:GetQueueUrl",
       ],
-      Resource  = [
-        "arn:aws:sqs:eu-west-2:${local.local_account_id}:${local.short_prefix}-${local.environment}-metadata-queue.fifo",
-      ]
+      Resource  = "*"
     }]
   })
   tags = {
