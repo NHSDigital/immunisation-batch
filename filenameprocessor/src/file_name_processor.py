@@ -27,7 +27,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         try:
             # Assign a unique message_id for the file
             message_id = str(uuid4())
-
+            created_at_formatted_string = None
             # Obtain the file details
             bucket_name = record["s3"]["bucket"]["name"]
             print(f"bucket_name:{bucket_name}")

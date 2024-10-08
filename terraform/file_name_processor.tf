@@ -372,10 +372,10 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
       # Bucket 1
       "arn:aws:s3:::${local.prefix}-configs",
       "arn:aws:s3:::${local.prefix}-configs/*",
-      "arn:aws:s3:::${local.prefix}--data-sources", 
-      "arn:aws:s3:::${local.prefix}--data-sources/*",
-      "arn:aws:s3:::${local.prefix}--data-destinations",
-      "arn:aws:s3:::${local.prefix}--data-destinations/*"
+      "arn:aws:s3:::${local.prefix}-data-sources", 
+      "arn:aws:s3:::${local.prefix}-data-sources/*",
+      "arn:aws:s3:::${local.prefix}-data-destinations",
+      "arn:aws:s3:::${local.prefix}-data-destinations/*"
     ]
     }]
   })
