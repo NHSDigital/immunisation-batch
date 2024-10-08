@@ -320,13 +320,17 @@ resource "aws_security_group" "ecs_security_group" {
   }
 }
 resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id       = data.aws_vpc.default.id
-  service_name = "com.amazonaws.${var.aws_region}.ecr.api"
-  subnet_ids   = data.aws_subnets.default.ids
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = data.aws_subnets.default.ids
+  security_group_ids = [aws_security_group.ecs_security_group.id]
 }
 
 resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id       = data.aws_vpc.default.id
-  service_name = "com.amazonaws.${var.aws_region}.ecr.dkr"
-  subnet_ids   = data.aws_subnets.default.ids
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = data.aws_subnets.default.ids
+  security_group_ids = [aws_security_group.ecs_security_group.id]
 }
