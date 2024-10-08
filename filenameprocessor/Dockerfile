@@ -2,16 +2,14 @@ FROM public.ecr.aws/lambda/python:3.10 as base
 
 RUN pip install "poetry~=1.5.0"
 
-COPY poetry.lock pyproject.toml README.md ./
+COPY filenameprocessor/poetry.lock filenameprocessor/pyproject.toml filenameprocessor/README.md ./
 RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi --no-root --only main
 
 # -----------------------------
 FROM base as test
 
-COPY filenameprocessor filenameprocessor
-
-RUN poetry install --no-interaction --no-ansi --no-root
-
+COPY filenameprocessor/src src
+COPY filenameprocessor/tests tests
 RUN python -m unittest
 
 # -----------------------------
