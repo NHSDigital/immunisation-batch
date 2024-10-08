@@ -7,7 +7,7 @@ tf_cmd = AWS_PROFILE=$(aws_profile) terraform
 
 project_name = immunisation-batch
 project_short_name = imms-batch
-state_bucket = $(project_name)-$(environment)-terraform-state-file
+state_bucket = $(project_name)-$(APIGEE_ENVIRONMENT)-terraform-state-file
 tf_state= -backend-config="bucket=$(state_bucket)"
 
 tf_vars= -var="project_name=$(project_name)" -var="project_short_name=$(project_short_name)"
