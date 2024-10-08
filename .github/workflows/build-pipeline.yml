@@ -20,6 +20,6 @@ jobs:
        uses: docker/build-push-action@v4
        with:
          context: .
-         file: Dockerfile
+         file: filenameprocessor/Dockerfile
          tags: imms-batch-build
          target: test
