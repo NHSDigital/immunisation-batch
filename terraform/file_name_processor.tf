@@ -364,7 +364,11 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow"
-      Principal = "*"
+      Principal = {
+      AWS = [
+        "arn:aws:iam::${local.local_account_id}:root"
+      ]
+    }
       Action    = "s3:*"
       Resource  = [ 
                     "arn:aws:s3:::${local.prefix}-configs",
