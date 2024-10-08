@@ -313,21 +313,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
 
-    # TODO: ADD NEW PERMISSIONS LOGIC
-    # @patch("batch_processing.get_supplier_permissions")
-    # def test_no_permissions(self, mock_get_supplier_permissions):
-    #     mock_get_supplier_permissions.return_value = [""]
-    #     config_bucket_name = "test-bucket"
-    #     supplier = "test-supplier"
-    #     vaccine_type = "COVID19"
-
-    #     result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-
-    #     self.assertFalse(result)
-
     @patch("batch_processing.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_success(self, mock_get_permissions_config_json_from_s3):
-        # Mock S3 response
         mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
 
         supplier = "SUPPLIER1"
@@ -346,31 +333,19 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(permissions, [""])
 
-    # TODO: REPLACE WITH NEW PERMISSIONS LOGIC
-    # @patch("batch_processing.get_supplier_permissions")
-    # def test_validate_full_permissions_valid(self, mock_get_supplier_permissions):
-    #     mock_get_supplier_permissions.return_value = ["FLU_FULL", "MMR_CREATE"]
+    def test_no_permissions(self):
+        with patch("batch_processing.get_supplier_permissions", return_value=[]):
+            self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), set())
 
-    #     supplier = "supplier1"
-    #     config_bucket_name = "test-config-bucket"
-    #     vaccine_type = "FLU"
+    def test_full_permissions(self):
+        with patch("batch_processing.get_supplier_permissions", return_value=["FLU_FULL", "MMR_CREATE"]):
+            self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), {"NEW", "UPDATE", "DELETE"})
 
-    #     result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-
-    #     self.assertTrue(result)
-
-    # TODO: REPLACE WITH NEW PERMISSIONS LOGIC
-    #  @patch("batch_processing.get_supplier_permissions")
-    # def test_validate_full_permissions_invalid(self, mock_get_supplier_permissions):
-    #     mock_get_supplier_permissions.return_value = ["COVID19_CREATE"]
-
-    #     supplier = "supplier1"
-    #     config_bucket_name = "test-config-bucket"
-    #     vaccine_type = "COVID19"
-
-    #     result = validate_full_permissions(config_bucket_name, supplier, vaccine_type)
-
-    #     self.assertFalse(result)
+    def test_partial_permissions(self):
+        with patch(
+            "batch_processing.get_supplier_permissions", return_value=["FLU_CREATE", "FLU_DELETE", "MMR_CREATE"]
+        ):
+            self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), {"NEW", "DELETE"})
 
     @patch("batch_processing.get_supplier_permissions")
     def test_get_action_flag_permissions_success(self, mock_get_supplier_permissions):
