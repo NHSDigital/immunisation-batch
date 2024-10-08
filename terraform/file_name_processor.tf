@@ -365,9 +365,13 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Statement = [{
       Effect    = "Allow"
       Principal = {
-      AWS = "arn:aws:iam::${local.local_account_id}:root"
+      AWS = aws_iam_role.lambda_exec_role.arn
     }
-      Action    = "s3:*"
+      Action = [
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:PutObject",
+        ],
       Resource  = [
       # Bucket 1
       "arn:aws:s3:::${local.prefix}-configs",
