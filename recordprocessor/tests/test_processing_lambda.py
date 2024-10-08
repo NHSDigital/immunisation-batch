@@ -67,10 +67,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
         s3_client.create_bucket(Bucket=ack_bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=Constants.file_content)
@@ -121,10 +121,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_positive_string_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -183,10 +183,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_only_mandatory(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
 
         s3_client.create_bucket(
@@ -246,10 +246,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_positive_string_not_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -307,10 +307,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_invalid(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -343,10 +343,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -378,10 +378,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
 
         s3_client.create_bucket(
@@ -416,10 +416,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_successful(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test-file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         csv_content = Constants.file_content
         s3_client.create_bucket(
@@ -486,10 +486,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_successful_permissions(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test_file.csv"
         supplier = "test"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"NEW", "UPDATE", "DELETE"}
         csv_content = Constants.file_content_operations
         s3_client.create_bucket(
@@ -556,11 +556,11 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("csv.DictReader")
     def test_process_csv_to_fhir_incorrect_permissions(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client = boto3.client("s3", region_name="eu-west-2")
-        bucket_name = "immunisation-batch-internal-dev-data-source"
+        bucket_name = "immunisation-batch-internal-dev-data-sources"
         file_key = "test_file.csv"
         supplier = "test"
         message_id = "test-id"
-        ack_bucket_name = "immunisation-batch-internal-dev-data-destination"
+        ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
         permission_operations = {"DELETE"}
         csv_content = Constants.file_content
         s3_client.create_bucket(

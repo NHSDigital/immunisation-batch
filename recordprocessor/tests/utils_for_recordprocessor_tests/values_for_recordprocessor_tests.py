@@ -56,9 +56,9 @@ API_RESPONSE_WITH_ID_AND_VERSION = {
     "total": 1,
 }, 200
 
-SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-source"
-DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destination"
-CONFIG_BUCKET_NAME = "immunisation-batch-internal-dev-config"
+SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
+DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
+CONFIG_BUCKET_NAME = "immunisation-batch-internal-dev-configs"
 STREAM_NAME = "imms-batch-internal-dev-processingdata-stream"
 
 AWS_REGION = "eu-west-2"
