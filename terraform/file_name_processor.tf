@@ -65,7 +65,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+       Resource = "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/lambda/${local.prefix}-file_processor_lambda:*"
       },
       {
         Effect   = "Allow"
@@ -102,7 +102,13 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface"
         ],
-        Resource = "*"
+        Resource = "*",
+        Condition = {
+          StringEquals = {
+            "ec2:Vpc"        = data.aws_vpc.default.id
+            "ec2:Subnet"     = data.aws_subnets.default.ids
+          }
+        }
       },
       {
         Effect   = "Allow"
@@ -359,20 +365,38 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     for rt in data.aws_route_tables.default_route_tables.ids : rt
   ]
 
-  # Control access to the VPC endpoint
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect    = "Allow"
-      Principal = "*"
-      Action    = "s3:*"
-      Resource  = "*"
-    }]
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = {
+          "Service": [
+            "lambda.amazonaws.com",
+            "ecs-tasks.amazonaws.com"
+          ]
+        }
+        Action    = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource  = [
+          "arn:aws:s3:::${local.prefix}-data-sources",
+          "arn:aws:s3:::${local.prefix}-data-sources/*",
+          "arn:aws:s3:::${local.prefix}-data-destinations",
+          "arn:aws:s3:::${local.prefix}-data-destinations/*",
+          "arn:aws:s3:::${local.prefix}-configs",
+          "arn:aws:s3:::${local.prefix}-configs/*"
+        ]
+      }
+    ]
   })
-   tags = {
+  tags = {
     Name = "${var.project_name}-${local.environment}-s3-endpoint"
   }
 }
+
 
 # Get the Route Tables for the default VPC.
 data "aws_route_tables" "default_route_tables" {
@@ -381,31 +405,32 @@ data "aws_route_tables" "default_route_tables" {
 # VPC Endpoint for SQS
 resource "aws_vpc_endpoint" "sqs_endpoint" {
   vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.eu-west-2.sqs"
+  service_name      = "com.amazonaws.${var.aws_region}.sqs"
   vpc_endpoint_type = "Interface"
 
   subnet_ids = data.aws_subnets.default.ids
-
-  security_group_ids = [
-    aws_security_group.lambda_sg.id
-  ]
+  security_group_ids = [aws_security_group.lambda_sg.id]
 
   private_dns_enabled = true
 
-  # Policy to control access to the SQS endpoint
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect    = "Allow",
-      Principal = "*",
-      Action    = "sqs:*",
-      Resource  = "*"
-    }]
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = {
+          "Service": "lambda.amazonaws.com"
+        }
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.fifo_queue.arn
+      }
+    ]
   })
   tags = {
     Name = "${var.project_name}-${local.environment}-sqs-endpoint"
   }
 }
+
 # vpc_endpoint_sqs_ingress
 resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
   type              = "ingress"
