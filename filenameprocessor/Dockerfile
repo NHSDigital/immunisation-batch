@@ -8,10 +8,10 @@ RUN poetry config virtualenvs.create false && poetry install --no-interaction --
 # -----------------------------
 FROM base as test
 
+COPY filenameprocessor filenameprocessor
+
 RUN poetry install --no-interaction --no-ansi --no-root
 
-COPY filenameprocessor/src src
-COPY filenameprocessor/tests tests
 RUN python -m unittest
 
 # -----------------------------
