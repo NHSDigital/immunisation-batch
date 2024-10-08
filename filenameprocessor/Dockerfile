@@ -15,7 +15,7 @@ RUN python -m unittest
 # -----------------------------
 FROM base as build
 
-COPY src .
+COPY filenameprocessor/src .
 RUN chmod 644 $(find . -type f)
 RUN chmod 755 $(find . -type d)
 CMD ["file_name_processor.lambda_handler"]
