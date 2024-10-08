@@ -16,9 +16,8 @@ from utils_for_recordprocessor import get_environment
 from s3_clients import s3_client, kinesis_client
 
 
-logging.basicConfig()
+logging.basicConfig(level="INFO")
 logger = logging.getLogger()
-logger.setLevel("INFO")
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
@@ -26,29 +25,26 @@ immunization_api_instance = ImmunizationApi(authenticator)
 
 def get_supplier_permissions(supplier: str) -> list:
     """
-    Returns the permissions for the given supplier. Returns an empty list if the permissions config json could not
-    be downloaded, or the supplier has no permissions.
+    Returns the permissions for the given supplier.
+    Returns an empty list if the permissions config json could not be downloaded, or the supplier has no permissions.
     """
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-config")
-    return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
+    return get_permissions_config_json_from_s3().get("all_permissions", {}).get(supplier, [])
 
 
 def get_action_flag_permissions(supplier, vaccine_type):
-    vaccine_type = vaccine_type.upper()
+    """Returns the set of allowed action flags."""
     allowed_permissions = get_supplier_permissions(supplier)
-
-    if f"{vaccine_type}_FULL" in allowed_permissions:
-        return {"NEW", "UPDATE", "DELETE"}
-
-    permission_operations = {perm.split("_")[1] for perm in allowed_permissions if perm.startswith(vaccine_type)}
-    if "CREATE" in permission_operations:
-        permission_operations.add("NEW")
-        permission_operations.remove("CREATE")
-    return permission_operations
+    return (
+        {"NEW", "UPDATE", "DELETE"}
+        if f"{vaccine_type}_FULL" in allowed_permissions
+        else {
+            perm.split("_")[1].replace("CREATE", "NEW") for perm in allowed_permissions if perm.startswith(vaccine_type)
+        }
+    )
 
 
 def create_ack_data(created_at_formatted, message_header, delivered, diagnostics=None):
-
+    """Returns a dictionary containing the ack headers as keys, along with the relevant values."""
     return {
         "MESSAGE_HEADER_ID": message_header,
         "HEADER_RESPONSE_CODE": "fatal-error" if diagnostics else "ok",
@@ -70,16 +66,15 @@ def send_to_kinesis(supplier, message_body):
     kinesis_queue_prefix = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
 
     try:
-        # Send the message to the Kinesis stream
         resp = kinesis_client.put_record(
             StreamName=f"{kinesis_queue_prefix}-processingdata-stream",
             StreamARN=os.getenv("KINESIS_STREAM_ARN"),
             Data=json.dumps(message_body, ensure_ascii=False),
-            PartitionKey=supplier,  # Use a partition key
+            PartitionKey=supplier,
         )
-        logger.info(f"Message sent to Kinesis stream:{stream_name} for supplier:{supplier} with resp:{resp}")
-    except ClientError as e:
-        logger.error(f"Error sending message to Kinesis: {e}")
+        logger.info("Message sent to Kinesis stream:%s for supplier:%s with resp:%s", stream_name, supplier, resp)
+    except ClientError as error:
+        logger.error("Error sending message to Kinesis: %s", error)
         return False
 
     return True
@@ -104,7 +99,7 @@ def add_row_to_ack_file(ack_data, accumulated_ack_file_content, file_key):
 
 def process_row(vaccine_type, permission_operations, row):
     action_flag = action_flag.upper() if (action_flag := row.get("ACTION_FLAG")) is not None else ""
-    logger.info(f"ACTION FLAG PERMISSIONS:  {action_flag}")
+    logger.info(f"ACTION FLAG PERMISSION REQUESTED:  {action_flag}")
     logger.info(f"PERMISSIONS OPERATIONS {permission_operations}")
 
     # Handle no permissions
@@ -132,24 +127,21 @@ def process_row(vaccine_type, permission_operations, row):
             "diagnostics": "Unsupported file type received as an attachment",
         }
 
-    # Obtain the imms id and version from the ieds if required
-    all_values_obtained = True if action_flag == "NEW" else False
+    # Obtain the imms id and version from the ieds for update and delete
     if action_flag in ("DELETE", "UPDATE"):
         response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
-        if response.get("total") == 1 and status_code == 200:
-            all_values_obtained = True
+        # Handle non-200 response from Immunisation API
+        if not (response.get("total") == 1 and status_code == 200):
+            logger.info("imms_id not found:%s and status_code: %s", response, status_code)
+            return {
+                "fhir_json": fhir_json,
+                "action_flag": "None",
+                "imms_id": "None",
+                "version": "None",
+                "diagnostics": "Unsupported file type received as an attachment",
+            }
 
-    # Handle unable to find in IEDS
-    if not all_values_obtained:
-        logger.info(f"imms_id not found:{response} and status_code:{status_code}")
-        return {
-            "fhir_json": fhir_json,
-            "action_flag": "None",
-            "imms_id": "None",
-            "version": "None",
-            "diagnostics": "Unsupported file type received as an attachment",
-        }
-
+    # Handle success
     resource = response.get("entry", [])[0]["resource"] if action_flag in ("DELETE", "UPDATE") else None
     return {
         "fhir_json": fhir_json,
@@ -162,12 +154,12 @@ def process_row(vaccine_type, permission_operations, row):
 
 def process_csv_to_fhir(incoming_message_body):
 
-    logger.info(f"Event: {incoming_message_body}")
+    logger.info("Event: %s", incoming_message_body)
 
     # Get details needed to process file
     file_id = incoming_message_body.get("message_id")
-    vaccine_type = incoming_message_body.get("vaccine_type")
-    supplier = incoming_message_body.get("supplier")
+    vaccine_type = incoming_message_body.get("vaccine_type").upper()
+    supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
     action_flag_permissions = get_action_flag_permissions(supplier, vaccine_type)
 
@@ -185,11 +177,9 @@ def process_csv_to_fhir(incoming_message_body):
     for row in csv_reader:
         row_count += 1
         message_id = f"{file_id}#{row_count}"
-        logger.info(f"MESSAGE ID : {message_id}")
-
+        logger.info("MESSAGE ID : %s", message_id)
         # Process the row to obtain the details needed for the message_body and ack file
         details_from_processing = process_row(vaccine_type, action_flag_permissions, row)
-
         # Create the message body for sending
         outgoing_message_body = {
             "message_id": message_id,
@@ -213,15 +203,15 @@ def process_csv_to_fhir(incoming_message_body):
         ack_data_row = create_ack_data(created_at_formatted_string, message_id, message_delivered, diagnostics)
         accumulated_ack_file_content = add_row_to_ack_file(ack_data_row, accumulated_ack_file_content, file_key)
 
-    logger.info(f"Total rows processed: {row_count}")  # logger the total number of rows processed
+    logger.info("Total rows processed: %s", row_count)
 
 
 def main(event):
     logger.info("task started")
     try:
         process_csv_to_fhir(incoming_message_body=json.loads(event))
-    except Exception as e:
-        logger.error(f"Error processing message: {e}")
+    except Exception as error:
+        logger.error("Error processing message: %s", error)
 
 
 if __name__ == "__main__":
