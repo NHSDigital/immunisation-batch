@@ -16,8 +16,7 @@ resource "aws_s3_bucket_policy" "batch_config_bucket_policy" {
         },
         Action = [
           "s3:GetObject",
-          "s3:ListBucket",
-          "s3:HeadObject"
+          "s3:ListBucket"
         ],
         Resource = [
           "arn:aws:s3:::${local.prefix}-configs",
