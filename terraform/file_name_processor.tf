@@ -65,7 +65,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-       Resource = "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/lambda/${local.prefix}-file_processor_lambda:*"
+       Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${local.prefix}-file_processor_lambda:*"
       },
       {
         Effect   = "Allow"
