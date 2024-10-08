@@ -319,3 +319,14 @@ resource "aws_security_group" "ecs_security_group" {
     cidr_blocks = ["10.0.0.0/16"]
   }
 }
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id       = data.aws_vpc.default.id
+  service_name = "com.amazonaws.${var.aws_region}.ecr.api"
+  subnet_ids   = data.aws_subnets.default.ids
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id       = data.aws_vpc.default.id
+  service_name = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  subnet_ids   = data.aws_subnets.default.ids
+}
