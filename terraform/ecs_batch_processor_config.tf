@@ -265,9 +265,10 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       launch_type         = "FARGATE"
       network_configuration {
         aws_vpc_configuration {
-          subnets         = data.aws_subnets.default.ids
-          assign_public_ip = "ENABLED"
-        }
+            subnets         = data.aws_subnets.default.ids  # Ensure these subnets are part of the VPC with the S3 endpoint
+            security_groups = [aws_security_group.ecs_security_group.id]  # Ensure the security group allows traffic to the S3 VPC endpoint
+            assign_public_ip = "DISABLED"  # Recommended if using VPC endpoints
+          }
       }
       overrides {
         container_override {
@@ -298,3 +299,24 @@ resource "aws_pipes_pipe" "fifo_pipe" {
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
   name = "/aws/vendedlogs/pipes/${local.prefix}-pipe-logs"
 }
+
+resource "aws_security_group" "ecs_security_group" {
+  name        = "${local.prefix}-ecs-sg"
+  vpc_id      = data.aws_vpc.default.id
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow access to the S3 VPC endpoint
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    security_groups = [aws_vpc_endpoint.s3_vpc_endpoint.id]
+  }
+}
+

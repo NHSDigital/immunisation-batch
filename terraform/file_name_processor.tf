@@ -419,6 +419,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Name = "${var.project_name}-${local.environment}-sqs-endpoint"
   }
 }
+# vpc_endpoint_sqs_ingress
 resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
   type              = "ingress"
   from_port         = 443
