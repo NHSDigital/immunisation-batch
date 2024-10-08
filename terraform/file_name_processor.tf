@@ -365,9 +365,9 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Statement = [{
       Effect    = "Allow"
       Principal = {
-      AWS = [
-        "arn:aws:iam::${local.local_account_id}:root"
-      ]
+      Principal = {
+        AWS = "arn:aws:iam::${local.local_account_id}:role/${aws_iam_role.lambda_exec_role.name}"
+      },
     }
       Action    = "s3:*"
       Resource  = [ 
