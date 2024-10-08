@@ -12,10 +12,13 @@ jobs:
    steps:
      - name: Checkout code
        uses: actions/checkout@v3
+     - name: Change to test directory
+       run: cd filenameprocessor
+            ls -ltr
      - name: Build the Docker image
        uses: docker/build-push-action@v4
        with:
          context: .
-         file: filenameprocessor/Dockerfile
+         file: Dockerfile
          tags: imms-batch-build
          target: test
