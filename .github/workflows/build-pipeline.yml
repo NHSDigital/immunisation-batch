@@ -1,0 +1,24 @@
+name: Build & Test code
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+ test:
+   runs-on: ubuntu-latest
+   steps:
+     - name: Checkout code
+       uses: actions/checkout@v3
+     - name: Set up Python 3.8.10
+       uses: actions/setup-python@v4
+       with:
+         python-version: "3.8.10"
+     - name: Install dependencies
+       run: pip install -r requirements.txt
+     - name: Change to test directory
+       run: cd filenameprocessor
+     - name: Run tests
+       run: python -m unittest discover
