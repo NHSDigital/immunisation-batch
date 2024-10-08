@@ -316,36 +316,6 @@ resource "aws_security_group" "ecs_security_group" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    security_groups = [aws_vpc_endpoint.s3_vpc_endpoint.id]
+    security_groups = [aws_vpc_endpoint.s3_endpoint.id]
   }
 }
-resource "aws_vpc_endpoint" "s3_endpoint" {
-  vpc_id       = data.aws_vpc.default.id
-  service_name = "com.amazonaws.${var.aws_region}.s3"
-
-  route_table_ids = [
-    for rt in data.aws_route_tables.default_route_tables.ids : rt
-  ]
-
-  # Control access to the VPC endpoint
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect    = "Allow"
-      Principal = "*"
-      Action    = "s3:*"
-      Resource  = [ 
-                    "arn:aws:s3:::${local.prefix}-configs",
-                    "arn:aws:s3:::${local.prefix}-configs/*",
-                    "arn:aws:s3:::${local.prefix}-data-sources", 
-                    "arn:aws:s3:::${local.prefix}-data-sources/*",
-                    "arn:aws:s3:::${local.prefix}-data-destinations",
-                    "arn:aws:s3:::${local.prefix}-data-destinations/*"
-                  ]
-    }]
-  })
-   tags = {
-    Name = "${var.project_name}-${local.environment}-s3-endpoint-for-ecs"
-  }
-}
-
