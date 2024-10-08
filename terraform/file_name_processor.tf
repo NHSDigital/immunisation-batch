@@ -364,23 +364,9 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow"
-      Principal = {
-      AWS = aws_iam_role.lambda_exec_role.arn
-    }
-      Action = [
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:PutObject",
-        ],
-      Resource  = [
-      # Bucket 1
-      "arn:aws:s3:::${local.prefix}-configs",
-      "arn:aws:s3:::${local.prefix}-configs/*",
-      "arn:aws:s3:::${local.prefix}-data-sources", 
-      "arn:aws:s3:::${local.prefix}-data-sources/*",
-      "arn:aws:s3:::${local.prefix}-data-destinations",
-      "arn:aws:s3:::${local.prefix}-data-destinations/*"
-    ]
+      Principal = "*"
+      Action    = "s3:*"
+      Resource  = "*"
     }]
   })
    tags = {
