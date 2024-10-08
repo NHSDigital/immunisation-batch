@@ -299,10 +299,17 @@ resource "aws_pipes_pipe" "fifo_pipe" {
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
   name = "/aws/vendedlogs/pipes/${local.prefix}-pipe-logs"
 }
-
+# Define the security group for ECS tasks
 resource "aws_security_group" "ecs_security_group" {
-  name        = "${local.prefix}-ecs-sg"
-  vpc_id      = data.aws_vpc.default.id
+  name   = "${local.prefix}-ecs-sg"
+  vpc_id = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 443
@@ -310,15 +317,9 @@ resource "aws_security_group" "ecs_security_group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  # Allow access to the S3 VPC endpoint
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
-  }
 }
+
+# Create VPC Endpoints for ECR
 resource "aws_vpc_endpoint" "ecr_api" {
   vpc_id            = data.aws_vpc.default.id
   service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
