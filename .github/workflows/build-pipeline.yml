@@ -19,3 +19,17 @@ jobs:
          file: filenameprocessor/Dockerfile
          tags: imms-batch-build
          target: test
+     - name: Build and Test record forwarder lambda
+       uses: docker/build-push-action@v4
+       with:
+         context: .
+         file: recordforwarder/Dockerfile
+         tags: imms-batch-build
+         target: test
+     - name: Build and Test record processor ecs
+       uses: docker/build-push-action@v4
+       with:
+         context: .
+         file: recordprocessor/Dockerfile
+         tags: imms-batch-build
+         target: test
