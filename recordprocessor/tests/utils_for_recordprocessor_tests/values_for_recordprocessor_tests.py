@@ -71,7 +71,7 @@ TEST_MESSAGE_ID = "123456"
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
 
-TEST_EVENT = json.dumps(
+TEST_EVENT_DUMPED = json.dumps(
     {
         "message_id": TEST_MESSAGE_ID,
         "vaccine_type": TEST_VACCINE_TYPE,
@@ -79,6 +79,13 @@ TEST_EVENT = json.dumps(
         "filename": TEST_FILE_KEY,
     }
 )
+
+TEST_EVENT = {
+    "message_id": TEST_MESSAGE_ID,
+    "vaccine_type": TEST_VACCINE_TYPE,
+    "supplier": TEST_SUPPLIER,
+    "filename": TEST_FILE_KEY,
+}
 
 MOCK_ENVIRONMENT_DICT = {
     "ENVIRONMENT": "internal-dev",

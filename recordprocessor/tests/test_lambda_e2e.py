@@ -14,7 +14,7 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     API_RESPONSE_WITH_ID_AND_VERSION,
     STREAM_NAME,
     TEST_ACK_FILE_KEY,
-    TEST_EVENT,
+    TEST_EVENT_DUMPED,
     TEST_FILE_KEY,
     MOCK_ENVIRONMENT_DICT,
     MOCK_PERMISSIONS,
@@ -81,7 +81,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch(
             "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
         ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS):
-            main(TEST_EVENT)
+            main(TEST_EVENT_DUMPED)
 
         self.assertIn("ok", self.get_ack_file_content())
 
@@ -103,7 +103,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch(
             "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
         ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=permissions):
-            main(TEST_EVENT)
+            main(TEST_EVENT_DUMPED)
 
         ack_file = self.get_ack_file_content()
         self.assertIn("123456#1|fatal-error", ack_file)
@@ -128,7 +128,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch(
             "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
         ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=permissions):
-            main(TEST_EVENT)
+            main(TEST_EVENT_DUMPED)
 
         ack_file = self.get_ack_file_content()
         self.assertIn("123456#1|ok", ack_file)
@@ -153,7 +153,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch(
             "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
         ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS):
-            main(TEST_EVENT)
+            main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
 
@@ -173,7 +173,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)), patch(
             "src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS
         ):
-            main(TEST_EVENT)
+            main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
 
@@ -194,7 +194,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch(
             "src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION
         ), patch("src.batch_processing.get_permissions_config_json_from_s3", return_value=MOCK_PERMISSIONS):
-            main(TEST_EVENT)
+            main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
 
