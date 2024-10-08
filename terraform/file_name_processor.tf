@@ -381,7 +381,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
   }
 }
 
-# Get the Route Tables for the default VPC
+# Get the Route Tables for the default VPC.
 data "aws_route_tables" "default_route_tables" {
   vpc_id = data.aws_vpc.default.id
 }
