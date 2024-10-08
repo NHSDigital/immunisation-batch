@@ -122,7 +122,7 @@ NOTE: All helper functions default to use valid file content with
 
     @patch('elasticcache.s3_client.get_object')
     @patch('elasticcache.redis_client.set')
-    @patch('s3_clients.s3_client.head_object')
+    @patch('s3_clients.s3_client.get_object')
     def test_successful_processing_from_configs(self, mock_head_object, mock_redis_set, mock_s3_get_object):
         # Mock S3 head_object response
         mock_head_object.return_value = {
