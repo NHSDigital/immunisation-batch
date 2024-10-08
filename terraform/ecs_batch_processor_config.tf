@@ -316,6 +316,6 @@ resource "aws_security_group" "ecs_security_group" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    security_groups = [aws_vpc_endpoint.s3_endpoint.id]
+    cidr_blocks = ["10.0.0.0/16"]
   }
 }
