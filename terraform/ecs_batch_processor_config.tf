@@ -353,5 +353,5 @@ data "aws_iam_policy_document" "processing_repository_policy" {
 
 resource "aws_ecr_repository_policy" "processing_repository_policy" {
   repository = aws_ecr_repository.processing_repository.name
-  policy     = data.aws_iam_policy_document.example.json
+  policy     = data.aws_iam_policy_document.processing_repository_policy.json
 }
