@@ -12,7 +12,7 @@ immunization_api_instance = ImmunizationApi(authenticator)
 logger = logging.getLogger()
 
 
-def process_row(vaccine_type, permission_operations, row):
+def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dict:
     """
     Processes a row of the file and returns a dictionary containing the fhir_json, action_flag, imms_id
     (where applicable), version(where applicable) and any diagnostics.
@@ -22,7 +22,7 @@ def process_row(vaccine_type, permission_operations, row):
     logger.info("PERMISSIONS OPERATIONS %s", permission_operations)
 
     # Handle no permissions
-    if not (action_flag in permission_operations):
+    if action_flag not in permission_operations:
         logger.info("Skipping row as supplier does not have the permissions for this csv operation %s", action_flag)
         return {
             "fhir_json": "No_Permissions",

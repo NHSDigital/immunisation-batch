@@ -319,9 +319,9 @@ def convert_to_fhir_json(row, vaccine_type):
         fhir_json["protocolApplied"] = [protocol_applied]
 
         return fhir_json, True
-    except KeyError as e:
-        logger.error(f"Missing field in row data: {e}")
+    except KeyError as error:
+        logger.error("Missing field in row data: %s", error)
         return None, False
-    except ValueError as e:
-        logger.error(f"Value error in row data: {e}")
+    except ValueError as error:
+        logger.error("Value error in row data: %s", error)
         return None, False

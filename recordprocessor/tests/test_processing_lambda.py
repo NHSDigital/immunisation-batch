@@ -1,19 +1,17 @@
 import unittest
 from unittest.mock import patch, MagicMock
-import boto3
-
-# from io import BytesIO
-from moto import mock_s3, mock_kinesis
 from io import StringIO
 import json
 import csv
+import boto3
+from moto import mock_s3, mock_kinesis
 from batch_processing import (
     main,
     process_csv_to_fhir,
     get_environment,
 )
 from convert_fhir_json import convert_to_fhir_json
-from utils_for_recordprocessor import fetch_file_from_s3
+from utils_for_recordprocessor import get_csv_content_dict_reader
 from get_action_flag_permissions import get_supplier_permissions, get_action_flag_permissions
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
@@ -118,7 +116,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
     def test_fetch_file_from_s3(self):
         self.upload_source_file(TEST_FILE_KEY, VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
         expected_output = csv.DictReader(StringIO(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE), delimiter="|")
-        result = fetch_file_from_s3(SOURCE_BUCKET_NAME, TEST_FILE_KEY)
+        result = get_csv_content_dict_reader(SOURCE_BUCKET_NAME, TEST_FILE_KEY)
         self.assertEqual(list(result), list(expected_output))
 
     @patch("batch_processing.send_to_kinesis")
@@ -267,14 +265,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request["PERFORMING_PROFESSIONAL_SURNAME"] = ""
         vaccine_type = "flu"
 
-        json, valid = convert_to_fhir_json(request, vaccine_type)
+        json_result, _ = convert_to_fhir_json(request, vaccine_type)
 
-        self.assertNotIn("Practitioner", [res["resourceType"] for res in json.get("contained", [])])
+        self.assertNotIn("Practitioner", [res["resourceType"] for res in json_result.get("contained", [])])
         self.assertNotIn(
             "reference",
             [
                 performer.get("reference")
-                for res in json.get("actor", [])
+                for res in json_result.get("actor", [])
                 if "performer" in res
                 for performer in res.get("performer", [])
             ],
@@ -285,8 +283,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request["DOSE_UNIT_CODE"] = ""
         vaccine_type = "flu"
 
-        json, valid = convert_to_fhir_json(request, vaccine_type)
-        dose_quality = json.get("doseQuality", {})
+        json_result, _ = convert_to_fhir_json(request, vaccine_type)
+        dose_quality = json_result.get("doseQuality", {})
         self.assertNotIn("system", dose_quality)
 
     def test_process_csv_to_fhir_successful_vaccine_code(self):
@@ -295,8 +293,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request["VACCINE_PRODUCT_TERM"] = ""
         vaccine_type = "flu"
 
-        json, valid = convert_to_fhir_json(request, vaccine_type)
-        vaccine_code = json.get("vaccineCode", {})
+        json_result, _ = convert_to_fhir_json(request, vaccine_type)
+        vaccine_code = json_result.get("vaccineCode", {})
         self.assertIn("NAVU", vaccine_code["coding"][0]["code"])
         self.assertIn("Not available", vaccine_code["coding"][0]["display"])
 

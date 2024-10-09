@@ -24,17 +24,17 @@ class DiseaseDisplayTerms:
     rubella: str = "Rubella"
 
 
-vaccine_disease_mapping = {
+VACCINE_DISEASE_MAPPING = {
     "covid19": ["covid_19"],
     "flu": ["flu"],
     "mmr": ["measles", "mumps", "rubella"],
 }
 
 
-def map_target_disease(vaccine_type):
+def map_target_disease(vaccine_type: str) -> list:
     """Returns the target disease element for the given vaccine type using the vaccine_disease_mapping"""
     # Retrieve the disease types associated with the vaccine
-    diseases = vaccine_disease_mapping.get(vaccine_type, [])
+    diseases = VACCINE_DISEASE_MAPPING.get(vaccine_type, [])
 
     # Dynamically form the disease coding information based on the retrieved diseases
     return [

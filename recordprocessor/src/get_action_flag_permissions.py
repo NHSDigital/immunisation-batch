@@ -11,7 +11,7 @@ def get_supplier_permissions(supplier: str) -> list:
     return get_permissions_config_json_from_s3().get("all_permissions", {}).get(supplier, [])
 
 
-def get_action_flag_permissions(supplier, vaccine_type):
+def get_action_flag_permissions(supplier: str, vaccine_type: str) -> set:
     """Returns the set of allowed action flags."""
     allowed_permissions = get_supplier_permissions(supplier)
     return (

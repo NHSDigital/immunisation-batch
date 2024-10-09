@@ -1,3 +1,5 @@
+"""Values for use in tests"""
+
 import json
 from copy import deepcopy
 
@@ -187,7 +189,7 @@ non_mandatory_fields = {
 }
 
 all_fields = {**mandatory_fields, **non_mandatory_fields}
-mandatory_fields_only = {**mandatory_fields, **{k: "" for k in non_mandatory_fields.keys()}}
+mandatory_fields_only = {**mandatory_fields, **{k: "" for k in non_mandatory_fields}}
 
 # Requests (format is dictionary)
 update_request = deepcopy(all_fields)

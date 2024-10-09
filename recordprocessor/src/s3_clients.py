@@ -1,4 +1,4 @@
-"""Initialise s3 and sqs clients"""
+"""Initialise s3 and kinesis clients"""
 
 from boto3 import client as boto3_client
 

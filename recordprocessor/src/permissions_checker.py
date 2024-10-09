@@ -1,3 +1,5 @@
+"""Function to fetch the latest permissions config json"""
+
 import json
 import logging
 import os
@@ -13,7 +15,8 @@ _CACHED_LAST_MODIFIED = None
 JSON_FILE_KEY = "permissions_config.json"
 
 
-def get_permissions_config_json_from_s3():
+def get_permissions_config_json_from_s3() -> dict:
+    """Checks if the permission config json has been updated, and returns the latest version"""
     global __CACHED_JSON_DATA, _CACHED_LAST_MODIFIED  # pylint: disable=global-statement
 
     try:

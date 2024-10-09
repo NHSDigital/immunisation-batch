@@ -9,7 +9,7 @@ from s3_clients import kinesis_client
 logger = logging.getLogger()
 
 
-def send_to_kinesis(supplier, message_body):
+def send_to_kinesis(supplier: str, message_body: dict) -> bool:
     """Send a message to the specified Kinesis stream. Returns a boolean indicating whether the send was successful."""
     try:
         kinesis_queue_prefix = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")

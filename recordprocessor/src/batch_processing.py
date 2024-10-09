@@ -5,7 +5,7 @@ from io import StringIO
 import os
 import logging
 from constants import Constants
-from utils_for_recordprocessor import get_environment, fetch_file_from_s3
+from utils_for_recordprocessor import get_environment, get_csv_content_dict_reader
 from get_action_flag_permissions import get_action_flag_permissions
 from process_row import process_row
 from update_ack_file import update_ack_file
@@ -32,7 +32,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
-    csv_reader = fetch_file_from_s3(bucket_name, file_key)
+    csv_reader = get_csv_content_dict_reader(bucket_name, file_key)
 
     # Initialise the accumulated_ack_file_content with the headers
     accumulated_ack_file_content = StringIO()
@@ -72,7 +72,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     logger.info("Total rows processed: %s", row_count)
 
 
-def main(event):
+def main(event: str) -> None:
     """Process each row of the file"""
     logger.info("task started")
     try:
