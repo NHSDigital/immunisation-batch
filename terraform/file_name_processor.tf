@@ -298,18 +298,7 @@ resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
 # Create Lambda Security Group without rules
 resource "aws_security_group" "lambda_sg" {
   vpc_id = data.aws_vpc.default.id
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+
   tags = {
     Name = "${var.project_name}-${local.environment}-sg"
   }
