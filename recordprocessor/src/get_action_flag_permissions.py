@@ -13,9 +13,7 @@ def get_supplier_permissions(supplier: str) -> list:
 
 def get_action_flag_permissions(supplier, vaccine_type):
     """Returns the set of allowed action flags."""
-    print("IN FUNCTION")
     allowed_permissions = get_supplier_permissions(supplier)
-    print(allowed_permissions, "ALLOWED PERMISSIONS")
     return (
         {"NEW", "UPDATE", "DELETE"}
         if f"{vaccine_type}_FULL" in allowed_permissions

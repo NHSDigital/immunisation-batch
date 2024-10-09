@@ -4,28 +4,6 @@ from dataclasses import dataclass
 class Constants:
     """A class to hold various constants used in the application."""
 
-    valid_vaccine_type = ["mmr", "covid19", "flu"]
-    valid_versions = ["v5"]
-    valid_ods_codes = [
-        "YGM41",
-        "8J1100001",
-        "8HK48",
-        "YGA",
-        "0DE",
-        "0DF",
-        "8HA94",
-        "X26",
-        "YGMYH",
-        "W00",
-        "W000",
-        "ZT001",
-        "YA7",
-        "N2N9I",
-        "YGJ",
-        "DPSREDUCED",
-        "DPSFULL",
-    ]
-
     ack_headers = [
         "MESSAGE_HEADER_ID",
         "HEADER_RESPONSE_CODE",
@@ -40,99 +18,6 @@ class Constants:
         "MESSAGE_DELIVERY",
     ]
 
-    mock_download_fileobj = (
-        "MESSAGE_HEADER_ID|HEADER_RESPONSE_CODE|ISSUE_SEVERITY|ISSUE_CODE|RESPONSE_TYPE|"
-        "RESPONSE_CODE|RESPONSE_DISPLAY|RECEIVED_TIME|MAILBOX_FROM|LOCAL_ID|,MESSAGE_DELIVERY"
-    )
-
-    file_content = (
-        "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
-        "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"
-        "PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|"
-        "PRIMARY_SOURCE|VACCINATION_PROCEDURE_CODE|VACCINATION_PROCEDURE_TERM|DOSE_SEQUENCE|"
-        "VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|"
-        "SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|"
-        "ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|"
-        "LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
-        '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
-        '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
-        '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|'
-        '"1303503001"|"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
-        '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer Ltd) '
-        '(product)"|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body structure)"|'
-        '"78421000"|"Intramuscular route (qualifier value)"|"0.5"|"258773002"|"Milliliter (qualifier value)"|"Test"|'
-        '"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
-        '1234567890|"JOHN"|"DOE"|"19801231"|"1"|"AB12 3CD"|"20240611T120000"|"J82068"|'
-        '"https://fhir.nhs.uk/Id/ods-organization-code"|"0002_COVID19_v1_DOSE_1"|"https://www.ravs.england.nhs.uk/"|'
-        '"update"|"Jane"|"Smith"|"20240610"|"FALSE"|"1324657890"|'
-        '"Administration of COVID-19 vaccine product (procedure)"|'
-        '1|"1234567890"|'
-        '"Comirnaty 0.3ml dose concentrate for dispersion for injection multidose vials (Pfizer/BioNTech) '
-        '(product)"|"Pfizer/BioNTech"|"COVIDBATCH"|"20250101"|"368208007"|"Right upper arm structure (body structure)"|'
-        '"385219009"|"Intramuscular route (qualifier value)"|'
-        '"0.3"|"258773002"|"Milliliter (qualifier value)"|"Routine"|'
-        '"J82068"|"https://fhir.nhs.uk/Id/ods-organization-code"'
-    )
-
-    file_content_id_missing = (
-        "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|DATE_AND_TIME|"
-        "SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|PERFORMING_PROFESSIONAL_FORENAME|"
-        "PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|PRIMARY_SOURCE|VACCINATION_PROCEDURE_CODE|"
-        "VACCINATION_PROCEDURE_TERM|DOSE_SEQUENCE|VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|"
-        "VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|"
-        "ROUTE_OF_VACCINATION_CODE|ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|"
-        "INDICATION_CODE|LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
-        '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
-        '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
-        '"https://www.ravs.england.nhs.uk/"|"update"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|'
-        '"1303503001"|"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
-        '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer Ltd) '
-        '(product)"|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body structure)"|'
-        '"78421000"|"Intramuscular route (qualifier value)"|"0.5"|"258773002"|"Milliliter (qualifier value)"|"Test"|'
-        '"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
-        '1234567890|"JOHN"|"DOE"|"19801231"|"1"|"AB12 3CD"|"20240611T120000"|"J82068"|'
-        '"https://fhir.nhs.uk/Id/ods-organization-code"|"0002_COVID19_v1_DOSE_1"|"https://www.ravs.england.nhs.uk/"|'
-        '"delete"|"Jane"|"Smith"|"20240610"|"FALSE"|"1324657890"|'
-        '"Administration of COVID-19 vaccine product (procedure)"|'
-        '1|"1234567890"|'
-        '"Comirnaty 0.3ml dose concentrate for dispersion for injection multidose vials (Pfizer/BioNTech) '
-        '(product)"|"Pfizer/BioNTech"|"COVIDBATCH"|"20250101"|"368208007"|"Right upper arm structure (body structure)"|'
-        '"385219009"|"Intramuscular route (qualifier value)"|"0.3"|"258773002"|'
-        '"Milliliter (qualifier value)"|"Routine"|'
-        '"J82068"|"https://fhir.nhs.uk/Id/ods-organization-code"'
-    )
-
-    invalid_file_content = (
-        "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
-        "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"
-        "PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|"
-        "PRIMARY_SOURCE|VACCINATION_PROCEDURE_CODE|VACCINATION_PROCEDURE_TERM|DOSE_SEQUENCE|"
-        "VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|"
-        "SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|"
-        "ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|"
-        "LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
-        '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
-        '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
-        '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|'
-        '"1303503001"|"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
-        '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer Ltd) '
-        '(product)"|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body structure)"|'
-        '"78421000"|"Intramuscular route (qualifier value)"|"0.5"|"258773002"|"Milliliter (qualifier value)"|'
-        '""|"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
-    )
-
-    string_return = (
-        "NHS_NUMBER|1234567890|John|Doe|2000-01-01|M|SW1A 1AA|2022-01-01T10:00:00|123456|"
-        "https://nhs.uk|ABC123|https://supplierABC|new|Dr|Smith|2022-01-01|true|procedureCode|"
-        "procedureTerm|1|productCode|productTerm|manufacturer|batchNumber|2023-01-01|siteCode|"
-        "siteTerm|routeCode|routeTerm|0.5|ml|code|location|https://locationUri"
-    )
-    string_update_return = (
-        "NHS_NUMBER|1234567890|John|Doe|2000-01-01|M|SW1A 1AA|2022-01-01T10:00:00|123456|"
-        "https://nhs.uk|ABC123|https://supplierABC|new|Dr|Smith|2022-01-01|true|procedureCode|"
-        "procedureTerm|1|productCode|productTerm|manufacturer|batchNumber|2023-01-01|siteCode|"
-        "siteTerm|routeCode|routeTerm|0.5|ml|code|location|https://locationUri"
-    )
     mock_request_positive_string = [
         {
             "NHS_NUMBER": "9732928395",

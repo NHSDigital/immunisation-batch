@@ -39,7 +39,7 @@ class TestRecordProcessor(unittest.TestCase):
     def setUp(self) -> None:
         # Tests run too quickly for cache to work. The workaround is to set _cached_last_modified to an earlier time
         # than the tests are run so that the _cached_json_data will always be updated by the test
-        self.patcher = patch("permissions_checker._cached_last_modified", yesterday).start()
+        self.patcher = patch("permissions_checker._CACHED_LAST_MODIFIED", yesterday).start()
 
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME, CONFIG_BUCKET_NAME]:
             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
@@ -93,7 +93,7 @@ class TestRecordProcessor(unittest.TestCase):
         """
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("ok", self.get_ack_file_content())
@@ -112,7 +112,7 @@ class TestRecordProcessor(unittest.TestCase):
         permissions["all_permissions"]["EMIS"] = []
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         ack_file = self.get_ack_file_content()
@@ -124,7 +124,7 @@ class TestRecordProcessor(unittest.TestCase):
         self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
         self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
 
-    def test_e2e_one_permissions(self):
+    def test_e2e_one_permission(self):
         """
         Tests that, for a file with valid content and supplier with one permission, the ack file is successfully
         created and documents 'ok' for the permitted line and 'fatal-error' for the non-permitted line and a message is
@@ -134,7 +134,7 @@ class TestRecordProcessor(unittest.TestCase):
         permissions["all_permissions"]["EMIS"] = ["FLU_NEW"]
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         ack_file = self.get_ack_file_content()
@@ -155,7 +155,7 @@ class TestRecordProcessor(unittest.TestCase):
             VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace('"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"', "")
         )
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
@@ -172,7 +172,7 @@ class TestRecordProcessor(unittest.TestCase):
         """
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())
@@ -191,7 +191,7 @@ class TestRecordProcessor(unittest.TestCase):
         # Delete the kinesis stream, to cause kinesis send to fail
         kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
 
-        with patch("src.batch_processing.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("fatal-error", self.get_ack_file_content())

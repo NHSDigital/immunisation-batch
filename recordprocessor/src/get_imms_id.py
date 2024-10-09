@@ -32,5 +32,4 @@ class ImmunizationApi:
         response = requests.request(method=method, url=f"{self.base_url}/{path}", headers=request_headers, timeout=5)
         logger.info(f"response: {response}")
         response_json = response.json()
-        logger.info(f"response_json: {response_json}")
         return response_json, response.status_code
