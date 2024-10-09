@@ -297,13 +297,9 @@ resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
 }
 # Create Lambda Security Group without rules
 resource "aws_security_group" "lambda_sg" {
+  name   = "${local.prefix}-lambda-sg"
   vpc_id = data.aws_vpc.default.id
-
-  tags = {
-    Name = "${var.project_name}-${local.environment}-sg"
-  }
 }
-
 
 # Create Redis Security Group without rules
 resource "aws_security_group" "redis_sg" {
