@@ -198,14 +198,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
       }
     }
   }])
-    network_configuration {
-    awsvpc_configuration {
-      subnets          = data.aws_subnets.default.ids
-      security_groups  = [aws_security_group.lambda_sg.id]  # Use the appropriate security group for ECS tasks
-      assign_public_ip = false  # Keep this as false for internal communication using the VPC endpoint
-    }
-  }
-
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
 
