@@ -268,7 +268,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       network_configuration {
         aws_vpc_configuration {
           subnets         = data.aws_subnets.default.ids
-          security_groups = [aws_security_group.ecs_sg.id]
+          security_groups = [aws_security_group.lambda_sg.id]
           assign_public_ip = "ENABLED"          
         }
       }
@@ -306,7 +306,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
   service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
   vpc_endpoint_type = "Interface"
   subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.ecs_sg.id]
+  security_group_ids = [aws_security_group.lambda_sg.id]
   tags = {
     Name = "${var.project_name}-${local.environment}-ecr-api-endpoint"
   }
@@ -317,27 +317,8 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
   vpc_endpoint_type = "Interface"
   subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.ecs_sg.id]
+  security_group_ids = [aws_security_group.lambda_sg.id]
   tags = {
     Name = "${var.project_name}-${local.environment}-ecr-dkr-endpoint"
-  }
-}
-
-resource "aws_security_group" "ecs_sg" {
-  name   = "${local.prefix}-ecs-sg"
-  vpc_id = data.aws_vpc.default.id
-
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
   }
 }
