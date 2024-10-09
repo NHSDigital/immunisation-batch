@@ -2,7 +2,7 @@ import requests
 import uuid
 import logging
 from models.authentication import AppRestrictedAuth
-from models.env import get_environment
+from utils_for_record_forwarder import get_environment
 
 logger = logging.getLogger()
 
@@ -30,11 +30,7 @@ class ImmunizationApi:
         return self._send("DELETE", f"/Immunization/{imms_id}", imms, None, supplier_system)
 
     def _send(self, method: str, path: str, imms, version_id, supplier_system):
-        print("send_started")
-        print(f"version_id:{version_id}")
         access_token = self.authenticator.get_access_token()
-        logger.debug(f"Access token obtained: {access_token}")
-        print(f"access_token:{access_token}")
         request_headers = {
             "Authorization": f"Bearer {access_token}",
             "X-Request-ID": str(uuid.uuid4()),
@@ -46,10 +42,7 @@ class ImmunizationApi:
         # Conditionally add the "E-Tag" header if version_id is present
         if version_id:
             request_headers["E-Tag"] = str(version_id)
-        print(f"request_headers:{request_headers}")
         response = requests.request(
             method=method, url=f"{self.base_url}/{path}", json=imms, headers=request_headers, timeout=5
         )
-        print(f"response: {response}")
-        print(f"response_json: {response.text}")
         return response.text, response.status_code

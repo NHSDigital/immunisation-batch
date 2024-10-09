@@ -42,9 +42,17 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("forwarding_lambda.create_ack_data") as mock_data_rows:
-            forward_request_to_api(None, "source-bucket", "file.csv", "new", "{}", "ack-bucket", None, None)
+            message_body = {
+                "message_id": None,
+                "file_name": "file.csv",
+                "action_flag": "new",
+                "fhir_json": "{}",
+                "imms_id": None,
+                "version": None,
+            }
+            forward_request_to_api(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
-            mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013")
+            mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013", None)
             # Verify that the create_immunization API was called exactly once
             mock_api.create_immunization.assert_called_once()
 
@@ -58,7 +66,15 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("forwarding_lambda.create_ack_data") as mock_data_rows:
-            forward_request_to_api(None, "source-bucket", "file.csv", "new", "{}", "ack-bucket", None, None)
+            message_body = {
+                "message_id": None,
+                "file_name": "file.csv",
+                "action_flag": "new",
+                "fhir_json": "{}",
+                "imms_id": None,
+                "version": None,
+            }
+            forward_request_to_api(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
             mock_data_rows.assert_called_with("20240821T10153000", None, False, "20007", "Duplicate Message received")
             # Verify that the create_immunization API was called exactly once
@@ -73,16 +89,15 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("forwarding_lambda.create_ack_data") as mock_data_rows:
-            forward_request_to_api(
-                None,
-                "source-bucket",
-                "file.csv",
-                "update",
-                {"resourceType": "immunization"},
-                "ack-bucket",
-                "imms_id",
-                "v1",
-            )
+            message_body = {
+                "message_id": None,
+                "file_name": "file.csv",
+                "action_flag": "update",
+                "fhir_json": {"resourceType": "immunization"},
+                "imms_id": "imms_id",
+                "version": "v1",
+            }
+            forward_request_to_api(message_body)
             mock_data_rows.assert_called_with("20240821T10153000", None, False, "20009", "Payload validation failure")
             mock_api.update_immunization.assert_called_once_with(
                 "imms_id", "v1", {"resourceType": "immunization", "id": "imms_id"}, None
@@ -97,7 +112,15 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("forwarding_lambda.create_ack_data") as mock_data_rows:
-            forward_request_to_api(None, "source-bucket", "file.csv", "update", "{}", "ack-bucket", "None", "None")
+            message_body = {
+                "message_id": None,
+                "file_name": "file.csv",
+                "action_flag": "update",
+                "fhir_json": "{}",
+                "imms_id": "None",
+                "version": "None",
+            }
+            forward_request_to_api(message_body)
             mock_data_rows.assert_called_with("20240821T10153000", None, False, "20005", "failed in json conversion")
             mock_api.update_immunization.assert_not_called()
 
@@ -110,7 +133,15 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("forwarding_lambda.create_ack_data") as mock_data_rows:
-            forward_request_to_api(None, "source-bucket", "file.csv", "delete", "{}", "ack-bucket", "None", "None")
+            message_body = {
+                "message_id": None,
+                "file_name": "file.csv",
+                "action_flag": "update",
+                "fhir_json": "{}",
+                "imms_id": "None",
+                "version": "None",
+            }
+            forward_request_to_api(message_body)
             mock_data_rows.assert_called_with("20240821T10153000", None, False, "20005", "failed in json conversion")
             mock_api.delete_immunization.assert_not_called()
 
@@ -122,8 +153,16 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("forwarding_lambda.create_ack_data") as mock_data_rows:
-            forward_request_to_api(None, "source-bucket", "file.csv", "delete", "{}", "ack-bucket", "imms_id", None)
-            mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013")
+            message_body = {
+                "message_id": None,
+                "file_name": "file.csv",
+                "action_flag": "delete",
+                "fhir_json": "{}",
+                "imms_id": "imms_id",
+                "version": None,
+            }
+            forward_request_to_api(message_body)
+            mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013", None)
             mock_api.delete_immunization.assert_called_once_with("imms_id", "{}", None)
 
     @patch("forwarding_lambda.forward_request_to_api")
@@ -152,16 +191,13 @@ class TestForwardingLambda(unittest.TestCase):
             ]
         }
         forward_lambda_handler(event, None)
-        mock_forward_request_to_api.assert_called_once_with(
-            "test",
-            "immunisation-batch-internal-dev-data-sources",
-            "test_file.csv",
-            "new",
-            "{}",
-            "immunisation-batch-internal-dev-data-destinations",
-            None,
-            None,
-        )
+        message_body = {
+            "message_id": "test",
+            "file_name": "test_file.csv",
+            "action_flag": "new",
+            "fhir_json": "{}",
+        }
+        mock_forward_request_to_api.assert_called_once_with(message_body)
 
     @patch("forwarding_lambda.forward_request_to_api")
     @patch("forwarding_lambda.get_environment")
@@ -186,16 +222,13 @@ class TestForwardingLambda(unittest.TestCase):
             ]
         }
         forward_lambda_handler(event, None)
-        mock_forward_request_to_api.assert_called_once_with(
-            "test",
-            "immunisation-batch-internal-dev-data-sources",
-            "test_file.csv",
-            "update",
-            "{}",
-            "immunisation-batch-internal-dev-data-destinations",
-            None,
-            None,
-        )
+        message_body = {
+            "message_id": "test",
+            "file_name": "test_file.csv",
+            "action_flag": "update",
+            "fhir_json": "{}",
+        }
+        mock_forward_request_to_api.assert_called_once_with(message_body)
 
     @patch("forwarding_lambda.logger")
     def test_forward_lambda_handler_with_exception(self, mock_logger):

@@ -57,18 +57,17 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_create_success(self, mock_api):
         message = {
-            "message_id": test_fhir_json,
+            "message_id": "test_id",
             "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": TEST_FILE_KEY,
-            "imms_id": "None",
-            "version": "None",
         }
         self.execute_test(mock_api, message, 201, "ok")
 
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         message = {
+            "message_id": "test_id",
             "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": TEST_FILE_KEY,
