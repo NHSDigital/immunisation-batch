@@ -103,12 +103,6 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "ec2:DeleteNetworkInterface"
         ],
         Resource = "*",
-        Condition = {
-          StringEquals = {
-            "ec2:Vpc"        = data.aws_vpc.default.id
-            "ec2:Subnet"     = data.aws_subnets.default.ids
-          }
-        }
       },
       {
         Effect   = "Allow"
