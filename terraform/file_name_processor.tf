@@ -403,9 +403,8 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
   service_name      = "com.amazonaws.${var.aws_region}.sqs"
   vpc_endpoint_type = "Interface"
 
-  subnet_ids = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.lambda_sg.id]
-
+  subnet_ids          = data.aws_subnets.default.ids
+  security_group_ids  = [aws_security_group.lambda_sg.id]
   private_dns_enabled = true
 
   policy = jsonencode({
@@ -413,10 +412,12 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Statement = [
       {
         Effect    = "Allow"
-        Principal = {
-          "Service": "lambda.amazonaws.com"
-        }
-        Action    = "sqs:SendMessage"
+        Principal = "*"
+        Action    = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "kms:Decrypt"
+        ]
         Resource  = aws_sqs_queue.fifo_queue.arn
       }
     ]
