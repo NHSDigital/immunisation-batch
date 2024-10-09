@@ -297,9 +297,24 @@ resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
 }
 # Create Lambda Security Group without rules
 resource "aws_security_group" "lambda_sg" {
-  name   = "${local.prefix}-lambda-sg"
   vpc_id = data.aws_vpc.default.id
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "${var.project_name}-${local.environment}-sg"
+  }
 }
+
 
 # Create Redis Security Group without rules
 resource "aws_security_group" "redis_sg" {
@@ -435,26 +450,4 @@ resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
   protocol          = "tcp"
   security_group_id = aws_security_group.lambda_sg.id
   cidr_blocks       = ["0.0.0.0/0"]
-}
-
-resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.lambda_sg.id]
-  tags = {
-    Name = "${var.project_name}-${local.environment}-ecr-api-endpoint"
-  }
-}
-
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.lambda_sg.id]
-  tags = {
-    Name = "${var.project_name}-${local.environment}-ecr-dkr-endpoint"
-  }
 }

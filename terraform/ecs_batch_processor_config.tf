@@ -301,3 +301,24 @@ resource "aws_pipes_pipe" "fifo_pipe" {
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
   name = "/aws/vendedlogs/pipes/${local.prefix}-pipe-logs"
 }
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = data.aws_subnets.default.ids
+  security_group_ids = [aws_security_group.lambda_sg.id]
+  tags = {
+    Name = "${var.project_name}-${local.environment}-ecr-api-endpoint"
+  }
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = data.aws_subnets.default.ids
+  security_group_ids = [aws_security_group.lambda_sg.id]
+  tags = {
+    Name = "${var.project_name}-${local.environment}-ecr-dkr-endpoint"
+  }
+}
