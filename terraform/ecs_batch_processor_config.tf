@@ -322,3 +322,22 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
     Name = "${var.project_name}-${local.environment}-ecr-dkr-endpoint"
   }
 }
+resource "aws_ecr_repository_policy" "processing_repository_policy" {
+  repository = aws_ecr_repository.processing_repository.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect: "Allow",
+        Principal: "*",
+        Action: [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability"
+        ],
+        resource: "${aws_ecr_repository.processing_repository.arn}"
+      }
+    ]
+  })
+}
