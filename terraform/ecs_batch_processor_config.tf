@@ -324,16 +324,11 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
 }
 
 # Create an IAM policy document for the ECR repository policy
-data "aws_iam_policy_document" "processing_repository_policy" {
+
+resource "aws_iam_policy_document" "processing_repository_policy" {
   statement {
-    sid    = "new policy"
+    sid    = "AllowECRActions"
     effect = "Allow"
-
-    principals {
-      type        = "AWS"
-      identifiers = ["${local.local_account_id}"]
-    }
-
     actions = [
       "ecr:GetDownloadUrlForLayer",
       "ecr:BatchGetImage",
@@ -352,12 +347,16 @@ data "aws_iam_policy_document" "processing_repository_policy" {
     ]
 
     resources = [aws_ecr_repository.processing_repository.arn]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.local_account_id}:root"]
+    }
   }
 }
 
 # Apply the policy to the ECR repository
 resource "aws_ecr_repository_policy" "processing_repository_policy" {
   repository = aws_ecr_repository.processing_repository.name
-  policy     = data.aws_iam_policy_document.processing_repository_policy.json
+  policy     = aws_iam_policy_document.processing_repository_policy.json
 }
-
