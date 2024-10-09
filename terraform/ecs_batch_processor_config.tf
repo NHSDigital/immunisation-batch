@@ -331,15 +331,16 @@ resource "aws_ecr_repository_policy" "processing_repository_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect= "Allow",
-        Principal= "*",
-        Action= [
+        Effect = "Allow",
+        Principal = "*",
+        Action = [
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchGetImage",
           "ecr:BatchCheckLayerAvailability"
         ],
-        Resource = "${aws_ecr_repository.processing_repository.arn}"
+        Resource = aws_ecr_repository.processing_repository.arn
       }
     ]
   })
 }
+
