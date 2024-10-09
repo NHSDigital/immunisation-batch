@@ -322,6 +322,8 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
     Name = "${var.project_name}-${local.environment}-ecr-dkr-endpoint"
   }
 }
+
+# aws_ecr_repository_policy
 resource "aws_ecr_repository_policy" "processing_repository_policy" {
   repository = aws_ecr_repository.processing_repository.name
 
