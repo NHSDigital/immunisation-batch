@@ -34,7 +34,7 @@ class TestForwardingLambda(unittest.TestCase):
         # Simulate the case where the ack file does not exist
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+        with patch('forwarding_lambda.Constants.data_rows') as mock_data_rows:
             forward_request_to_api(None, 'source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
             # Check that the data_rows function was called with success status and formatted datetime
             mock_data_rows.assert_called_with(True, '20240821T10153000', None)
@@ -50,7 +50,7 @@ class TestForwardingLambda(unittest.TestCase):
         # Simulate the case where the ack file does not exist
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+        with patch('forwarding_lambda.Constants.data_rows') as mock_data_rows:
             forward_request_to_api(None, 'source-bucket', 'file.csv', 'new', '{}', 'ack-bucket', None, None)
             # Check that the data_rows function was called with success status and formatted datetime
             mock_data_rows.assert_called_with('duplicate', '20240821T10153000', None)
@@ -65,7 +65,7 @@ class TestForwardingLambda(unittest.TestCase):
         mock_api.update_immunization.return_value = (None, 400)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+        with patch('forwarding_lambda.Constants.data_rows') as mock_data_rows:
             forward_request_to_api(None, 'source-bucket', 'file.csv', 'update', {"resourceType": "immunization"},
                                    'ack-bucket', 'imms_id', 'v1')
             mock_data_rows.assert_called_with(False, '20240821T10153000', None)
@@ -81,7 +81,7 @@ class TestForwardingLambda(unittest.TestCase):
         mock_api.update_immunization.return_value = (None, 400)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+        with patch('forwarding_lambda.Constants.data_rows') as mock_data_rows:
             forward_request_to_api(None, 'source-bucket', 'file.csv', 'update', '{}', 'ack-bucket', 'None', 'None')
             mock_data_rows.assert_called_with('None', '20240821T10153000', None)
             mock_api.update_immunization.assert_not_called
@@ -94,7 +94,7 @@ class TestForwardingLambda(unittest.TestCase):
         mock_api.update_immunization.return_value = (None, 400)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+        with patch('forwarding_lambda.Constants.data_rows') as mock_data_rows:
             forward_request_to_api(None, 'source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'None', 'None')
             mock_data_rows.assert_called_with("None", '20240821T10153000', None)
             mock_api.delete_immunization.assert_not_called
@@ -106,7 +106,7 @@ class TestForwardingLambda(unittest.TestCase):
         mock_api.delete_immunization.return_value = (None, 204)
         mock_s3.get_object.side_effect = ClientError({'Error': {'Code': '404'}}, 'HeadObject')
 
-        with patch('forwarding_lambda.Constant.data_rows') as mock_data_rows:
+        with patch('forwarding_lambda.Constants.data_rows') as mock_data_rows:
             forward_request_to_api(None, 'source-bucket', 'file.csv', 'delete', '{}', 'ack-bucket', 'imms_id', None)
             mock_data_rows.assert_called_with(True, '20240821T10153000', None)
             mock_api.delete_immunization.assert_called_once_with('imms_id', '{}', None)

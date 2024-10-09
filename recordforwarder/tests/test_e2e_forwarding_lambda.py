@@ -4,7 +4,7 @@ import boto3
 import json
 from moto import mock_s3, mock_sqs
 from forwarding_lambda import forward_lambda_handler
-from src.constants import Constant
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import test_fhir_json
 import base64
 
 
@@ -63,8 +63,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_create_success(self, mock_api):
         message = {
-            "message_id": Constant.test_fhir_json,
-            "fhir_json": Constant.test_fhir_json,
+            "message_id": test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": self.test_file_key,
             "imms_id": "None",
@@ -77,7 +77,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         message = {
-            "fhir_json": Constant.test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": self.test_file_key,
             "imms_id": "test",
@@ -90,7 +90,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_create_failed(self, mock_api):
         message = {
-            "fhir_json": Constant.test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": self.test_file_key,
             "imms_id": "test",
@@ -124,7 +124,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_update_success(self, mock_api):
         message = {
-            "fhir_json": Constant.test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "update",
             "file_name": self.test_file_key,
             "imms_id": "test",
@@ -137,7 +137,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("forwarding_lambda.immunization_api_instance")
     def test_forward_lambda_e2e_update_failed(self, mock_api):
         message = {
-            "fhir_json": Constant.test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "update",
             "file_name": self.test_file_key,
             "imms_id": "test",
@@ -153,7 +153,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.delete_immunization.return_value = ("", 204)
 
         message = {
-            "fhir_json": Constant.test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "delete",
             "file_name": self.test_file_key,
             "imms_id": "test",
@@ -174,7 +174,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.delete_immunization.return_value = ("", 404)
 
         message = {
-            "fhir_json": Constant.test_fhir_json,
+            "fhir_json": test_fhir_json,
             "action_flag": "delete",
             "file_name": self.test_file_key,
             "imms_id": "test",

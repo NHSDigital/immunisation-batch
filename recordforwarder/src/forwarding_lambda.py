@@ -9,7 +9,7 @@ from immunisation_api import ImmunizationApi
 import logging
 from botocore.exceptions import ClientError
 from botocore.config import Config
-from constants import Constant
+from constants import Constants
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from ods_patterns import ODS_PATTERNS
@@ -38,9 +38,8 @@ def forward_request_to_api(
     message_header, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version
 ):
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-    created_at = response["LastModified"]
-    created_at_formatted = created_at.strftime("%Y%m%dT%H%M%S00")
-    headers = Constant.header
+    created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
+    headers = Constants.ack_headers
     parts = file_key.split(".")
     ack_filename = f"forwardedFile/{parts[0]}_response.csv"
 
@@ -61,20 +60,20 @@ def forward_request_to_api(
             accumulated_csv_content.write("|".join(headers) + "\n")
             print(f"accumulated_csv_content:{accumulated_csv_content}")
     if fhir_json == "No_Permissions":
-        data_row = Constant.data_rows("no permissions", created_at_formatted, message_header)
+        data_row = Constants.data_rows("no permissions", created_at_formatted_string, message_header)
     else:
         if imms_id == "None" and version == "None":
-            data_row = Constant.data_rows("None", created_at_formatted, message_header)
+            data_row = Constants.data_rows("None", created_at_formatted_string, message_header)
         supplier_system = identify_supplier(file_key)
         if action_flag == "new":
             response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
             print(f"response:{response},status_code:{status_code}")
             if status_code == 201:
-                data_row = Constant.data_rows(True, created_at_formatted, message_header)
+                data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
             elif status_code == 422:
-                data_row = Constant.data_rows("duplicate", created_at_formatted, message_header)
+                data_row = Constants.data_rows("duplicate", created_at_formatted_string, message_header)
             else:
-                data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
         elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
             fhir_json["id"] = imms_id
             print(f"updated_fhir_json:{fhir_json}")
@@ -83,16 +82,16 @@ def forward_request_to_api(
             )
             print(f"response:{response},status_code:{status_code}")
             if status_code == 200:
-                data_row = Constant.data_rows(True, created_at_formatted, message_header)
+                data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
             else:
-                data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
         elif action_flag == "delete" and imms_id not in (None, "None"):
             response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
             print(f"response:{response},status_code:{status_code}")
             if status_code == 204:
-                data_row = Constant.data_rows(True, created_at_formatted, message_header)
+                data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
             else:
-                data_row = Constant.data_rows(False, created_at_formatted, message_header)
+                data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
 
     data_row_str = [str(item) for item in data_row]
     cleaned_row = "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
