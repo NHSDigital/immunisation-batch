@@ -16,14 +16,10 @@ jobs:
        working-directory: filenameprocessor
        run: |
            pwd
-           ls -a
-     - name: Build and Test file name processor lambda
-       working-directory: filenameprocessor
-       run: pwd
      - uses: docker/build-push-action@v4
        with:
          context: .
-         file: ./filenameprocessor.Dockerfile
+         file: filenameprocessor/filenameprocessor.Dockerfile
          tags: imms-batch-build
          target: test         
      - name: Build and Test record forwarder lambda
