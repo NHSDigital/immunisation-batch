@@ -18,7 +18,9 @@ jobs:
            pwd
            ls -a
      - name: Build and Test file name processor lambda
-       uses: docker/build-push-action@v4
+       working-directory: filenameprocessor.Dockerfile
+       run: pwd
+     - uses: docker/build-push-action@v4
        with:
          context: .
          file: filenameprocessor/Dockerfile
