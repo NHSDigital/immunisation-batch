@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 
 VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
@@ -123,3 +124,103 @@ MOCK_PERMISSIONS = {
         "_DELETE": "Permission to delete a batch record",
     },
 }
+
+TEST_PERMISSIONS_CONFIG = {
+    "all_permissions": {
+        "DPFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+        "DPREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+        "SUPPLIER1": ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"],
+        "SUPPLIER2": ["FLU_CREATE"],
+        "EMIS": ["FLU_CREATE", "FLU_DELETE"],
+        "SUPPLIER4": [""],
+    },
+    "definitions:": {
+        "_FULL": "Full permissions to create, update and delete a batch record",
+        "_CREATE": "Permission to create a batch record",
+        "_UPDATE": "Permission to update a batch record",
+        "_DELETE": "Permission to delete a batch record",
+    },
+}
+
+
+class TestValues:
+    mandatory_fields = {
+        "PERSON_FORENAME": "PHYLIS",
+        "PERSON_SURNAME": "PEEL",
+        "PERSON_DOB": "20080217",
+        "PERSON_GENDER_CODE": "0",
+        "PERSON_POSTCODE": "WD25 0DZ",
+        "DATE_AND_TIME": "20240904T183325",
+        "SITE_CODE": "RVVKC",
+        "SITE_CODE_TYPE_URI": "https://fhir.nhs.uk/Id/ods-organization-code",
+        "UNIQUE_ID": "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057",
+        "UNIQUE_ID_URI": "https://www.ravs.england.nhs.uk/",
+        "ACTION_FLAG": "update",
+        "RECORDED_DATE": "20240904",
+        "PRIMARY_SOURCE": "TRUE",
+        "VACCINATION_PROCEDURE_CODE": "956951000000104",
+        "LOCATION_CODE": "RJC02",
+        "LOCATION_CODE_TYPE_URI": "https://fhir.nhs.uk/Id/ods-organization-code",
+    }
+
+    non_mandatory_fields = {
+        "NHS_NUMBER": "9732928395",
+        "PERFORMING_PROFESSIONAL_FORENAME": "Ellena",
+        "PERFORMING_PROFESSIONAL_SURNAME": "O'Reilly",
+        "VACCINATION_PROCEDURE_TERM": "RSV vaccination in pregnancy (procedure)",
+        "DOSE_SEQUENCE": "1",
+        "VACCINE_PRODUCT_CODE": "42223111000001107",
+        "VACCINE_PRODUCT_TERM": "Quadrivalent influenza vaccine (split virion, inactivated)",
+        "VACCINE_MANUFACTURER": "Sanofi Pasteur",
+        "BATCH_NUMBER": "BN92478105653",
+        "EXPIRY_DATE": "20240915",
+        "SITE_OF_VACCINATION_CODE": "368209003",
+        "SITE_OF_VACCINATION_TERM": "Right arm",
+        "ROUTE_OF_VACCINATION_CODE": "1210999013",
+        "ROUTE_OF_VACCINATION_TERM": "Intradermal use",
+        "DOSE_AMOUNT": "0.3",
+        "DOSE_UNIT_CODE": "2622896019",
+        "DOSE_UNIT_TERM": "Inhalation - unit of product usage",
+        "INDICATION_CODE": "1037351000000105",
+    }
+
+    all_fields = {**mandatory_fields, **non_mandatory_fields}
+    mandatory_fields_only = {**mandatory_fields, **{k: "" for k in non_mandatory_fields.keys()}}
+
+    # Requests (format is dictionary)
+    update_request = deepcopy(all_fields)
+
+    create_request = deepcopy(all_fields)
+    create_request["ACTION_FLAG"] = "new"
+
+    update_request_action_flag_missing = deepcopy(all_fields)
+    update_request_action_flag_missing["ACTION_FLAG"] = ""
+
+    update_request_unique_id_missing = deepcopy(all_fields)
+    update_request_unique_id_missing["UNIQUE_ID"] = ""
+
+    update_request_unique_id_uri_missing = deepcopy(all_fields)
+    update_request_unique_id_uri_missing["UNIQUE_ID_URI"] = ""
+
+    update_request_dose_sequence_missing = deepcopy(all_fields)
+    update_request_dose_sequence_missing["DOSE_SEQUENCE"] = ""
+
+    update_request_dose_sequence_string = deepcopy(all_fields)
+    update_request_dose_sequence_string["DOSE_SEQUENCE"] = "test"
+
+    # Mock requests (format is list of dictionaries)
+    mock_request_positive_string = [update_request_dose_sequence_string]
+
+    mock_request_only_mandatory = [deepcopy(mandatory_fields_only)]
+
+    mock_request_positive_string_missing = [update_request_dose_sequence_missing]
+    mock_request = [update_request, update_request]
+
+    mock_request_params_missing = [
+        update_request_action_flag_missing,
+        update_request_unique_id_missing,
+        update_request_unique_id_uri_missing,
+        create_request,
+    ]
+
+    mock_update_request = [update_request]

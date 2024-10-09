@@ -4,7 +4,6 @@ import boto3
 
 # from io import BytesIO
 from moto import mock_s3, mock_kinesis
-from src.constants import Constants
 from io import StringIO
 import json
 import csv
@@ -26,6 +25,8 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_ACK_FILE_KEY,
     TEST_EVENT,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
+    TEST_PERMISSIONS_CONFIG,
+    TestValues,
 )
 
 s3_client = boto3.client("s3", region_name=AWS_REGION)
@@ -141,7 +142,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_positive_string)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_positive_string)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -157,7 +158,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_only_mandatory)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -173,7 +174,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_positive_string_missing)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_positive_string_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -189,7 +190,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_only_mandatory)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -205,7 +206,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_request_params_missing)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_params_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -215,14 +216,13 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
     def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_kinesis):
-
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
         with patch("process_row.convert_to_fhir_json", return_value=({}, True)), patch(
             "process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 400)
         ), patch("batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -238,7 +238,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -254,7 +254,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(Constants.mock_update_request)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -262,7 +262,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_send_to_kinesis.assert_called()
 
     def test_process_csv_to_fhir_successful_Practitioner(self):
-        request = Constants.request
+        request = TestValues.update_request
         request["PERFORMING_PROFESSIONAL_FORENAME"] = ""
         request["PERFORMING_PROFESSIONAL_SURNAME"] = ""
         vaccine_type = "flu"
@@ -281,7 +281,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         )
 
     def test_process_csv_to_fhir_successful_qualitycode(self):
-        request = Constants.request
+        request = TestValues.update_request
         request["DOSE_UNIT_CODE"] = ""
         vaccine_type = "flu"
 
@@ -290,7 +290,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         self.assertNotIn("system", dose_quality)
 
     def test_process_csv_to_fhir_successful_vaccine_code(self):
-        request = Constants.request
+        request = TestValues.update_request
         request["VACCINE_PRODUCT_CODE"] = ""
         request["VACCINE_PRODUCT_TERM"] = ""
         vaccine_type = "flu"
@@ -315,7 +315,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("get_action_flag_permissions.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_success(self, mock_get_permissions_config_json_from_s3):
-        mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
+        mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
 
         supplier = "SUPPLIER1"
 
@@ -325,7 +325,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("get_action_flag_permissions.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_no_permissions(self, mock_get_permissions_config_json_from_s3):
-        mock_get_permissions_config_json_from_s3.return_value = Constants.test_permissions_config_file
+        mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
 
         supplier = "SUPPLIER4"
 

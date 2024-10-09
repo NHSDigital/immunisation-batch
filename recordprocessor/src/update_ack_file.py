@@ -11,11 +11,11 @@ logger = logging.getLogger()
 
 
 def create_ack_data(
-    created_at_formatted_string: str, message_header: str, delivered: bool, diagnostics: Union[None, str] = None
+    created_at_formatted_string: str, row_id: str, delivered: bool, diagnostics: Union[None, str] = None
 ):
     """Returns a dictionary containing the ack headers as keys, along with the relevant values."""
     return {
-        "MESSAGE_HEADER_ID": message_header,
+        "MESSAGE_HEADER_ID": row_id,
         "HEADER_RESPONSE_CODE": "fatal-error" if diagnostics else "ok",
         "ISSUE_SEVERITY": "error" if diagnostics else "information",
         "ISSUE_CODE": "error" if diagnostics else "informational",
@@ -46,13 +46,13 @@ def update_ack_file(
     file_key: str,
     bucket_name: str,
     accumulated_ack_file_content,
-    message_header: str,
+    row_id: str,
     message_delivered: bool,
     diagnostics: Union[None, str] = None,
 ):
     """Updates the ack file with the new data row based on the given arguments"""
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
     created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
-    ack_data_row = create_ack_data(created_at_formatted_string, message_header, message_delivered, diagnostics)
+    ack_data_row = create_ack_data(created_at_formatted_string, row_id, message_delivered, diagnostics)
     accumulated_ack_file_content = add_row_to_ack_file(ack_data_row, accumulated_ack_file_content, file_key)
     return accumulated_ack_file_content

@@ -1,3 +1,5 @@
+"""Functions for processing the file on a row-by-row basis"""
+
 import json
 from io import StringIO
 import os
@@ -14,12 +16,11 @@ logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 
 
-def process_csv_to_fhir(incoming_message_body):
+def process_csv_to_fhir(incoming_message_body: dict) -> None:
     """
     For each row of the csv, attempts to transform into FHIR format, sends a message to kinesis,
     and documents the outcome for each row in the ack file.
     """
-
     logger.info("Event: %s", incoming_message_body)
 
     # Get details needed to process file
@@ -34,21 +35,21 @@ def process_csv_to_fhir(incoming_message_body):
     csv_reader = fetch_file_from_s3(bucket_name, file_key)
 
     # Initialise the accumulated_ack_file_content with the headers
-    accumulated_ack_file_content = StringIO()  # Initialize a variable to accumulate CSV content
-    accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")  # Write the header once at the start
+    accumulated_ack_file_content = StringIO()
+    accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")
 
     row_count = 0  # Initialize a counter for rows
-
     for row in csv_reader:
         row_count += 1
-        message_id = f"{file_id}#{row_count}"
-        logger.info("MESSAGE ID : %s", message_id)
+        row_id = f"{file_id}#{row_count}"
+        logger.info("MESSAGE ID : %s", row_id)
+
         # Process the row to obtain the details needed for the message_body and ack file
         details_from_processing = process_row(vaccine_type, action_flag_permissions, row)
-        print(details_from_processing, "<<<<<<<DETAILS")
+
         # Create the message body for sending
         outgoing_message_body = {
-            "message_id": message_id,
+            "message_id": row_id,
             "fhir_json": details_from_processing["fhir_json"],
             "action_flag": details_from_processing["action_flag"],
             "file_name": file_key,
@@ -65,12 +66,7 @@ def process_csv_to_fhir(incoming_message_body):
 
         # Update the ack file
         accumulated_ack_file_content = update_ack_file(
-            file_key,
-            bucket_name,
-            accumulated_ack_file_content,
-            message_id,
-            message_delivered,
-            diagnostics,
+            file_key, bucket_name, accumulated_ack_file_content, row_id, message_delivered, diagnostics
         )
 
     logger.info("Total rows processed: %s", row_count)

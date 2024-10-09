@@ -1,3 +1,5 @@
+"""Function to process a single row of a csv file"""
+
 import logging
 from models.cache import Cache
 from models.authentication import AppRestrictedAuth, Service
@@ -11,14 +13,17 @@ logger = logging.getLogger()
 
 
 def process_row(vaccine_type, permission_operations, row):
+    """
+    Processes a row of the file and returns a dictionary containing the fhir_json, action_flag, imms_id
+    (where applicable), version(where applicable) and any diagnostics.
+    """
     action_flag = action_flag.upper() if (action_flag := row.get("ACTION_FLAG")) is not None else ""
-    logger.info(f"ACTION FLAG PERMISSION REQUESTED:  {action_flag}")
-    logger.info(f"PERMISSIONS OPERATIONS {permission_operations}")
+    logger.info("ACTION FLAG PERMISSION REQUESTED:  %s", action_flag)
+    logger.info("PERMISSIONS OPERATIONS %s", permission_operations)
 
     # Handle no permissions
     if not (action_flag in permission_operations):
-        logger.info(f"Skipping row as supplier does not have the permissions for this csv operation {action_flag}")
-
+        logger.info("Skipping row as supplier does not have the permissions for this csv operation %s", action_flag)
         return {
             "fhir_json": "No_Permissions",
             "action_flag": "No_Permissions",
