@@ -268,7 +268,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       network_configuration {
         aws_vpc_configuration {
           subnets         = data.aws_subnets.default.ids
-          security_groups = [aws_security_group.lambda_sg.id]
+          security_groups = [aws_security_group.ecs_sg.id]
           assign_public_ip = "ENABLED"          
         }
       }
