@@ -12,6 +12,11 @@ jobs:
    steps:
      - name: Checkout code
        uses: actions/checkout@v3
+     - name: List directories
+       run: ls -a
+     - name: Change working directory to filenameprocessor
+       working-directory: filenameprocessor
+       run: pwd
      - name: Build and Test file name processor lambda
        uses: docker/build-push-action@v4
        with:
