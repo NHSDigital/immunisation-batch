@@ -323,24 +323,41 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   }
 }
 
-# aws_ecr_repository_policy
+# Create an IAM policy document for the ECR repository policy
+data "aws_iam_policy_document" "processing_repository_policy" {
+  statement {
+    sid    = "new policy"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["${local.local_account_id}"]
+    }
+
+    actions = [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:PutImage",
+      "ecr:InitiateLayerUpload",
+      "ecr:UploadLayerPart",
+      "ecr:CompleteLayerUpload",
+      "ecr:DescribeRepositories",
+      "ecr:GetRepositoryPolicy",
+      "ecr:ListImages",
+      "ecr:DeleteRepository",
+      "ecr:BatchDeleteImage",
+      "ecr:SetRepositoryPolicy",
+      "ecr:DeleteRepositoryPolicy",
+    ]
+
+    resources = [aws_ecr_repository.processing_repository.arn]
+  }
+}
+
+# Apply the policy to the ECR repository
 resource "aws_ecr_repository_policy" "processing_repository_policy" {
   repository = aws_ecr_repository.processing_repository.name
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = "*",
-        Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:BatchCheckLayerAvailability"
-        ],
-        Resource = aws_ecr_repository.processing_repository.arn
-      }
-    ]
-  })
+  policy     = data.aws_iam_policy_document.processing_repository_policy.json
 }
 
