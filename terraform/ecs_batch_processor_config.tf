@@ -324,8 +324,7 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
 }
 
 # Create an IAM policy document for the ECR repository policy
-
-resource "aws_iam_policy_document" "processing_repository_policy" {
+data "aws_iam_policy_document" "processing_repository_policy" {
   statement {
     sid    = "AllowECRActions"
     effect = "Allow"
@@ -358,5 +357,5 @@ resource "aws_iam_policy_document" "processing_repository_policy" {
 # Apply the policy to the ECR repository
 resource "aws_ecr_repository_policy" "processing_repository_policy" {
   repository = aws_ecr_repository.processing_repository.name
-  policy     = aws_iam_policy_document.processing_repository_policy.json
+  policy     = data.aws_iam_policy_document.processing_repository_policy.json
 }
