@@ -14,7 +14,3 @@ class Constants:
         "LOCAL_ID",
         "MESSAGE_DELIVERY",
     ]
-
-
-
-    

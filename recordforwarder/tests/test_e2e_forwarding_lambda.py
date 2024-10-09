@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 from boto3 import client as boto3_client
 import json
-from moto import mock_s3, mock_sqs
+from moto import mock_s3
 from forwarding_lambda import forward_lambda_handler
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
     test_fhir_json,

@@ -79,7 +79,6 @@ def forward_request_to_api(row_id, bucket_name, file_key, action_flag, fhir_json
                 data_row = create_ack_data(created_at_formatted_string, row_id, False, "20009", diagnostics)
         elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
             fhir_json["id"] = imms_id
-            print(f"updated_fhir_json:{fhir_json}")
             response, status_code = immunization_api_instance.update_immunization(
                 imms_id, version, fhir_json, supplier_system
             )
@@ -116,7 +115,6 @@ def forward_lambda_handler(event, context):
 
     for record in event["Records"]:
         try:
-            print(f"Records:{record}")
             # Extract the Kinesis data
             kinesis_payload = record["kinesis"]["data"]
             decoded_payload = base64.b64decode(kinesis_payload).decode("utf-8")
