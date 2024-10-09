@@ -13,6 +13,7 @@ from constants import Constants
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from ods_patterns import ODS_PATTERNS
+from update_ack_file import create_ack_data
 
 s3_client = boto3.client("s3", config=Config(region_name="eu-west-2"))
 logger = logging.getLogger()
@@ -34,9 +35,7 @@ def identify_supplier(file_key: str):
     return ODS_PATTERNS.get(ods_code, None)
 
 
-def forward_request_to_api(
-    message_header, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version
-):
+def forward_request_to_api(row_id, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version):
     response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
     created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
     headers = Constants.ack_headers
@@ -60,20 +59,24 @@ def forward_request_to_api(
             accumulated_csv_content.write("|".join(headers) + "\n")
             print(f"accumulated_csv_content:{accumulated_csv_content}")
     if fhir_json == "No_Permissions":
-        data_row = Constants.data_rows("no permissions", created_at_formatted_string, message_header)
+        diagnostics = "Skipped As No permissions for operation"
+        data_row = create_ack_data(created_at_formatted_string, row_id, False, "20005", diagnostics)
     else:
         if imms_id == "None" and version == "None":
-            data_row = Constants.data_rows("None", created_at_formatted_string, message_header)
+            diagnostics = "failed in json conversion"
+            data_row = create_ack_data(created_at_formatted_string, row_id, False, "20005", diagnostics)
         supplier_system = identify_supplier(file_key)
         if action_flag == "new":
             response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
             print(f"response:{response},status_code:{status_code}")
             if status_code == 201:
-                data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
+                data_row = create_ack_data(created_at_formatted_string, row_id, True, "20013")
             elif status_code == 422:
-                data_row = Constants.data_rows("duplicate", created_at_formatted_string, message_header)
+                diagnostics = "Duplicate Message received"
+                data_row = create_ack_data(created_at_formatted_string, row_id, False, "20007", diagnostics)
             else:
-                data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
+                diagnostics = "Payload validation failure"
+                data_row = create_ack_data(created_at_formatted_string, row_id, False, "20009", diagnostics)
         elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
             fhir_json["id"] = imms_id
             print(f"updated_fhir_json:{fhir_json}")
@@ -82,18 +85,20 @@ def forward_request_to_api(
             )
             print(f"response:{response},status_code:{status_code}")
             if status_code == 200:
-                data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
+                data_row = create_ack_data(created_at_formatted_string, row_id, True, "20013")
             else:
-                data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
+                diagnostics = "Payload validation failure"
+                data_row = create_ack_data(created_at_formatted_string, row_id, False, "20009", diagnostics)
         elif action_flag == "delete" and imms_id not in (None, "None"):
             response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
             print(f"response:{response},status_code:{status_code}")
             if status_code == 204:
-                data_row = Constants.data_rows(True, created_at_formatted_string, message_header)
+                data_row = create_ack_data(created_at_formatted_string, row_id, True, "20013")
             else:
-                data_row = Constants.data_rows(False, created_at_formatted_string, message_header)
+                diagnostics = "Payload validation failure"
+                data_row = create_ack_data(created_at_formatted_string, row_id, False, "20009", diagnostics)
 
-    data_row_str = [str(item) for item in data_row]
+    data_row_str = [str(item) for item in data_row.values()]
     cleaned_row = "|".join(data_row_str).replace(" |", "|").replace("| ", "|").strip()
 
     accumulated_csv_content.write(cleaned_row + "\n")
@@ -116,7 +121,7 @@ def forward_lambda_handler(event, context):
             kinesis_payload = record["kinesis"]["data"]
             decoded_payload = base64.b64decode(kinesis_payload).decode("utf-8")
             message_body = json.loads(decoded_payload)
-            message_header = message_body.get("message_id")
+            row_id = message_body.get("message_id")
             fhir_json = message_body.get("fhir_json")
             action_flag = message_body.get("action_flag")
             file_key = message_body.get("file_name")
@@ -126,7 +131,7 @@ def forward_lambda_handler(event, context):
                 imms_id = message_body.get("imms_id")
                 version = message_body.get("version")
             forward_request_to_api(
-                message_header, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version
+                row_id, bucket_name, file_key, action_flag, fhir_json, ack_bucket_name, imms_id, version
             )
 
         except Exception as e:
