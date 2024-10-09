@@ -21,12 +21,7 @@ resource "aws_s3_bucket_policy" "batch_config_bucket_policy" {
         Resource = [
           "arn:aws:s3:::${local.prefix}-configs",
           "arn:aws:s3:::${local.prefix}-configs/*"
-        ],
-        Condition = {
-          StringEquals = {
-            "aws:SourceVpce" = "vpce-0de54bdb3ae4df740"
-          }
-        }
+        ]
       }
     ]
   })

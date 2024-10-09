@@ -370,9 +370,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Statement = [
       {
         Effect    = "Allow"
-        Principal = {
-          AWS = aws_iam_role.lambda_exec_role.arn
-        },
+        Principal = "*",
         Action    = [
           "s3:GetObject",
           "s3:PutObject",
