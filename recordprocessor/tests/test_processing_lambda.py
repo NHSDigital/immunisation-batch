@@ -142,7 +142,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_positive_string)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_string)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
@@ -174,7 +174,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_positive_string_missing)
+            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
