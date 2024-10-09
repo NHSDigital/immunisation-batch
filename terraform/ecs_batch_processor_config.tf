@@ -145,6 +145,7 @@ resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
 }
 
 # Create the ECS Task Definition
+# Update ECS Task Definition with VPC Subnet IDs and Security Group
 resource "aws_ecs_task_definition" "ecs_task" {
   family                   = "${local.prefix}-processor-task"
   network_mode             = "awsvpc"
@@ -152,9 +153,9 @@ resource "aws_ecs_task_definition" "ecs_task" {
   cpu                      = "512"
   memory                   = "1024"
   runtime_platform {
-        operating_system_family = "LINUX"
-        cpu_architecture        = "X86_64"
-    }
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
   task_role_arn            = aws_iam_role.ecs_task_exec_role.arn
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
@@ -197,8 +198,17 @@ resource "aws_ecs_task_definition" "ecs_task" {
       }
     }
   }])
+    network_configuration {
+    awsvpc_configuration {
+      subnets          = data.aws_subnets.default.ids
+      security_groups  = [aws_security_group.lambda_sg.id]  # Use the appropriate security group for ECS tasks
+      assign_public_ip = false  # Keep this as false for internal communication using the VPC endpoint
+    }
+  }
+
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
+
 
 # IAM Role for EventBridge Pipe
 resource "aws_iam_role" "fifo_pipe_role" {
@@ -266,7 +276,8 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       network_configuration {
         aws_vpc_configuration {
           subnets         = data.aws_subnets.default.ids
-          assign_public_ip = "ENABLED"
+          security_groups = [aws_security_group.lambda_sg.id]
+          assign_public_ip = "DISABLED"          
         }
       }
       overrides {
