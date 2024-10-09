@@ -1,5 +1,8 @@
+"""Constants for recordforwarder"""
+
+
 class Constants:
-    """A class to hold various constants used in the application."""
+    """Constants for recordforwarder"""
 
     ack_headers = [
         "MESSAGE_HEADER_ID",
