@@ -57,7 +57,7 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
     # Handle success
     return {
         "fhir_json": fhir_json,
-        "action_flag": operation_requested,
+        "operation_requested": operation_requested,
         **({"imms_id": imms_id} if imms_id is not None else {}),
         **({"version": version} if version is not None else {}),
     }
