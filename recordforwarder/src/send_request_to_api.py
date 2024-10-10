@@ -19,7 +19,7 @@ def send_request_to_api(message_body):
     """
 
     fhir_json = message_body.get("fhir_json")
-    action_flag = message_body.get("action_flag")
+    operation_requested = message_body.get("operation_requested")
     supplier_system = message_body.get("supplier")
     imms_id = message_body.get("imms_id")
     version = message_body.get("version")
@@ -40,7 +40,7 @@ def send_request_to_api(message_body):
         elif incoming_diagnostics == "Unable to obtain version":
             diagnostics = incoming_diagnostics
 
-    elif action_flag == "new":
+    elif operation_requested == "CREATE":
         _, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
         if status_code == 201:
             response_code = "20013"
@@ -52,7 +52,7 @@ def send_request_to_api(message_body):
             diagnostics = "Payload validation failure"
             response_code = "20009"
 
-    elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
+    elif operation_requested == "UPDATE" and imms_id not in (None, "None") and version not in (None, "None"):
         fhir_json["id"] = imms_id
         _, status_code = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier_system)
         if status_code == 200:
@@ -61,7 +61,7 @@ def send_request_to_api(message_body):
             diagnostics = "Payload validation failure"
             response_code = "20009"
 
-    elif action_flag == "delete" and imms_id not in (None, "None"):
+    elif operation_requested == "DELETE" and imms_id not in (None, "None"):
         _, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
         if status_code == 204:
             response_code = "20013"

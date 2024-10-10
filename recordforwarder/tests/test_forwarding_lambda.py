@@ -47,7 +47,7 @@ class TestForwardingLambda(unittest.TestCase):
                 "message_id": None,
                 "file_name": "file.csv",
                 "supplier": "Test_supplier",
-                "action_flag": "new",
+                "operation_requested": "CREATE",
                 "fhir_json": "{}",
                 "imms_id": None,
                 "version": None,
@@ -72,7 +72,7 @@ class TestForwardingLambda(unittest.TestCase):
                 "message_id": None,
                 "file_name": "file.csv",
                 "supplier": "Test_supplier",
-                "action_flag": "new",
+                "operation_requested": "CREATE",
                 "fhir_json": "{}",
                 "imms_id": None,
                 "version": None,
@@ -96,7 +96,7 @@ class TestForwardingLambda(unittest.TestCase):
                 "message_id": None,
                 "file_name": "file.csv",
                 "supplier": "Test_supplier",
-                "action_flag": "update",
+                "operation_requested": "UPDATE",
                 "fhir_json": {"resourceType": "immunization"},
                 "imms_id": "imms_id",
                 "version": "v1",
@@ -156,7 +156,7 @@ class TestForwardingLambda(unittest.TestCase):
             message_body = {
                 "message_id": None,
                 "file_name": "file.csv",
-                "action_flag": "delete",
+                "operation_requested": "DELETE",
                 "fhir_json": "{}",
                 "imms_id": "imms_id",
                 "version": None,
@@ -181,7 +181,7 @@ class TestForwardingLambda(unittest.TestCase):
                                 {
                                     "message_id": "test",
                                     "fhir_json": "{}",
-                                    "action_flag": "new",
+                                    "operation_requested": "CREATE",
                                     "file_name": "test_file.csv",
                                 }
                             ).encode("utf-8")
@@ -194,7 +194,7 @@ class TestForwardingLambda(unittest.TestCase):
         message_body = {
             "message_id": "test",
             "file_name": "test_file.csv",
-            "action_flag": "new",
+            "operation_requested": "CREATE",
             "fhir_json": "{}",
         }
         mock_forward_request_to_api.assert_called_once_with(message_body)
@@ -212,7 +212,7 @@ class TestForwardingLambda(unittest.TestCase):
                                 {
                                     "message_id": "test",
                                     "fhir_json": "{}",
-                                    "action_flag": "update",
+                                    "operation_requested": "UPDATE",
                                     "file_name": "test_file.csv",
                                 }
                             ).encode("utf-8")
@@ -225,7 +225,7 @@ class TestForwardingLambda(unittest.TestCase):
         message_body = {
             "message_id": "test",
             "file_name": "test_file.csv",
-            "action_flag": "update",
+            "operation_requested": "UPDATE",
             "fhir_json": "{}",
         }
         mock_forward_request_to_api.assert_called_once_with(message_body)

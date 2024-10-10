@@ -61,7 +61,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "new",
+            "operation_requested": "CREATE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
         }
@@ -72,7 +72,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "new",
+            "operation_requested": "CREATE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
@@ -85,7 +85,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "new",
+            "operation_requested": "CREATE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
@@ -116,7 +116,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "update",
+            "operation_requested": "UPDATE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
@@ -129,7 +129,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "update",
+            "operation_requested": "UPDATE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
@@ -145,7 +145,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "delete",
+            "operation_requested": "DELETE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
@@ -166,7 +166,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
-            "action_flag": "delete",
+            "operation_requested": "DELETE",
             "file_name": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
