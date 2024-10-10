@@ -269,7 +269,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
         aws_vpc_configuration {
           subnets         = data.aws_subnets.default.ids
           security_groups = [aws_security_group.lambda_sg.id]
-          assign_public_ip = "ENABLED"          
+          assign_public_ip = "DISABLED"      
         }
       }
       overrides {
