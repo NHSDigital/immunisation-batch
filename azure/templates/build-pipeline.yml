@@ -139,6 +139,7 @@ jobs:
           done
         workingDirectory: "${{ parameters.service_name }}"
         displayName: Install project dependencies
+        
       - bash: "make lint"
         workingDirectory: "${{ parameters.service_name }}"
         displayName: Lint
