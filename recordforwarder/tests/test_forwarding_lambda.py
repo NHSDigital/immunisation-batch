@@ -44,13 +44,11 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "message_id": None,
-                "file_name": "file.csv",
+                "row_id": None,
+                "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "CREATE",
                 "fhir_json": "{}",
-                "imms_id": None,
-                "version": None,
             }
             forward_request_to_api(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
@@ -69,8 +67,8 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "message_id": None,
-                "file_name": "file.csv",
+                "row_id": None,
+                "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "CREATE",
                 "fhir_json": "{}",
@@ -93,8 +91,8 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "message_id": None,
-                "file_name": "file.csv",
+                "row_id": None,
+                "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "UPDATE",
                 "fhir_json": {"resourceType": "immunization"},
@@ -117,8 +115,8 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "message_id": None,
-                "file_name": "file.csv",
+                "row_id": None,
+                "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "diagnostics": "Unable to obtain imms_id",
             }
@@ -136,8 +134,8 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "message_id": None,
-                "file_name": "file.csv",
+                "row_id": None,
+                "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "diagnostics": "Unable to obtain imms_id",
             }
@@ -154,8 +152,8 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "message_id": None,
-                "file_name": "file.csv",
+                "row_id": None,
+                "file_key": "file.csv",
                 "operation_requested": "DELETE",
                 "fhir_json": "{}",
                 "imms_id": "imms_id",
@@ -179,10 +177,10 @@ class TestForwardingLambda(unittest.TestCase):
                         "data": base64.b64encode(
                             json.dumps(
                                 {
-                                    "message_id": "test",
+                                    "row_id": "test",
                                     "fhir_json": "{}",
                                     "operation_requested": "CREATE",
-                                    "file_name": "test_file.csv",
+                                    "file_key": "test_file.csv",
                                 }
                             ).encode("utf-8")
                         ).decode("utf-8")
@@ -192,8 +190,8 @@ class TestForwardingLambda(unittest.TestCase):
         }
         forward_lambda_handler(event, None)
         message_body = {
-            "message_id": "test",
-            "file_name": "test_file.csv",
+            "row_id": "test",
+            "file_key": "test_file.csv",
             "operation_requested": "CREATE",
             "fhir_json": "{}",
         }
@@ -210,10 +208,10 @@ class TestForwardingLambda(unittest.TestCase):
                         "data": base64.b64encode(
                             json.dumps(
                                 {
-                                    "message_id": "test",
+                                    "row_id": "test",
                                     "fhir_json": "{}",
                                     "operation_requested": "UPDATE",
-                                    "file_name": "test_file.csv",
+                                    "file_key": "test_file.csv",
                                 }
                             ).encode("utf-8")
                         ).decode("utf-8")
@@ -223,8 +221,8 @@ class TestForwardingLambda(unittest.TestCase):
         }
         forward_lambda_handler(event, None)
         message_body = {
-            "message_id": "test",
-            "file_name": "test_file.csv",
+            "row_id": "test",
+            "file_key": "test_file.csv",
             "operation_requested": "UPDATE",
             "fhir_json": "{}",
         }
@@ -234,7 +232,7 @@ class TestForwardingLambda(unittest.TestCase):
     def test_forward_lambda_handler_with_exception(self, mock_logger):
         event = {
             "Records": [
-                {"body": json.dumps({"fhir_json": "{}", "action_flag": "invalid_action", "file_name": "test_file.csv"})}
+                {"body": json.dumps({"fhir_json": "{}", "action_flag": "invalid_action", "file_key": "test_file.csv"})}
             ]
         }
         forward_lambda_handler(event, None)

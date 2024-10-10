@@ -12,7 +12,7 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     TEST_FILE_KEY,
     TEST_ACK_FILE_KEY,
     TEST_SUPPLIER,
-    TEST_MESSAGE_ID,
+    TEST_ROW_ID,
 )
 import base64
 
@@ -59,10 +59,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_success(self, mock_api):
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "CREATE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
         }
         self.execute_test(mock_api, message, 201, "ok")
@@ -70,10 +70,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "CREATE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
@@ -83,10 +83,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_failed(self, mock_api):
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "CREATE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
@@ -99,8 +99,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.create_immunization.return_value = ("", 201)
 
         message = {
-            "message_id": TEST_MESSAGE_ID,
-            "file_name": TEST_FILE_KEY,
+            "row_id": TEST_ROW_ID,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "diagnostics": "Unsupported file type received as an attachment",
         }
@@ -114,10 +114,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_update_success(self, mock_api):
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "UPDATE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
@@ -127,10 +127,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_update_failed(self, mock_api):
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "UPDATE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
@@ -143,10 +143,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.delete_immunization.return_value = ("", 204)
 
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "DELETE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
@@ -164,10 +164,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.delete_immunization.return_value = ("", 404)
 
         message = {
-            "message_id": TEST_MESSAGE_ID,
+            "row_id": TEST_ROW_ID,
             "fhir_json": test_fhir_json,
             "operation_requested": "DELETE",
-            "file_name": TEST_FILE_KEY,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
@@ -183,8 +183,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.setup_s3()
 
         message = {
-            "message_id": TEST_MESSAGE_ID,
-            "file_name": TEST_FILE_KEY,
+            "row_id": TEST_ROW_ID,
+            "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
             "diagnostics": "No permissions for operation",
         }
