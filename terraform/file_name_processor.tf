@@ -376,7 +376,8 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
           "arn:aws:s3:::${local.prefix}-data-destinations",
           "arn:aws:s3:::${local.prefix}-data-destinations/*",
           "arn:aws:s3:::${local.prefix}-configs",
-          "arn:aws:s3:::${local.prefix}-configs/*"
+          "arn:aws:s3:::${local.prefix}-configs/*",
+          "arn:aws:s3:::prod-eu-west-2-starport-layer-bucket/*"
         ]
       }
     ]
