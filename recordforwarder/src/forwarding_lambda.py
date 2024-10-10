@@ -123,7 +123,7 @@ def forward_lambda_handler(event, context):
             file_key = message_body.get("file_name")
             imms_id = None
             version = None
-            if action_flag in ("update", "delete", "None"):
+            if action_flag in ("UPDATE", "DELETE", "None"):
                 imms_id = message_body.get("imms_id")
                 version = message_body.get("version")
             forward_request_to_api(

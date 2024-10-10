@@ -65,7 +65,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         message = {
             "message_id": Constant.test_fhir_json,
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "new",
+            "action_flag": "NEW",
             "file_name": self.test_file_key,
             "imms_id": "None",
             "version": "None",
@@ -78,7 +78,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         message = {
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "new",
+            "action_flag": "NEW",
             "file_name": self.test_file_key,
             "imms_id": "test",
             "version": 1,
@@ -91,7 +91,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_create_failed(self, mock_api):
         message = {
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "new",
+            "action_flag": "NEW",
             "file_name": self.test_file_key,
             "imms_id": "test",
             "version": 1,
@@ -125,7 +125,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_update_success(self, mock_api):
         message = {
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "update",
+            "action_flag": "UPDATE",
             "file_name": self.test_file_key,
             "imms_id": "test",
             "version": 1,
@@ -138,7 +138,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     def test_forward_lambda_e2e_update_failed(self, mock_api):
         message = {
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "update",
+            "action_flag": "UPDATE",
             "file_name": self.test_file_key,
             "imms_id": "test",
             "version": 1,
@@ -154,7 +154,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         message = {
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "delete",
+            "action_flag": "DELETE",
             "file_name": self.test_file_key,
             "imms_id": "test",
             "version": 1,
@@ -175,7 +175,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         message = {
             "fhir_json": Constant.test_fhir_json,
-            "action_flag": "delete",
+            "action_flag": "DELETE",
             "file_name": self.test_file_key,
             "imms_id": "test",
             "version": 1,
