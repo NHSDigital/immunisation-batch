@@ -41,7 +41,6 @@ def get_supplier_permissions(supplier: str) -> list:
     be downloaded, or the supplier has no permissions.
     """
     config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-configs")
-    print(config_bucket_name, "CONFIG BUCKET NAME")
     return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
 
 

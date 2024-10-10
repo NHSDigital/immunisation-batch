@@ -1,230 +1,200 @@
-import boto3
+"E2e tests for recordprocessor"
+
 import unittest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
+from copy import deepcopy
 from moto import mock_s3, mock_kinesis
-from datetime import datetime
-from src.constants import Constant
-from io import StringIO, BytesIO
-import csv
-from batch_processing import main, validate_full_permissions
+from boto3 import client as boto3_client
+from src.batch_processing import main
+from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
+    SOURCE_BUCKET_NAME,
+    DESTINATION_BUCKET_NAME,
+    CONFIG_BUCKET_NAME,
+    PERMISSIONS_FILE_KEY,
+    AWS_REGION,
+    VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
+    API_RESPONSE_WITH_ID_AND_VERSION,
+    STREAM_NAME,
+    TEST_ACK_FILE_KEY,
+    TEST_EVENT_DUMPED,
+    TEST_FILE_KEY,
+    MOCK_ENVIRONMENT_DICT,
+    MOCK_PERMISSIONS,
+)
+
+s3_client = boto3_client("s3", region_name=AWS_REGION)
+kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
+
+yesterday = datetime.now(timezone.utc) - timedelta(days=1)
 
 
-class TestLambdaHandler(unittest.TestCase):
+@patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
+@mock_s3
+@mock_kinesis
+class TestRecordProcessor(unittest.TestCase):
+    """E2e tests for RecordProcessor"""
 
-    def setUp(self):
-        # Start mock services
-        self.mock_s3 = mock_s3()
-        self.mock_kinesis = mock_kinesis()
-        self.mock_s3.start()
-        self.mock_kinesis.start()
+    def setUp(self) -> None:
+        # Tests run too quickly for cache to work. The workaround is to set _cached_last_modified to an earlier time
+        # than the tests are run so that the _cached_json_data will always be updated by the test
+        self.patcher = patch("permissions_checker._CACHED_LAST_MODIFIED", yesterday).start()
 
-        # Ensure no session conflicts
-        boto3.setup_default_session()
+        for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME, CONFIG_BUCKET_NAME]:
+            s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
 
-        self.region = "eu-west-2"
-        self.s3_client = boto3.client("s3", region_name=self.region)
-        self.kinesis_client = boto3.client("kinesis", region_name=self.region)
+        kinesis_client.create_stream(StreamName=STREAM_NAME, ShardCount=1)
 
-        self.bucket_name = "immunisation-batch-internal-dev-data-sources"
-        self.ack_bucket_name = "immunisation-batch-internal-dev-data-destinations"
-        self.stream_name = "imms-batch-internal-dev-processingdata-stream"
-        # Set up S3 buckets
-        self.s3_client.create_bucket(
-            Bucket=self.bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": self.region},
-        )
-        self.s3_client.create_bucket(
-            Bucket=self.ack_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": self.region},
-        )
+    def tearDown(self) -> None:
+        # Delete all of the buckets (the contents of each bucket must be deleted first)
+        for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
+            for obj in s3_client.list_objects_v2(Bucket=bucket_name).get("Contents", []):
+                s3_client.delete_object(Bucket=bucket_name, Key=obj["Key"])
+            s3_client.delete_bucket(Bucket=bucket_name)
 
-        # Set up Kinesis stream
-        self.kinesis_client.create_stream(StreamName=self.stream_name, ShardCount=1)
+        # Delete the kinesis stream
+        try:
+            kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
+        except kinesis_client.exceptions.ResourceNotFoundException:
+            pass
 
-        self.mock_head_object_response = {"LastModified": datetime(2024, 7, 30, 15, 22, 17)}
-        self.mock_download_fileobj = Constant.mock_download_fileobj
-        self.response = {
-            "resourceType": "Bundle",
-            "type": "searchset",
-            "link": [
-                {
-                    "relation": "self",
-                    "url": (
-                        "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
-                        "Immunization?immunization.identifier=https://supplierABC/identifiers/"
-                        "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
-                    ),
-                }
-            ],
-            "entry": [
-                {
-                    "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
-                    "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
-                    "resource": {
-                        "resourceType": "Immunization",
-                        "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
-                        "meta": {"versionId": 1},
-                    },
-                }
-            ],
-            "total": 1,
-        }, 200
-        self.vaccine_type = Constant.valid_vaccine_type[2]
-        self.supplier = Constant.valid_supplier[0]
-        self.ods_code = Constant.valid_ods_codes[0]
-        self.test_event_base = {
-            "message_id": "123456",
-            "vaccine_type": None,
-            "supplier": None,
-            "filename": None,
-        }
-        self.mock_headers = Constant.header
+    @staticmethod
+    def upload_files(sourc_file_content, mock_permissions=MOCK_PERMISSIONS):  # pylint: disable=dangerous-default-value
+        """
+        Uploads a test file with the TEST_FILE_KEY (Flu EMIS file) the given file content to the source bucket
+        """
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=sourc_file_content)
+        s3_client.put_object(Bucket=CONFIG_BUCKET_NAME, Key=PERMISSIONS_FILE_KEY, Body=json.dumps(mock_permissions))
 
-    def setup_acknowledgment_file(self, vaccine_type, ods_code):
-        ack_key = f"processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000_response.csv"
-        csv_buffer = StringIO()
-        csv_writer = csv.writer(csv_buffer, delimiter="|")
-        csv_writer.writerow(self.mock_headers)
-        csv_bytes = BytesIO(csv_buffer.getvalue().encode("utf-8"))
-        self.s3_client.upload_fileobj(csv_bytes, self.ack_bucket_name, ack_key)
-        return ack_key
+    @staticmethod
+    def get_shard_iterator(stream_name=STREAM_NAME):
+        """Obtains and returns a shard iterator"""
+        # Obtain the first shard
+        response = kinesis_client.describe_stream(StreamName=stream_name)
+        shards = response["StreamDescription"]["Shards"]
+        shard_id = shards[0]["ShardId"]
 
-    def acknowledgment_file(self, vaccine_type, ods_code):
-        ack_key = f"processedFile/{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000_response.csv"
-        return ack_key
+        # Get a shard iterator (using iterator type "TRIM_HORIZON" to read from the beginning)
+        return kinesis_client.get_shard_iterator(
+            StreamName=stream_name, ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"
+        )["ShardIterator"]
 
-    @patch("batch_processing.send_to_kinesis")
-    @patch("csv.DictReader")
-    @patch("batch_processing.validate_full_permissions")
-    @patch("batch_processing.fetch_file_from_s3")
-    @patch("batch_processing.s3_client.head_object")
-    @patch("batch_processing.ImmunizationApi.get_imms_id")
-    @patch("batch_processing.s3_client.download_fileobj")
-    def execute_test(
-        self,
-        mock_download_fileobj,
-        mock_get_imms_id,
-        mock_head_object,
-        mock_fetch_file,
-        mock_validate_full_permissions,
-        mock_csv_dict_reader,
-        mock_send_to_kinesis,
-        expected_ack_content,
-        fetch_file_content,
-        get_imms_id_response,
-        test_event_filename,
-        kinesis
-    ):
+    @staticmethod
+    def get_ack_file_content():
+        """Downloads the ack file, decodes its content and returns the decoded content"""
+        response = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_ACK_FILE_KEY)
+        return response["Body"].read().decode("utf-8")
 
-        mock_fetch_file.return_value = fetch_file_content
-        mock_head_object.return_value = self.mock_head_object_response
-        mock_get_imms_id.return_value = get_imms_id_response
-        mock_download_fileobj.return_value = self.mock_download_fileobj
-        mock_validate_full_permissions.return_value = True
-        if kinesis:
-            mock_send_to_kinesis.return_value = True
-        else:
-            mock_send_to_kinesis.return_value = False
-        mock_csv_reader_instance = MagicMock()
-        mock_csv_reader_instance.__iter__.return_value = iter(Constant.mock_request)
-        mock_csv_dict_reader.return_value = mock_csv_reader_instance
+    def test_e2e_happy_path(self):
+        """
+        Tests that, for a file with valid content and supplier with full permissions, the ack file is successfully
+        created and a message sent to kinesis.
+        """
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
-        with patch.dict(
-            "os.environ",
-            {
-                "ENVIRONMENT": "internal-dev",
-                "LOCAL_ACCOUNT_ID": "123456",
-                "ACK_BUCKET_NAME": self.ack_bucket_name,
-                "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-                "KINESIS_STREAM_ARN": f"arn:aws:kinesis:{self.region}:123456789012:stream/{self.stream_name}",
-            },
-        ):
-            self.setup_acknowledgment_file(self.vaccine_type, self.ods_code)
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
 
-            test_event = json.dumps(
-                {
-                    **self.test_event_base,
-                    "vaccine_type": self.vaccine_type,
-                    "supplier": self.supplier,
-                    "filename": test_event_filename.format(vaccine_type=self.vaccine_type, ods_code=self.ods_code),
-                }
-            )
+        self.assertIn("ok", self.get_ack_file_content())
 
-            main(test_event)
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
+        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
+        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
+        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
 
-            response = self.s3_client.get_object(
-                Bucket=self.ack_bucket_name, Key=self.acknowledgment_file(self.vaccine_type, self.ods_code)
-            )
-            content = response["Body"].read().decode("utf-8")
+    def test_e2e_no_permissions(self):
+        """
+        Tests that, for a file with valid content and supplier with no permissions, the ack file is successfully
+        created and documents an error for each line and a message sent to kinesis.
+        """
+        permissions = deepcopy(MOCK_PERMISSIONS)
+        permissions["all_permissions"]["EMIS"] = []
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
 
-            self.assertIn(expected_ack_content, content)
-            mock_send_to_kinesis.assert_called()
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
 
-    def test_e2e_successful_conversion(self):
-        self.execute_test(
-            expected_ack_content="ok",
-            fetch_file_content=Constant.string_return,
-            get_imms_id_response=self.response,
-            test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
+        ack_file = self.get_ack_file_content()
+        self.assertIn("123456#1|fatal-error", ack_file)
+        self.assertIn("123456#2|fatal-error", ack_file)
+
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
+        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
+        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
+        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+
+    def test_e2e_one_permission(self):
+        """
+        Tests that, for a file with valid content and supplier with one permission, the ack file is successfully
+        created and documents 'ok' for the permitted line and 'fatal-error' for the non-permitted line and a message is
+        sent to kinesis.
+        """
+        permissions = deepcopy(MOCK_PERMISSIONS)
+        permissions["all_permissions"]["EMIS"] = ["FLU_NEW"]
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        ack_file = self.get_ack_file_content()
+        self.assertIn("123456#1|ok", ack_file)
+        self.assertIn("123456#2|fatal-error", ack_file)
+
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
+        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
+        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
+        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+
+    def test_e2e_invalid_data(self):
+        """
+        Tests that, for a file with invalid content and supplier with full permissions, the ack file is successfully
+        created and documents an error and a message is sent to kinesis.
+        """
+        self.upload_files(
+            VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace('"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"', "")
         )
 
-    @patch("batch_processing.convert_to_fhir_json")
-    def test_e2e_processing_invalid_data(self, mock_convert_json):
-        mock_convert_json.return_value = None, False
-        self.execute_test(
-            expected_ack_content="fatal-error",
-            fetch_file_content=Constant.invalid_file_content,
-            get_imms_id_response=self.response,
-            test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
-        )
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
 
-    def test_e2e_processing_imms_id_missing(self):
-        response = {"total": 0}, 404
-        self.execute_test(
-            expected_ack_content="fatal-error",
-            fetch_file_content=Constant.string_update_return,
-            get_imms_id_response=response,
-            test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=True
-        )
+        self.assertIn("fatal-error", self.get_ack_file_content())
 
-    def test_e2e_successful_conversion_kinesis_failed(self):
-        self.execute_test(
-            expected_ack_content="fatal-error",
-            fetch_file_content=Constant.string_return,
-            get_imms_id_response=self.response,
-            test_event_filename="{vaccine_type}_Vaccinations_v5_{ods_code}_20210730T12000000.csv",
-            kinesis=False
-        )
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
+        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
+        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
+        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
 
-    @mock_s3
-    def test_validate_full_permissions_end_to_end(self):
-        config_bucket_name = "test-bucket"
-        self.s3_client.create_bucket(
-            Bucket=config_bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": self.region},
-        )
+    def test_e2e_imms_id_not_found(self):
+        """
+        Tests that when the imms id can't be found for an update, the ack file is successfully
+        created and documents an error and a message is sent to kinesis.
+        """
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
-        permissions_data = {"all_permissions": {"DP": ["FLU_FULL"]}}
-        self.s3_client.put_object(
-            Bucket=config_bucket_name,
-            Key="permissions.json",
-            Body=json.dumps(permissions_data),
-        )
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
+            main(TEST_EVENT_DUMPED)
 
-        def mock_get_json_from_s3(config_bucket_name):
-            return permissions_data
+        self.assertIn("fatal-error", self.get_ack_file_content())
 
-        with patch("batch_processing.get_json_from_s3", mock_get_json_from_s3):
-            result = validate_full_permissions(config_bucket_name, "DP", "FLU")
-            self.assertTrue(result)
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
+        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
+        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
+        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
 
-            permissions_data["all_permissions"]["DP"] = ["FLU_CREATE"]
-            result = validate_full_permissions(config_bucket_name, "DP", "FLU")
-            self.assertFalse(result)
+    def test_e2e_kinesis_failed(self):
+        """
+        Tests that, for a file with valid content and supplier with full permissions, when the kinesis send fails, the
+        ack file created and documents an erro and a message in not sent to kinesis.
+        """
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
+        # Delete the kinesis stream, to cause kinesis send to fail
+        kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        self.assertIn("fatal-error", self.get_ack_file_content())
 
 
 if __name__ == "__main__":
