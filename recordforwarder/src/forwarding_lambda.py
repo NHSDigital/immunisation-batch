@@ -66,7 +66,7 @@ def forward_request_to_api(
         if imms_id == "None" and version == "None":
             data_row = Constant.data_rows("None", created_at_formatted, message_header)
         supplier_system = identify_supplier(file_key)
-        if action_flag == "new":
+        if action_flag == "NEW":
             response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
             print(f"response:{response},status_code:{status_code}")
             if status_code == 201:
@@ -75,7 +75,7 @@ def forward_request_to_api(
                 data_row = Constant.data_rows("duplicate", created_at_formatted, message_header)
             else:
                 data_row = Constant.data_rows(False, created_at_formatted, message_header)
-        elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
+        elif action_flag == "UPDATE" and imms_id not in (None, "None") and version not in (None, "None"):
             fhir_json["id"] = imms_id
             print(f"updated_fhir_json:{fhir_json}")
             response, status_code = immunization_api_instance.update_immunization(
@@ -86,7 +86,7 @@ def forward_request_to_api(
                 data_row = Constant.data_rows(True, created_at_formatted, message_header)
             else:
                 data_row = Constant.data_rows(False, created_at_formatted, message_header)
-        elif action_flag == "delete" and imms_id not in (None, "None"):
+        elif action_flag == "DELETE" and imms_id not in (None, "None"):
             response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
             print(f"response:{response},status_code:{status_code}")
             if status_code == 204:
