@@ -3,7 +3,10 @@
 import json
 from copy import deepcopy
 
-VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE = (
+TEST_UNIQUE_ID = "0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"
+TEST_DATE = "20240609"
+
+FILE_HEADERS = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
     "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"
     "PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|"
@@ -11,15 +14,21 @@ VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE = (
     "VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|"
     "SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|"
     "ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|"
-    "LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
+    "LOCATION_CODE|LOCATION_CODE_TYPE_URI"
+)
+
+FILE_ROW_NEW = (
     '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
-    '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
-    '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|'
+    f'"https://fhir.nhs.uk/Id/ods-organization-code"|"{TEST_UNIQUE_ID}"|'
+    f'"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"{TEST_DATE}"|"TRUE"|'
     '"1303503001"|"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
     '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer Ltd) '
     '(product)"|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body structure)"|'
     '"78421000"|"Intramuscular route (qualifier value)"|"0.5"|"258773002"|"Milliliter (qualifier value)"|"Test"|'
-    '"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
+    '"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+)
+
+FILE_ROW_UPDATE = (
     '1234567890|"JOHN"|"DOE"|"19801231"|"1"|"AB12 3CD"|"20240611T120000"|"J82068"|'
     '"https://fhir.nhs.uk/Id/ods-organization-code"|"0002_COVID19_v1_DOSE_1"|"https://www.ravs.england.nhs.uk/"|'
     '"update"|"Jane"|"Smith"|"20240610"|"FALSE"|"1324657890"|'
@@ -31,6 +40,32 @@ VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE = (
     '"0.3"|"258773002"|"Milliliter (qualifier value)"|"Routine"|'
     '"J82068"|"https://fhir.nhs.uk/Id/ods-organization-code"'
 )
+
+FILE_ROW_DELETE = (
+    '1234567890|"JOHN"|"DOE"|"19801231"|"1"|"AB12 3CD"|"20240611T120000"|"J82068"|'
+    '"https://fhir.nhs.uk/Id/ods-organization-code"|"0002_COVID19_v1_DOSE_1"|"https://www.ravs.england.nhs.uk/"|'
+    '"delete"|"Jane"|"Smith"|"20240610"|"FALSE"|"1324657890"|'
+    '"Administration of COVID-19 vaccine product (procedure)"|'
+    '1|"1234567890"|'
+    '"Comirnaty 0.3ml dose concentrate for dispersion for injection multidose vials (Pfizer/BioNTech) '
+    '(product)"|"Pfizer/BioNTech"|"COVIDBATCH"|"20250101"|"368208007"|"Right upper arm structure (body structure)"|'
+    '"385219009"|"Intramuscular route (qualifier value)"|'
+    '"0.3"|"258773002"|"Milliliter (qualifier value)"|"Routine"|'
+    '"J82068"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+)
+
+VALID_FILE_CONTENT_WITH_NEW = FILE_HEADERS + "\n" + FILE_ROW_NEW
+VALID_FILE_CONTENT_WITH_UPDATE = FILE_HEADERS + "\n" + FILE_ROW_UPDATE
+VALID_FILE_CONTENT_WITH_DELETE = FILE_HEADERS + "\n" + FILE_ROW_DELETE
+VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE = FILE_HEADERS + "\n" + FILE_ROW_UPDATE + "\n" + FILE_ROW_DELETE
+VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE = FILE_HEADERS + "\n" + FILE_ROW_NEW + "\n" + FILE_ROW_UPDATE
+VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE = (
+    FILE_HEADERS + "\n" + FILE_ROW_NEW + "\n" + FILE_ROW_UPDATE + "\n" + FILE_ROW_DELETE
+)
+
+TEST_ID = "277befd9-574e-47fe-a6ee-189858af3bb0"
+TEST_VERSION = 2
+
 
 API_RESPONSE_WITH_ID_AND_VERSION = {
     "resourceType": "Bundle",
@@ -51,9 +86,56 @@ API_RESPONSE_WITH_ID_AND_VERSION = {
             "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
             "resource": {
                 "resourceType": "Immunization",
-                "id": "277befd9-574e-47fe-a6ee-189858af3bb0",
-                "meta": {"versionId": 1},
+                "id": TEST_ID,
+                "meta": {"versionId": TEST_VERSION},
             },
+        }
+    ],
+    "total": 1,
+}, 200
+
+API_RESPONSE_WITHOUT_ID_AND_VERSION = {
+    "resourceType": "Bundle",
+    "type": "searchset",
+    "link": [
+        {
+            "relation": "self",
+            "url": (
+                "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+            ),
+        }
+    ],
+    "entry": [
+        {
+            "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+            "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+            "resource": {"resourceType": "Immunization"},
+        }
+    ],
+    "total": 1,
+}, 200
+
+
+API_RESPONSE_WITHOUT_VERSION = {
+    "resourceType": "Bundle",
+    "type": "searchset",
+    "link": [
+        {
+            "relation": "self",
+            "url": (
+                "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api-pr-224/"
+                "Immunization?immunization.identifier=https://supplierABC/identifiers/"
+                "vacc|b69b114f-95d0-459d-90f0-5396306b3794&_elements=id,meta"
+            ),
+        }
+    ],
+    "entry": [
+        {
+            "fullUrl": "https://api.service.nhs.uk/immunisation-fhir-api/"
+            "Immunization/277befd9-574e-47fe-a6ee-189858af3bb0",
+            "resource": {"resourceType": "Immunization", "id": TEST_ID},
         }
     ],
     "total": 1,
@@ -69,14 +151,14 @@ AWS_REGION = "eu-west-2"
 TEST_VACCINE_TYPE = "flu"
 TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
-TEST_MESSAGE_ID = "123456"
+TEST_FILE_ID = "123456"
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
 
 TEST_EVENT_DUMPED = json.dumps(
     {
-        "message_id": TEST_MESSAGE_ID,
+        "message_id": TEST_FILE_ID,
         "vaccine_type": TEST_VACCINE_TYPE,
         "supplier": TEST_SUPPLIER,
         "filename": TEST_FILE_KEY,
@@ -84,7 +166,7 @@ TEST_EVENT_DUMPED = json.dumps(
 )
 
 TEST_EVENT = {
-    "message_id": TEST_MESSAGE_ID,
+    "message_id": TEST_FILE_ID,
     "vaccine_type": TEST_VACCINE_TYPE,
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,

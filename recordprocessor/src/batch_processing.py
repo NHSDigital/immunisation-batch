@@ -49,8 +49,8 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
         # Create the message body for sending
         outgoing_message_body = {
-            "message_id": row_id,
-            "file_name": file_key,
+            "row_id": row_id,
+            "file_key": file_key,
             "supplier": supplier,
             **details_from_processing,
         }
