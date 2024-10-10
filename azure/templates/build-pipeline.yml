@@ -53,15 +53,15 @@ jobs:
           echo ssh ubuntu@${instance_id}
           echo working directory: $(System.DefaultWorkingDirectory)
         displayName: print aws info
-      - template: azure/components/aws-clean-config.yml@components
+      - template: azure/components/aws-clean-config.yml@common
 
       - ${{ if parameters.notify }}:
-        - template: azure/components/aws-assume-role.yml@components
+        - template: azure/components/aws-assume-role.yml@common
           parameters:
             role: "auto-ops"
             profile: "apm_ptl"
 
-        - template: azure/components/get-aws-secrets-and-ssm-params.yml@components
+        - template: azure/components/get-aws-secrets-and-ssm-params.yml@common
           parameters:
             secret_file_ids:
               - ${{ each secret_file_id in parameters.secret_file_ids }}:
@@ -103,7 +103,7 @@ jobs:
             fi
           displayName: Set NOTIFY_COMMIT_SHA
           condition: always()
-        - template: azure/components/update-github-status.yml@components
+        - template: azure/components/update-github-status.yml@common
           parameters:
             state: pending
             description: "Build started"
@@ -121,7 +121,7 @@ jobs:
         path: "s/${{ parameters.service_name }}"
         submodules: true
 
-      - template: azure/templates/setup-build-name.yml@templates
+      - template: azure/templates/setup-build-name.yml@common
         parameters:
           service_name: "${{ parameters.service_name }}"
 
@@ -150,13 +150,13 @@ jobs:
           - ${{ post_lint }}
 
       - ${{ if parameters.notify }}:
-        - template: azure/components/update-github-status.yml@components
+        - template: azure/components/update-github-status.yml@common
           parameters:
             state: success
             on_success: true
             description: "Build succeeded"
 
-        - template: azure/components/update-github-status.yml@components
+        - template: azure/components/update-github-status.yml@common
           parameters:
             state: failure
             on_failure: true
