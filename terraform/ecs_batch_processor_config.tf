@@ -31,11 +31,11 @@ module "processing_docker_image" {
     "rules" : [
       {
         "rulePriority" : 1,
-        "description" : "Keep only the last 2 images",
+        "description" : "Keep only the last 1 images",
         "selection" : {
           "tagStatus" : "any",
           "countType" : "imageCountMoreThan",
-          "countNumber" : 2
+          "countNumber" : 1
         },
         "action" : {
           "type" : "expire"
@@ -145,7 +145,6 @@ resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
 }
 
 # Create the ECS Task Definition
-# Update ECS Task Definition with VPC Subnet IDs and Security Group
 resource "aws_ecs_task_definition" "ecs_task" {
   family                   = "${local.prefix}-processor-task"
   network_mode             = "awsvpc"
@@ -153,14 +152,14 @@ resource "aws_ecs_task_definition" "ecs_task" {
   cpu                      = "512"
   memory                   = "1024"
   runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "X86_64"
-  }
+        operating_system_family = "LINUX"
+        cpu_architecture        = "X86_64"
+    }
   task_role_arn            = aws_iam_role.ecs_task_exec_role.arn
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
-    name      = "${local.prefix}-processor-container"
+    name      = "${local.prefix}-process-records-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
     environment = [
@@ -200,7 +199,6 @@ resource "aws_ecs_task_definition" "ecs_task" {
   }])
   depends_on = [aws_cloudwatch_log_group.ecs_task_log_group]
 }
-
 
 # IAM Role for EventBridge Pipe
 resource "aws_iam_role" "fifo_pipe_role" {
@@ -268,14 +266,13 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       network_configuration {
         aws_vpc_configuration {
           subnets         = data.aws_subnets.default.ids
-          security_groups = [aws_security_group.lambda_sg.id]
-          assign_public_ip = "DISABLED"      
+          assign_public_ip = "ENABLED"
         }
       }
       overrides {
         container_override {
           cpu = 256
-          name = "${local.prefix}-processor-container"
+          name = "${local.prefix}-process-records-container"
           environment {
             name  = "EVENT_DETAILS"
             value = "$.body"
@@ -300,58 +297,4 @@ resource "aws_pipes_pipe" "fifo_pipe" {
 # Custom Log Group
 resource "aws_cloudwatch_log_group" "pipe_log_group" {
   name = "/aws/vendedlogs/pipes/${local.prefix}-pipe-logs"
-}
-resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.lambda_sg.id]
-  tags = {
-    Name = "${var.project_name}-${local.environment}-ecr-api-endpoint"
-  }
-}
-
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = data.aws_subnets.default.ids
-  security_group_ids = [aws_security_group.lambda_sg.id]
-  tags = {
-    Name = "${var.project_name}-${local.environment}-ecr-dkr-endpoint"
-  }
-}
-
-# Create an IAM policy document for the ECR repository policy
-data "aws_iam_policy_document" "processing_repository_policy" {
-  statement {
-    sid       = "new policy"
-    effect    = "Allow"
-    principals {
-      type        = "AWS"
-      identifiers = ["${local.local_account_id}"]
-    }
-    actions = [
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchGetImage",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:PutImage",
-      "ecr:InitiateLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:CompleteLayerUpload",
-      "ecr:DescribeRepositories",
-      "ecr:GetRepositoryPolicy",
-      "ecr:ListImages",
-      "ecr:DeleteRepository",
-      "ecr:BatchDeleteImage",
-      "ecr:SetRepositoryPolicy",
-      "ecr:DeleteRepositoryPolicy",
-    ]
-  }
-}
-
-resource "aws_ecr_repository_policy" "processing_repository_policy" {
-  repository = aws_ecr_repository.processing_repository.name
-  policy     = data.aws_iam_policy_document.processing_repository_policy.json
 }
