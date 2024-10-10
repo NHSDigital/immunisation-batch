@@ -17,13 +17,14 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
     Processes a row of the file and returns a dictionary containing the fhir_json, action_flag, imms_id
     (where applicable), version(where applicable) and any diagnostics.
     """
-    action_flag = action_flag.upper() if (action_flag := row.get("ACTION_FLAG")) is not None else ""
-    logger.info("ACTION FLAG PERMISSIONS REQUESTED:  %s", action_flag)
-    logger.info("ACTION FLAG PERMISSIONS ALLOWED: %s", permission_operations)
+    action_flag = row.get("ACTION_FLAG")
+    operation_requested = action_flag.upper().replace("NEW", "CREATE") if action_flag is not None else ""
+    logger.info("OPERATION REQUESTED:  %s", operation_requested)
+    logger.info("OPERATION ALLOWED: %s", permission_operations)
 
     # Handle no permissions
-    if action_flag not in permission_operations:
-        logger.info("Skipping row as supplier does not have the permissions for this csv operation %s", action_flag)
+    if operation_requested not in permission_operations:
+        logger.info("Skipping row as supplier does not have the permissions for this operation %s", operation_requested)
         return {"diagnostics": "No permissions for operation"}
 
     # Handle missing UNIQUE_ID or UNIQUE_ID_URI or invalid conversion
@@ -32,13 +33,21 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
         return {"diagnostics": "Unsupported file type received as an attachment"}
 
     # Obtain the imms id and version from the ieds for update and delete
-    if action_flag in ("DELETE", "UPDATE"):
+    imms_id = None
+    version = None
+    if operation_requested in ("DELETE", "UPDATE"):
         response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
         # Handle non-200 response from Immunisation API
         if not (response.get("total") == 1 and status_code == 200):
             logger.info("imms_id not found:%s and status_code: %s", response, status_code)
             return {"diagnostics": "Unsupported file type received as an attachment"}
+        resource = response.get("entry", [])[0]["resource"]
+        if not (imms_id := resource.get("id")):
+            return {"diagnostics": "Unable to obtain imms_id"}
+        if operation_requested == "UPDATE" and not (version := resource.get("meta", {}).get("versionId")):
+            return {"diagnostics": "Unable to obtain version"}
 
+    # Convert to JSON
     fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
     # Handle invalid conversion
     if not valid:
@@ -46,11 +55,9 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
         return {"diagnostics": "Unsupported file type received as an attachment"}
 
     # Handle success
-    resource = response.get("entry", [])[0]["resource"] if action_flag in ("DELETE", "UPDATE") else None
     return {
         "fhir_json": fhir_json,
-        "action_flag": action_flag,
-        "imms_id": resource.get("id") if resource else None,
-        "version": resource.get("meta", {}).get("versionId") if resource else None,
-        "diagnostics": None,
+        "action_flag": operation_requested,
+        **({"imms_id": imms_id} if imms_id is not None else {}),
+        **({"version": version} if version is not None else {}),
     }

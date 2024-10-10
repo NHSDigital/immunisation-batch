@@ -6,7 +6,7 @@ import os
 import logging
 from constants import Constants
 from utils_for_recordprocessor import get_environment, get_csv_content_dict_reader
-from get_action_flag_permissions import get_action_flag_permissions
+from get_operation_permissions import get_operation_permissions
 from process_row import process_row
 from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
@@ -28,7 +28,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     vaccine_type = incoming_message_body.get("vaccine_type").upper()
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
-    action_flag_permissions = get_action_flag_permissions(supplier, vaccine_type)
+    action_flag_permissions = get_operation_permissions(supplier, vaccine_type)
 
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
@@ -57,7 +57,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
         # Send to kinesis. Add diagnostics if send fails.
         message_delivered = send_to_kinesis(supplier, outgoing_message_body)
-        if (diagnostics := details_from_processing["diagnostics"]) is None and message_delivered is False:
+        if (diagnostics := details_from_processing.get("diagnostics")) is None and message_delivered is False:
             diagnostics = "Unsupported file type received as an attachment"
 
         # Update the ack file

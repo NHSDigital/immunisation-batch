@@ -131,7 +131,7 @@ class TestRecordProcessor(unittest.TestCase):
         sent to kinesis.
         """
         permissions = deepcopy(MOCK_PERMISSIONS)
-        permissions["all_permissions"]["EMIS"] = ["FLU_NEW"]
+        permissions["all_permissions"]["EMIS"] = ["FLU_CREATE"]
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
