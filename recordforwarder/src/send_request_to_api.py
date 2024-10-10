@@ -1,6 +1,5 @@
 """Function to send the request to the Imms API (or return appropriate diagnostics if this is not possible)"""
 
-import re
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from immunisation_api import ImmunizationApi
