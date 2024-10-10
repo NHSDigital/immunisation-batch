@@ -25,14 +25,6 @@ parameters:
     type: string
     default: "3.8"
 
-resources:
-  repositories:
-    - repository: azure
-      type: github
-      name: NHSDigital/api-management-utils
-      ref: refs/heads/edge
-      endpoint: NHSDigital
-
 jobs:
   - job: build
     displayName: Build & Test
