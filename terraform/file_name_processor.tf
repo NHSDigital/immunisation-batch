@@ -96,13 +96,15 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         Resource = "*"
       },
       {
-        Effect   = "Allow",
-        Action   = [
-          "ec2:CreateNetworkInterface",
-          "ec2:DescribeNetworkInterfaces",
-          "ec2:DeleteNetworkInterface"
-        ],
-        Resource = "*",
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface"
+        ]
+        Resource = [
+          "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:subnet/subnet-03727ab465af588cd",
+          "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:subnet/subnet-0865f12fc32c8ccf3",
+          "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:subnet/subnet-03727ab465af588cd"
+        ]
       },
       {
         Effect   = "Allow"
@@ -260,25 +262,47 @@ resource "aws_iam_policy" "elasticache_permissions" {
       {
         Effect = "Allow"
         Action = [
-          "elasticache:CreateCacheCluster",
-          "elasticache:DeleteCacheCluster",
           "elasticache:DescribeCacheClusters",
-          "elasticache:ModifyCacheCluster",
           "elasticache:ListTagsForResource",
           "elasticache:AddTagsToResource",
           "elasticache:RemoveTagsFromResource"
         ]
-        Resource = "*"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticache:CreateCacheCluster",
+          "elasticache:DeleteCacheCluster",
+          "elasticache:ModifyCacheCluster"
+        ]
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster"
+        Condition = {
+          "StringEquals": {
+            "aws:RequestedRegion": "${var.aws_region}"
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticache:DescribeCacheSubnetGroups"
+        ]
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-sg"
       },
       {
         Effect = "Allow"
         Action = [
           "elasticache:CreateCacheSubnetGroup",
           "elasticache:DeleteCacheSubnetGroup",
-          "elasticache:DescribeCacheSubnetGroups",
           "elasticache:ModifyCacheSubnetGroup"
         ]
-        Resource = "*"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-sg"
+        Condition = {
+          "StringEquals": {
+            "aws:RequestedRegion": "${var.aws_region}"
+          }
+        }
       }
     ]
   })
