@@ -25,6 +25,14 @@ parameters:
     type: string
     default: "3.8"
 
+resources:
+  repositories:
+    - repository: common
+      type: github
+      name: NHSDigital/api-management-utils
+      ref: refs/heads/edge
+      endpoint: NHSDigital
+
 jobs:
   - job: build
     displayName: Build & Test
@@ -53,7 +61,8 @@ jobs:
           echo ssh ubuntu@${instance_id}
           echo working directory: $(System.DefaultWorkingDirectory)
         displayName: print aws info
-      - template: azure/components/aws-clean-config.yml@components
+      - extends:
+          template: azure/components/aws-clean-config.yml@components
 
       - ${{ if parameters.notify }}:
         - template: azure/components/aws-assume-role.yml@components
