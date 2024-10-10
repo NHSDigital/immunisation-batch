@@ -31,11 +31,11 @@ module "processing_docker_image" {
     "rules" : [
       {
         "rulePriority" : 1,
-        "description" : "Keep only the last 2 images",
+        "description" : "Keep only the last 1 images",
         "selection" : {
           "tagStatus" : "any",
           "countType" : "imageCountMoreThan",
-          "countNumber" : 2
+          "countNumber" : 1
         },
         "action" : {
           "type" : "expire"
