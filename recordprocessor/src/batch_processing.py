@@ -50,14 +50,10 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
         # Create the message body for sending
         outgoing_message_body = {
             "message_id": row_id,
-            "fhir_json": details_from_processing["fhir_json"],
-            "action_flag": details_from_processing["action_flag"],
             "file_name": file_key,
+            "supplier": supplier,
+            **details_from_processing,
         }
-        if imms_id := details_from_processing.get("imms_id"):
-            outgoing_message_body["imms_id"] = imms_id
-        if version := details_from_processing.get("version"):
-            outgoing_message_body["version"] = version
 
         # Send to kinesis. Add diagnostics if send fails.
         message_delivered = send_to_kinesis(supplier, outgoing_message_body)

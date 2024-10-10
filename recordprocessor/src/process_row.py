@@ -18,32 +18,18 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
     (where applicable), version(where applicable) and any diagnostics.
     """
     action_flag = action_flag.upper() if (action_flag := row.get("ACTION_FLAG")) is not None else ""
-    logger.info("ACTION FLAG PERMISSION REQUESTED:  %s", action_flag)
-    logger.info("PERMISSIONS OPERATIONS %s", permission_operations)
+    logger.info("ACTION FLAG PERMISSIONS REQUESTED:  %s", action_flag)
+    logger.info("ACTION FLAG PERMISSIONS ALLOWED: %s", permission_operations)
 
     # Handle no permissions
     if action_flag not in permission_operations:
         logger.info("Skipping row as supplier does not have the permissions for this csv operation %s", action_flag)
-        return {
-            "fhir_json": "No_Permissions",
-            "action_flag": "No_Permissions",
-            "imms_id": None,
-            "version": None,
-            "diagnostics": "No permissions for operation",
-        }
-
-    fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
+        return {"diagnostics": "No permissions for operation"}
 
     # Handle missing UNIQUE_ID or UNIQUE_ID_URI or invalid conversion
-    if not ((identifier_system := row.get("UNIQUE_ID_URI")) and (identifier_value := row.get("UNIQUE_ID")) and valid):
+    if not ((identifier_system := row.get("UNIQUE_ID_URI")) and (identifier_value := row.get("UNIQUE_ID"))):
         logger.error("Invalid row format: row is missing either UNIQUE_ID or UNIQUE_ID_URI")
-        return {
-            "fhir_json": "None",
-            "action_flag": "None",
-            "imms_id": "None",
-            "version": "None",
-            "diagnostics": "Unsupported file type received as an attachment",
-        }
+        return {"diagnostics": "Unsupported file type received as an attachment"}
 
     # Obtain the imms id and version from the ieds for update and delete
     if action_flag in ("DELETE", "UPDATE"):
@@ -51,13 +37,13 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
         # Handle non-200 response from Immunisation API
         if not (response.get("total") == 1 and status_code == 200):
             logger.info("imms_id not found:%s and status_code: %s", response, status_code)
-            return {
-                "fhir_json": fhir_json,
-                "action_flag": "None",
-                "imms_id": "None",
-                "version": "None",
-                "diagnostics": "Unsupported file type received as an attachment",
-            }
+            return {"diagnostics": "Unsupported file type received as an attachment"}
+
+    fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
+    # Handle invalid conversion
+    if not valid:
+        logger.error("Invalid row format: unable to complete conversion")
+        return {"diagnostics": "Unsupported file type received as an attachment"}
 
     # Handle success
     resource = response.get("entry", [])[0]["resource"] if action_flag in ("DELETE", "UPDATE") else None

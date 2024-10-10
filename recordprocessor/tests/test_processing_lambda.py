@@ -186,7 +186,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         with patch("process_row.convert_to_fhir_json", return_value=({}, False)), patch(
             "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
-        ):
+        ), patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
