@@ -27,7 +27,7 @@ parameters:
 
 resources:
   repositories:
-    - repository: common
+    - repository: azure
       type: github
       name: NHSDigital/api-management-utils
       ref: refs/heads/edge
