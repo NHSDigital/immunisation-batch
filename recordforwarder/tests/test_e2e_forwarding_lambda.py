@@ -11,6 +11,8 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     DESTINATION_BUCKET_NAME,
     TEST_FILE_KEY,
     TEST_ACK_FILE_KEY,
+    TEST_SUPPLIER,
+    TEST_MESSAGE_ID,
 )
 import base64
 
@@ -57,20 +59,22 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_success(self, mock_api):
         message = {
-            "message_id": "test_id",
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
         }
         self.execute_test(mock_api, message, 201, "ok")
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         message = {
-            "message_id": "test_id",
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
         }
@@ -79,9 +83,11 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_failed(self, mock_api):
         message = {
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "new",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
         }
@@ -93,11 +99,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.create_immunization.return_value = ("", 201)
 
         message = {
-            "fhir_json": "None",
-            "action_flag": "None",
+            "message_id": TEST_MESSAGE_ID,
             "file_name": TEST_FILE_KEY,
-            "imms_id": "None",
-            "version": "None",
+            "supplier": TEST_SUPPLIER,
+            "diagnostics": "Unsupported file type received as an attachment",
         }
 
         kinesis_message = self.create_kinesis_message(message)
@@ -109,9 +114,11 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_update_success(self, mock_api):
         message = {
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "update",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
         }
@@ -120,9 +127,11 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_update_failed(self, mock_api):
         message = {
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "update",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
         }
@@ -134,9 +143,11 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.delete_immunization.return_value = ("", 204)
 
         message = {
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "delete",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
         }
@@ -153,9 +164,11 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_api.delete_immunization.return_value = ("", 404)
 
         message = {
+            "message_id": TEST_MESSAGE_ID,
             "fhir_json": test_fhir_json,
             "action_flag": "delete",
             "file_name": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
             "imms_id": "test",
             "version": 1,
         }
@@ -170,12 +183,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.setup_s3()
 
         message = {
-            "fhir_json": "No_Permissions",
-            "action_flag": "No_Permissions",
+            "message_id": TEST_MESSAGE_ID,
             "file_name": TEST_FILE_KEY,
-            "imms_id": "None",
-            "version": "None",
-            "message_id": "4444-777",
+            "supplier": TEST_SUPPLIER,
+            "diagnostics": "No permissions for operation",
         }
 
         kinesis_message = self.create_kinesis_message(message)

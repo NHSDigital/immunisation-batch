@@ -4,19 +4,11 @@ import re
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from immunisation_api import ImmunizationApi
-from ods_patterns import ODS_PATTERNS
 
 
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
-
-
-def identify_supplier(file_key: str):
-    """Identify the supplier using the ODS code in the file name"""
-    supplier_match = re.search(r"_Vaccinations_v\d+_(\w+)_\d+T\d+\.csv$", file_key)
-    ods_code = supplier_match.group(1).upper() if supplier_match else None
-    return ODS_PATTERNS.get(ods_code, None)
 
 
 def send_request_to_api(message_body):
@@ -28,60 +20,54 @@ def send_request_to_api(message_body):
 
     fhir_json = message_body.get("fhir_json")
     action_flag = message_body.get("action_flag")
-    file_key = message_body.get("file_name")
+    supplier_system = message_body.get("supplier")
     imms_id = message_body.get("imms_id")
     version = message_body.get("version")
+    incoming_diagnostics = message_body.get("diagnostics")
 
     message_delivered = False
     diagnostics = None
     response_code = None
 
-    for _ in range(1):
-        if fhir_json == "No_Permissions":
+    if incoming_diagnostics:
+        response_code = "20005"
+        if incoming_diagnostics == "No permissions for operation":
             diagnostics = "Skipped As No permissions for operation"
-            response_code = "20005"
-            break
+        elif incoming_diagnostics == "Unsupported file type received as an attachment":
+            diagnostics = "failed in json conversion or obtaining imms_id and version"
+        elif incoming_diagnostics == "Unable to obtain imms_id":
+            diagnostics = incoming_diagnostics
+        elif incoming_diagnostics == "Unable to obtain version":
+            diagnostics = incoming_diagnostics
 
-        if imms_id == "None" and version == "None":
-            diagnostics = "failed in json conversion"
-            response_code = "20005"
-            break
+    elif action_flag == "new":
+        _, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
+        if status_code == 201:
+            response_code = "20013"
+            message_delivered = True
+        elif status_code == 422:
+            diagnostics = "Duplicate Message received"
+            response_code = "20007"
+        else:
+            diagnostics = "Payload validation failure"
+            response_code = "20009"
 
-        supplier_system = identify_supplier(file_key)
+    elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
+        fhir_json["id"] = imms_id
+        _, status_code = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier_system)
+        if status_code == 200:
+            response_code = "20013"
+        else:
+            diagnostics = "Payload validation failure"
+            response_code = "20009"
 
-        if action_flag == "new":
-            response, status_code = immunization_api_instance.create_immunization(fhir_json, supplier_system)
-            print(f"response:{response},status_code:{status_code}")
-            if status_code == 201:
-                response_code = "20013"
-                message_delivered = True
-            elif status_code == 422:
-                diagnostics = "Duplicate Message received"
-                response_code = "20007"
-            else:
-                diagnostics = "Payload validation failure"
-                response_code = "20009"
-
-        elif action_flag == "update" and imms_id not in (None, "None") and version not in (None, "None"):
-            fhir_json["id"] = imms_id
-            response, status_code = immunization_api_instance.update_immunization(
-                imms_id, version, fhir_json, supplier_system
-            )
-            print(f"response:{response},status_code:{status_code}")
-            if status_code == 200:
-                response_code = "20013"
-            else:
-                diagnostics = "Payload validation failure"
-                response_code = "20009"
-
-        elif action_flag == "delete" and imms_id not in (None, "None"):
-            response, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
-            print(f"response:{response},status_code:{status_code}")
-            if status_code == 204:
-                response_code = "20013"
-                message_delivered = True
-            else:
-                diagnostics = "Payload validation failure"
-                response_code = "20009"
+    elif action_flag == "delete" and imms_id not in (None, "None"):
+        _, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier_system)
+        if status_code == 204:
+            response_code = "20013"
+            message_delivered = True
+        else:
+            diagnostics = "Payload validation failure"
+            response_code = "20009"
 
     return message_delivered, response_code, diagnostics
