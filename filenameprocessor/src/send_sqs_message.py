@@ -27,7 +27,7 @@ def send_to_supplier_queue(message_body: dict) -> bool:
     try:
         print("sqs_send_message going to initiate")
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body),
-                                MessageDeduplicationId='1', MessageGroupId=supplier)
+                                MessageGroupId=supplier)
         print("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
     except Exception as e:
         print("An unexpected error occurred: %s", e)
