@@ -61,8 +61,7 @@ jobs:
           echo ssh ubuntu@${instance_id}
           echo working directory: $(System.DefaultWorkingDirectory)
         displayName: print aws info
-      - extends:
-          template: azure/components/aws-clean-config.yml@components
+      - template: azure/components/aws-clean-config.yml@components
 
       - ${{ if parameters.notify }}:
         - template: azure/components/aws-assume-role.yml@components
