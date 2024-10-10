@@ -72,8 +72,6 @@ class TestForwardingLambda(unittest.TestCase):
                 "supplier": "Test_supplier",
                 "operation_requested": "CREATE",
                 "fhir_json": "{}",
-                "imms_id": None,
-                "version": None,
             }
             forward_request_to_api(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
@@ -157,7 +155,6 @@ class TestForwardingLambda(unittest.TestCase):
                 "operation_requested": "DELETE",
                 "fhir_json": "{}",
                 "imms_id": "imms_id",
-                "version": None,
             }
             forward_request_to_api(message_body)
             mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013", None)
