@@ -130,9 +130,6 @@ jobs:
         inputs:
           versionSpec: ${{ parameters.python_version }}
 
-      - ${{ each cache_step in parameters.cache_steps }}:
-          - ${{ cache_step }}
-
       - bash: |
           n=0
           until [ "$n" -ge 3 ]
