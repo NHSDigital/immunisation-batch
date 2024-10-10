@@ -13,8 +13,8 @@ def forward_request_to_api(message_body):
     """Forwards the request to the Imms API (where possible) and updates the ack file with the outcome"""
     file_key = message_body.get("file_name")
     row_id = message_body.get("message_id")
-    message_delivered, response_code, diagnostics = send_request_to_api(message_body)
-    update_ack_file(file_key, row_id, message_delivered, response_code, diagnostics)
+    successful_api_response, response_code, diagnostics = send_request_to_api(message_body)
+    update_ack_file(file_key, row_id, successful_api_response, response_code, diagnostics)
 
 
 def forward_lambda_handler(event, _):

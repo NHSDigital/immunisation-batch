@@ -15,7 +15,7 @@ logger = logging.getLogger()
 def create_ack_data(
     created_at_formatted_string: str,
     row_id: str,
-    delivered: bool,
+    successful_api_response: bool,
     response_code: str,
     diagnostics: Union[None, str] = None,
 ) -> dict:
@@ -31,7 +31,7 @@ def create_ack_data(
         "RECEIVED_TIME": created_at_formatted_string,
         "MAILBOX_FROM": "TBC",
         "LOCAL_ID": "DPS",
-        "MESSAGE_DELIVERY": delivered,
+        "MESSAGE_DELIVERY": successful_api_response,
     }
 
 

@@ -23,13 +23,10 @@ class ImmunizationApi:
 
     def update_immunization(self, imms_id, version_id, imms, supplier_system):
         """Sends an UPDATE request to the Imms API"""
-        print(f"imms_id:{imms_id}")
-        print(f"version_id:{version_id}")
         return self._send("PUT", f"/Immunization/{imms_id}", imms, version_id, supplier_system)
 
     def delete_immunization(self, imms_id, imms, supplier_system):
         """Sends a DELETE request to the Imms API"""
-        print(f"imms_id:{imms_id}")
         return self._send("DELETE", f"/Immunization/{imms_id}", imms, None, supplier_system)
 
     def _send(self, method: str, path: str, imms, version_id, supplier_system):
