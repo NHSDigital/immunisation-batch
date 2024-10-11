@@ -44,7 +44,7 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "row_id": None,
+                "row_id": "test_1",
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "CREATE",
@@ -52,7 +52,7 @@ class TestForwardingLambda(unittest.TestCase):
             }
             forward_request_to_api(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
-            mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013", None)
+            mock_data_rows.assert_called_with("20240821T10153000", "test_1", True, "20013", None)
             # Verify that the create_immunization API was called exactly once
             mock_api.create_immunization.assert_called_once()
 
@@ -67,7 +67,7 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "row_id": None,
+                "row_id": "test_2",
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "CREATE",
@@ -75,7 +75,9 @@ class TestForwardingLambda(unittest.TestCase):
             }
             forward_request_to_api(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
-            mock_data_rows.assert_called_with("20240821T10153000", None, False, "20007", "Duplicate Message received")
+            mock_data_rows.assert_called_with(
+                "20240821T10153000", "test_2", False, "20007", "Duplicate Message received"
+            )
             # Verify that the create_immunization API was called exactly once
             mock_api.create_immunization.assert_called_once()
 
@@ -89,7 +91,7 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "row_id": None,
+                "row_id": "test_3",
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "UPDATE",
@@ -98,7 +100,9 @@ class TestForwardingLambda(unittest.TestCase):
                 "version": "v1",
             }
             forward_request_to_api(message_body)
-            mock_data_rows.assert_called_with("20240821T10153000", None, False, "20009", "Payload validation failure")
+            mock_data_rows.assert_called_with(
+                "20240821T10153000", "test_3", False, "20009", "Payload validation failure"
+            )
             mock_api.update_immunization.assert_called_once_with(
                 "imms_id", "v1", {"resourceType": "immunization", "id": "imms_id"}, "Test_supplier"
             )
@@ -113,13 +117,13 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "row_id": None,
+                "row_id": "test_4",
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "diagnostics": "Unable to obtain imms_id",
             }
             forward_request_to_api(message_body)
-            mock_data_rows.assert_called_with("20240821T10153000", None, False, "20005", "Unable to obtain imms_id")
+            mock_data_rows.assert_called_with("20240821T10153000", "test_4", False, "20005", "Unable to obtain imms_id")
             mock_api.update_immunization.assert_not_called()
 
     @patch("update_ack_file.s3_client")
@@ -132,13 +136,13 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "row_id": None,
+                "row_id": "test_5",
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "diagnostics": "Unable to obtain imms_id",
             }
             forward_request_to_api(message_body)
-            mock_data_rows.assert_called_with("20240821T10153000", None, False, "20005", "Unable to obtain imms_id")
+            mock_data_rows.assert_called_with("20240821T10153000", "test_5", False, "20005", "Unable to obtain imms_id")
             mock_api.delete_immunization.assert_not_called()
 
     @patch("update_ack_file.s3_client")
@@ -150,14 +154,14 @@ class TestForwardingLambda(unittest.TestCase):
 
         with patch("update_ack_file.create_ack_data") as mock_data_rows:
             message_body = {
-                "row_id": None,
+                "row_id": "test_6",
                 "file_key": "file.csv",
                 "operation_requested": "DELETE",
                 "fhir_json": "{}",
                 "imms_id": "imms_id",
             }
             forward_request_to_api(message_body)
-            mock_data_rows.assert_called_with("20240821T10153000", None, True, "20013", None)
+            mock_data_rows.assert_called_with("20240821T10153000", "test_6", True, "20013", None)
             mock_api.delete_immunization.assert_called_once_with("imms_id", "{}", None)
 
     @patch("forwarding_lambda.forward_request_to_api")
@@ -168,7 +172,7 @@ class TestForwardingLambda(unittest.TestCase):
 
         # Simulate the event data that Lambda would receive
         message_body = {
-            "row_id": "test",
+            "row_id": "test_7",
             "fhir_json": "{}",
             "operation_requested": "CREATE",
             "file_key": "test_file.csv",
@@ -186,7 +190,7 @@ class TestForwardingLambda(unittest.TestCase):
     def test_forward_lambda_handler_update(self, mock_get_environment, mock_forward_request_to_api):
         mock_get_environment.return_value = "internal-dev"
         message_body = {
-            "row_id": "test",
+            "row_id": "test_8",
             "fhir_json": "{}",
             "operation_requested": "UPDATE",
             "file_key": "test_file.csv",
