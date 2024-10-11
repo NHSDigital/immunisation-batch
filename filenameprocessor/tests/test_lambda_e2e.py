@@ -6,6 +6,8 @@ from json import loads as json_loads
 from typing import Optional
 from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
+import json
+import os
 from src.file_name_processor import lambda_handler
 from tests.utils_for_tests.values_for_tests import (
     VALID_FILE_CONTENT,
@@ -13,7 +15,8 @@ from tests.utils_for_tests.values_for_tests import (
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
-    CONFIGS_BUCKET_NAME
+    CONFIGS_BUCKET_NAME,
+    PERMISSION_JSON
 )
 
 
@@ -82,15 +85,12 @@ NOTE: All helper functions default to use valid file content with
 
     @mock_s3
     @mock_sqs
-    @patch("initial_file_validation.get_permissions_config_json_from_cache")
-    def test_lambda_handler_full_permissions(self, mock_get_permissions):
+    @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
+    @patch('fetch_permissions.redis_client')
+    def test_lambda_handler_full_permissions(self, mock_redis_client):
         """Tests lambda function end to end"""
-        # set up mock for the permission when the validation passed
-        mock_get_permissions.return_value = {
-            "all_permissions": {
-                "EMIS": ["FLU_FULL"]
-            }
-        }
+        # set up mock for the permission
+        mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
 
         # Set up S3
         s3_client = self.set_up_s3_buckets_and_upload_file()
@@ -102,8 +102,8 @@ NOTE: All helper functions default to use valid file content with
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full FLU permissions
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]):
-            response = lambda_handler(self.make_event(), None)
+
+        response = lambda_handler(self.make_event(), None)
 
         # Assertions
         self.assertEqual(response["statusCode"], 200)
@@ -145,6 +145,31 @@ NOTE: All helper functions default to use valid file content with
         # Assert Lambda response
         assert response["statusCode"] == 200
         assert response["body"] == '"File content upload to cache from S3 bucket completed"'
+
+    @patch('elasticcache.s3_client.get_object')
+    @patch('elasticcache.upload_to_elasticache')
+    @patch('s3_clients.s3_client.get_object')
+    def test_processing_from_configs_failed(self, mock_head_object, mock_upload_to_elasticache, mock_s3_get_object):
+        # Mock S3 head_object response
+        mock_head_object.return_value = {
+            "LastModified": MagicMock(strftime=lambda fmt: "20240708T12130100")
+        }
+
+        # Mock S3 get_object response for retrieving file content
+        mock_s3_get_object.return_value = {
+            "Body": MagicMock(read=lambda: "mock_file_content".encode("utf-8"))
+        }
+        # Simulate an exception being raised when upload_to_elasticache is called
+        mock_upload_to_elasticache.side_effect = Exception("Simulated ElastiCache upload failure")
+        # Invoke the Lambda function with the mocked event
+        response = lambda_handler(self.make_event_configs(), None)
+
+        # Assert that S3 get_object was called with the correct parameters
+        mock_s3_get_object.assert_called_once_with(Bucket=CONFIGS_BUCKET_NAME, Key=VALID_FLU_EMIS_FILE_KEY)
+
+        # Assert Lambda response
+        assert response["statusCode"] == 400
+        assert response["body"] == '"Failed to upload file content to cache from S3 bucket"'
 
     @mock_s3
     def test_lambda_invalid_csv_header(self):

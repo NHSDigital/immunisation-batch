@@ -3,7 +3,6 @@
 import logging
 import os
 from json import dumps as json_dumps
-from constants import Constants
 from utils_for_filenameprocessor import extract_file_key_elements
 from s3_clients import sqs_client
 
@@ -19,18 +18,15 @@ def send_to_supplier_queue(message_body: dict) -> bool:
 
     # Find the URL of the relevant queue
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    supplier_sqs_name = Constants.SUPPLIER_TO_SQSQUEUE_MAPPINGS.get(supplier, supplier)
     account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-metadata-queue.fifo"
 
     # Send to queue
     try:
-        print("sqs_send_message going to initiate")
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body),
                                 MessageGroupId=supplier)
-        print("Message sent to SQS queue '%s' for supplier %s", supplier_sqs_name, supplier)
     except Exception as e:
-        print("An unexpected error occurred: %s", e)
+        logger.error("An unexpected error occurred: %s", e)
         return False
     return True
 
@@ -54,5 +50,4 @@ def make_and_send_sqs_message(file_key: str, message_id: str, permission: str) -
     Returns a bool to indication if the message has been sent successfully.
     """
     message_body = make_message_body_for_sqs(file_key=file_key, message_id=message_id, permission=permission)
-    print(f"message_body:{message_body}")
     return send_to_supplier_queue(message_body)

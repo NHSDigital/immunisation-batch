@@ -45,7 +45,6 @@ def get_supplier_permissions(supplier: str) -> list:
 def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
     """Returns True if the given supplier has any permissions for the given vaccine type, else False"""
     allowed_permissions = get_supplier_permissions(supplier)
-    print(f"allowed_permissions:{allowed_permissions}")
     return vaccine_type in " ".join(allowed_permissions)
 
 
@@ -56,7 +55,6 @@ def validate_action_flag_permissions(csv_content_dict_reader, supplier: str, vac
     """
     # Obtain the allowed permissions for the supplier
     allowed_permissions_set = set(get_supplier_permissions(supplier))
-    print(f"allowed_permissions_set:{allowed_permissions_set}")
     # If the supplier has full permissions for the vaccine type return True
     if f"{vaccine_type}_FULL" in allowed_permissions_set:
         logger.info("%s has FULL permissions to create, update and delete", supplier)
@@ -111,12 +109,10 @@ def initial_file_validation(file_key: str, bucket_name: str):
 
     # Obtain the file content
     csv_content_dict_reader = get_csv_content_dict_reader(bucket_name=bucket_name, file_key=file_key)
-    print("ongoing")
     # Validate the content headers
     if not validate_content_headers(csv_content_dict_reader):
         logger.error("Initial file validation failed: incorrect column headers")
         return False
-    print("2")
     # Validate has permissions for the vaccine type
     if not validate_vaccine_type_permissions(supplier, vaccine_type):
         logger.error("Initial file validation failed: %s does not have permissions for %s", supplier, vaccine_type)
