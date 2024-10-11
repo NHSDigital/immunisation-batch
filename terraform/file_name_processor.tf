@@ -407,7 +407,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     ]
   })
   tags = {
-    Name = "${var.project_name}-${local.environment}-s3-endpoint"
+    Name = "${var.project_name}-s3-endpoint"
   }
 }
 
@@ -442,7 +442,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     ]
   })
   tags = {
-    Name = "${var.project_name}-${local.environment}-sqs-endpoint"
+    Name = "${var.project_name}-sqs-endpoint"
   }
 }
 
