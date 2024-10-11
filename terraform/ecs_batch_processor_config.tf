@@ -240,7 +240,7 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
           "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*",
           "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${local.short_prefix}-metadata-queue.fifo",
           "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster",
-           aws_ecs_task_definition.your_task_definition.arn
+           aws_ecs_task_definition.ecs_task.arn
           ]
        },
        {
