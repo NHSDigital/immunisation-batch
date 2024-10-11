@@ -20,7 +20,7 @@ steps:
 
   - bash: |
       set -e
-      if ! [[ $AWS_ENVIRONMENT =~ .*-*sandbox ]]; then
+      if ! [[ $APIGEE_ENVIRONMENT =~ .*-*sandbox ]]; then
         export AWS_PROFILE=apim-dev
         aws_account_no="$(aws sts get-caller-identity --query Account --output text)"
 
@@ -28,7 +28,7 @@ steps:
 
         pr_no=$(echo $service_name | { grep -oE '[0-9]+$' || true; })
         if [ -z $pr_no ]; then
-          workspace=$AWS_ENVIRONMENT
+          workspace=$APIGEE_ENVIRONMENT
         else
           workspace=pr-$pr_no
         fi
@@ -36,7 +36,7 @@ steps:
         echo sandbox with following parameters:
         echo service_name: $service_name
         echo workspace: $workspace
-        echo AWS environment: $AWS_ENVIRONMENT
+        echo AWS environment: $APIGEE_ENVIRONMENT
         echo pr_no: $pr_no
 
           cd terraform

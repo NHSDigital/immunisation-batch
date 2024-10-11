@@ -122,8 +122,8 @@ jobs:
         - bash: |
             set -euo pipefail
             echo "For backward compatibility..."
-            echo "##vso[task.setvariable variable=AWS_ENVIRONMENT]${{ parameters.environment }}"
-          displayName: Setting AWS_ENVIRONMENT=${{ parameters.environment }}
+            echo "##vso[task.setvariable variable=APIGEE_ENVIRONMENT]${{ parameters.environment }}"
+          displayName: Setting APIGEE_ENVIRONMENT=${{ parameters.environment }}
 
         - bash: |
             if [[ ! -z $(UTILS_PR_NUMBER) ]]; then
