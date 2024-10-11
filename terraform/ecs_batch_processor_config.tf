@@ -235,12 +235,7 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
            "logs:PutLogEvents"
          ]
          Effect = "Allow"
-         Resource = ["arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/pipes/${local.prefix}-pipe-logs:*",
-          "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:task/${local.prefix}-ecs-cluster/*",
-          "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*",
-          "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${local.short_prefix}-metadata-queue.fifo",
-          "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster"
-          ]
+         Resource = "*"
        },
        {
          Effect   = "Allow",
