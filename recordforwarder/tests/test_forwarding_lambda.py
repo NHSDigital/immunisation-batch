@@ -167,62 +167,36 @@ class TestForwardingLambda(unittest.TestCase):
         mock_get_environment.return_value = "internal-dev"
 
         # Simulate the event data that Lambda would receive
+        message_body = {
+            "row_id": "test",
+            "fhir_json": "{}",
+            "operation_requested": "CREATE",
+            "file_key": "test_file.csv",
+        }
         event = {
             "Records": [
-                {
-                    "kinesis": {
-                        "data": base64.b64encode(
-                            json.dumps(
-                                {
-                                    "row_id": "test",
-                                    "fhir_json": "{}",
-                                    "operation_requested": "CREATE",
-                                    "file_key": "test_file.csv",
-                                }
-                            ).encode("utf-8")
-                        ).decode("utf-8")
-                    }
-                }
+                {"kinesis": {"data": base64.b64encode(json.dumps(message_body).encode("utf-8")).decode("utf-8")}}
             ]
         }
         forward_lambda_handler(event, None)
-        message_body = {
-            "row_id": "test",
-            "file_key": "test_file.csv",
-            "operation_requested": "CREATE",
-            "fhir_json": "{}",
-        }
         mock_forward_request_to_api.assert_called_once_with(message_body)
 
     @patch("forwarding_lambda.forward_request_to_api")
     @patch("utils_for_record_forwarder.get_environment")
     def test_forward_lambda_handler_update(self, mock_get_environment, mock_forward_request_to_api):
         mock_get_environment.return_value = "internal-dev"
+        message_body = {
+            "row_id": "test",
+            "fhir_json": "{}",
+            "operation_requested": "UPDATE",
+            "file_key": "test_file.csv",
+        }
         event = {
             "Records": [
-                {
-                    "kinesis": {
-                        "data": base64.b64encode(
-                            json.dumps(
-                                {
-                                    "row_id": "test",
-                                    "fhir_json": "{}",
-                                    "operation_requested": "UPDATE",
-                                    "file_key": "test_file.csv",
-                                }
-                            ).encode("utf-8")
-                        ).decode("utf-8")
-                    }
-                }
+                {"kinesis": {"data": base64.b64encode(json.dumps(message_body).encode("utf-8")).decode("utf-8")}}
             ]
         }
         forward_lambda_handler(event, None)
-        message_body = {
-            "row_id": "test",
-            "file_key": "test_file.csv",
-            "operation_requested": "UPDATE",
-            "fhir_json": "{}",
-        }
         mock_forward_request_to_api.assert_called_once_with(message_body)
 
     @patch("forwarding_lambda.logger")
