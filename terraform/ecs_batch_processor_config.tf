@@ -109,12 +109,14 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
       {
         Effect   = "Allow",
         Action   = "kms:Decrypt",
-        Resource = "*"
+        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
       },
       {
         Effect   = "Allow",
         Action   = "secretsmanager:GetSecretValue",
-        Resource = "*"
+        Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
+        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
+        ]
       },
       {
         Effect   = "Allow",
@@ -129,7 +131,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
         Action   = [
           "ecr:GetAuthorizationToken"
         ],
-        Resource = "*"
+        Resource = "arn:aws:ecr:${var.aws_region}:${local.local_account_id}:repository/${local.short_prefix}-processing-repo"
       }
     ]
   })
@@ -233,7 +235,12 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
            "logs:PutLogEvents"
          ]
          Effect = "Allow"
-         Resource = "*"
+         Resource = ["arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/pipes/${local.prefix}-pipe-logs:*",
+          "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:task/${local.prefix}-ecs-cluster/*",
+          "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*",
+          "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${local.short_prefix}-metadata-queue.fifo",
+          "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster"
+          ]
        },
        {
          Effect   = "Allow",

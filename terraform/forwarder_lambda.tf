@@ -91,12 +91,14 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
       {
         Effect   = "Allow"
         Action   = "kms:Decrypt"
-        Resource = "*"
+        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
       },
       {
         Effect   = "Allow"
         Action   = "secretsmanager:GetSecretValue"
-        Resource = "*"
+         Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
+        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
+        ]
       },
       {
         Effect   = "Allow"
