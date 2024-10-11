@@ -12,20 +12,20 @@ def make_ack_data(
 ) -> dict:
     """Returns a dictionary of ack data based on the input values. Dictionary keys are the ack file headers,
     dictionary values are the values for the ack file row"""
+    success_display = "Success"
+    failure_display = "Infrastructure Level Response Value - Processing Error"
     return {
         "MESSAGE_HEADER_ID": message_id,
-        "HEADER_RESPONSE_CODE": "Success" if validation_passed else "Failure",
+        "HEADER_RESPONSE_CODE": "Success" if (validation_passed and message_delivered) else "Failure",
         "ISSUE_SEVERITY": "Information" if validation_passed else "Fatal",
         "ISSUE_CODE": "OK" if validation_passed else "Fatal Error",
         "ISSUE_DETAILS_CODE": "20013" if validation_passed else "10001",
         "RESPONSE_TYPE": "Technical",
-        "RESPONSE_CODE": "20013" if validation_passed else "10002",
-        "RESPONSE_DISPLAY": (
-            "Success" if validation_passed else "Infrastructure Level Response Value - Processing Error"
-        ),
+        "RESPONSE_CODE": "20013" if (validation_passed and message_delivered) else "10002",
+        "RESPONSE_DISPLAY": success_display if (validation_passed and message_delivered) else failure_display,
         "RECEIVED_TIME": created_at_formatted_string,
-        "MAILBOX_FROM": "TBC",  # TODO: Use correct value once known
-        "LOCAL_ID": "TBC",  # TODO: Use correct value once known
+        "MAILBOX_FROM": "",  # TODO: Leave blank for DPS, add mailbox if from mesh mailbox
+        "LOCAL_ID": "",  # TODO: Leave blank for DPS, add from ctl file if data picked up from MESH mailbox
         "MESSAGE_DELIVERY": message_delivered,
     }
 

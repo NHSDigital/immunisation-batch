@@ -12,7 +12,7 @@ from send_sqs_message import make_and_send_sqs_message
 from make_and_upload_ack_file import make_and_upload_ack_file
 from s3_clients import s3_client
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 
 
