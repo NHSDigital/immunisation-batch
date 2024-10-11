@@ -147,8 +147,9 @@ jobs:
               fi
               echo "##[debug]Triggered from utils repository, FULLY_QUALIFIED_SERVICE_NAME=${FULLY_QUALIFIED_SERVICE_NAME}"
             else
+              export FULLY_QUALIFIED_SERVICE_NAME="${{ parameters.service_name }}-$(PR_LABEL)"
               echo "##[debug]FULLY_QUALIFIED_SERVICE_NAME=${{ parameters.service_name }}-$(PR_LABEL)"
-              echo "##vso[task.setvariable variable=FULLY_QUALIFIED_SERVICE_NAME]$${{ parameters.service_name }}-$(PR_LABEL)"
+              echo "##vso[task.setvariable variable=FULLY_QUALIFIED_SERVICE_NAME]${FULLY_QUALIFIED_SERVICE_NAME}"
             fi
           displayName: Override FULLY_QUALIFIED_SERVICE_NAME
         
