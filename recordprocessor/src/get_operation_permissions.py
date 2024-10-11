@@ -11,13 +11,11 @@ def get_supplier_permissions(supplier: str) -> list:
     return get_permissions_config_json_from_s3().get("all_permissions", {}).get(supplier, [])
 
 
-def get_action_flag_permissions(supplier: str, vaccine_type: str) -> set:
-    """Returns the set of allowed action flags."""
+def get_operation_permissions(supplier: str, vaccine_type: str) -> set:
+    """Returns the set of allowed CRUD operations."""
     allowed_permissions = get_supplier_permissions(supplier)
     return (
-        {"NEW", "UPDATE", "DELETE"}
+        {"CREATE", "UPDATE", "DELETE"}
         if f"{vaccine_type}_FULL" in allowed_permissions
-        else {
-            perm.split("_")[1].replace("CREATE", "NEW") for perm in allowed_permissions if perm.startswith(vaccine_type)
-        }
+        else {perm.split("_")[1] for perm in allowed_permissions if perm.startswith(vaccine_type)}
     )

@@ -14,12 +14,23 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     CONFIG_BUCKET_NAME,
     PERMISSIONS_FILE_KEY,
     AWS_REGION,
+    VALID_FILE_CONTENT_WITH_NEW,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
+    VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE,
+    VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE,
+    TEST_ID,
+    TEST_VERSION,
     API_RESPONSE_WITH_ID_AND_VERSION,
+    API_RESPONSE_WITHOUT_ID_AND_VERSION,
+    API_RESPONSE_WITHOUT_VERSION,
     STREAM_NAME,
     TEST_ACK_FILE_KEY,
     TEST_EVENT_DUMPED,
     TEST_FILE_KEY,
+    TEST_SUPPLIER,
+    TEST_FILE_ID,
+    TEST_UNIQUE_ID,
+    TEST_DATE,
     MOCK_ENVIRONMENT_DICT,
     MOCK_PERMISSIONS,
 )
@@ -86,106 +97,204 @@ class TestRecordProcessor(unittest.TestCase):
         response = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_ACK_FILE_KEY)
         return response["Body"].read().decode("utf-8")
 
-    def test_e2e_happy_path(self):
+    def make_assertions(self, test_cases):
         """
-        Tests that, for a file with valid content and supplier with full permissions, the ack file is successfully
-        created and a message sent to kinesis.
+        The input is a list of test_case tuples where each tuple is structured as
+        (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success).
+        The standard key-value pairs
+        {row_id: {TEST_FILE_ID}#{index+1}, file_key: TEST_FILE_KEY, supplier: TEST_SUPPLIER} are added to the
+        expected_kinesis_data dictionary before assertions are made.
+        For each index, assertions will be made on the record found at the given index in the kinesis response.
+        Assertions made:
+        * Kinesis PartitionKey is TEST_SUPPLIER
+        * Kinesis SequenceNumber is index + 1
+        * Kinesis ApproximateArrivalTimestamp is later than the timestamp for the preceeding data row
+        * Where expected_success is True:
+            - "fhir_json" key is found in the Kinesis data
+            - Kinesis Data is equal to the expected_kinesis_data when ignoring the "fhir_json"
+            - "{TEST_FILE_ID}#{index+1}|ok" is found in the ack file
+        * Where expected_success is False:
+            - Kinesis Data is equal to the expected_kinesis_data
+            - "{TEST_FILE_ID}#{index+1}|fatal-error" is found in the ack file
         """
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
+
+        ack_file_content = self.get_ack_file_content()
+        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
+        previous_approximate_arrival_time_stamp = yesterday  # Initialise with a time prior to the running of the test
+        key_to_ignore = "fhir_json"  # TODO: Add unit tests for convert_to_fhir_json as this is not tested in e2e
+
+        for test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success in test_cases:
+            with self.subTest(test_name):
+
+                kinesis_record = kinesis_records[index]
+                self.assertEqual(kinesis_record["PartitionKey"], TEST_SUPPLIER)
+                self.assertEqual(kinesis_record["SequenceNumber"], f"{index+1}")
+
+                # Ensure that arrival times are sequential
+                approximate_arrival_timestamp = kinesis_record["ApproximateArrivalTimestamp"]
+                self.assertGreater(approximate_arrival_timestamp, previous_approximate_arrival_time_stamp)
+                previous_approximate_arrival_time_stamp = approximate_arrival_timestamp
+
+                kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"))
+                expected_kinesis_data = {
+                    "row_id": f"{TEST_FILE_ID}#{index+1}",
+                    "file_key": TEST_FILE_KEY,
+                    "supplier": TEST_SUPPLIER,
+                    **expected_kinesis_data_ignoring_fhir_json,
+                }
+                if expect_success:
+                    self.assertIn(key_to_ignore, kinesis_data)
+                    kinesis_data.pop(key_to_ignore)
+                    self.assertEqual(kinesis_data, expected_kinesis_data)
+                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|ok", ack_file_content)
+                else:
+                    self.assertEqual(kinesis_data, expected_kinesis_data)
+                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|fatal-error", ack_file_content)
+
+    def test_e2e_success(self):
+        """
+        Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier has
+        full permissions.
+        """
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        self.assertIn("ok", self.get_ack_file_content())
-
-        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
-        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
-        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
-        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        test_cases = [
+            ("CREATE success", 0, {"operation_requested": "CREATE"}, True),
+            ("UPDATE success", 1, {"operation_requested": "UPDATE", "imms_id": TEST_ID, "version": TEST_VERSION}, True),
+            ("DELETE success", 2, {"operation_requested": "DELETE", "imms_id": TEST_ID}, True),
+        ]
+        self.make_assertions(test_cases)
 
     def test_e2e_no_permissions(self):
         """
-        Tests that, for a file with valid content and supplier with no permissions, the ack file is successfully
-        created and documents an error for each line and a message sent to kinesis.
+        Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier does not have
+        any permissions.
         """
         permissions = deepcopy(MOCK_PERMISSIONS)
         permissions["all_permissions"]["EMIS"] = []
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE, mock_permissions=permissions)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        ack_file = self.get_ack_file_content()
-        self.assertIn("123456#1|fatal-error", ack_file)
-        self.assertIn("123456#2|fatal-error", ack_file)
+        expected_kinesis_data = {"diagnostics": "No permissions for operation"}
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
-        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
-        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
-        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        test_cases = [
+            ("CREATE no permissions", 0, expected_kinesis_data, False),
+            ("UPDATE no permissions", 1, expected_kinesis_data, False),
+            ("DELETE no permissions", 2, expected_kinesis_data, False),
+        ]
 
-    def test_e2e_one_permission(self):
+        self.make_assertions(test_cases)
+
+    def test_e2e_partial_permissions(self):
         """
-        Tests that, for a file with valid content and supplier with one permission, the ack file is successfully
-        created and documents 'ok' for the permitted line and 'fatal-error' for the non-permitted line and a message is
-        sent to kinesis.
+        Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier has partial
+        permissions.
         """
         permissions = deepcopy(MOCK_PERMISSIONS)
-        permissions["all_permissions"]["EMIS"] = ["FLU_NEW"]
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE, mock_permissions=permissions)
+        permissions["all_permissions"]["EMIS"] = ["FLU_CREATE"]
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE, mock_permissions=permissions)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        ack_file = self.get_ack_file_content()
-        self.assertIn("123456#1|ok", ack_file)
-        self.assertIn("123456#2|fatal-error", ack_file)
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        test_cases = [
+            ("CREATE create permission only", 0, {"operation_requested": "CREATE"}, True),
+            ("UPDATE create permission only", 1, {"diagnostics": "No permissions for operation"}, False),
+            ("DELETE create permission only", 2, {"diagnostics": "No permissions for operation"}, False),
+        ]
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
-        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
-        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
-        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+        self.make_assertions(test_cases)
 
     def test_e2e_invalid_data(self):
-        """
-        Tests that, for a file with invalid content and supplier with full permissions, the ack file is successfully
-        created and documents an error and a message is sent to kinesis.
-        """
-        self.upload_files(
-            VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace('"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"', "")
-        )
+        """Tests that file containing CREATEis successfully processed when there is invalid data."""
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace(TEST_DATE, "NOT_A_DATE"))
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        self.assertIn("fatal-error", self.get_ack_file_content())
-
-        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
-        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
-        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
-        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+        expected_kinesis_data = {"diagnostics": "Unsupported file type received as an attachment"}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        self.make_assertions([("CREATE invalid data", 0, expected_kinesis_data, False)])
 
     def test_e2e_imms_id_not_found(self):
         """
-        Tests that when the imms id can't be found for an update, the ack file is successfully
-        created and documents an error and a message is sent to kinesis.
+        Tests that file containing UPDATE and DELETE is successfully processed when the imms id is not found by the API.
         """
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
+        self.upload_files(VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
             main(TEST_EVENT_DUMPED)
 
-        self.assertIn("fatal-error", self.get_ack_file_content())
+        expected_kinesis_data = {"diagnostics": "Unsupported file type received as an attachment"}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        test_cases = [
+            ("UPDATE imms id not found", 0, expected_kinesis_data, False),
+            ("DELETE imms id not found", 1, expected_kinesis_data, False),
+        ]
 
-        kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
-        self.assertIsNotNone(kinesis_records[0]["Data"])  # The message for first row
-        self.assertEqual(kinesis_records[0]["PartitionKey"], "EMIS")
-        self.assertEqual(kinesis_records[0]["SequenceNumber"], "1")
+        self.make_assertions(test_cases)
+
+    def test_e2e_no_imms_id_in_api_response(self):
+        """
+        Tests that file containing UPDATE and DELETE is successfully processed when API response doesn't contain
+        the imms id.
+        """
+        self.upload_files(VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE)
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITHOUT_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data = {"diagnostics": "Unable to obtain imms_id"}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        test_cases = [
+            ("UPDATE imms no id in API response", 0, expected_kinesis_data, False),
+            ("DELETE imms no id in API response", 1, expected_kinesis_data, False),
+        ]
+
+        self.make_assertions(test_cases)
+
+    def test_e2e_no_version_in_api_response(self):
+        """
+        Tests that file containing UPDATE and DELETE is successfully processed when the API response doesn't contain
+        the version.
+        """
+        self.upload_files(VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE)
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITHOUT_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data_for_delete = {"operation_requested": "DELETE", "imms_id": TEST_ID}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        test_cases = [
+            ("UPDATE imms no version in API response", 0, {"diagnostics": "Unable to obtain version"}, False),
+            ("DELETE imms no version in API response", 1, expected_kinesis_data_for_delete, True),
+        ]
+
+        self.make_assertions(test_cases)
+
+    def test_e2e_no_unique_id(self):
+        """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace(TEST_UNIQUE_ID, ""))
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data = {"diagnostics": "Unsupported file type received as an attachment"}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        self.make_assertions([("CREATE no unique id", 0, expected_kinesis_data, False)])
 
     def test_e2e_kinesis_failed(self):
         """
         Tests that, for a file with valid content and supplier with full permissions, when the kinesis send fails, the
-        ack file created and documents an erro and a message in not sent to kinesis.
+        ack file is created and documents an error.
         """
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
         # Delete the kinesis stream, to cause kinesis send to fail

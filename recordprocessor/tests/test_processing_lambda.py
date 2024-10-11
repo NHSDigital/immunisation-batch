@@ -12,7 +12,7 @@ from batch_processing import (
 )
 from convert_fhir_json import convert_to_fhir_json
 from utils_for_recordprocessor import get_csv_content_dict_reader
-from get_action_flag_permissions import get_supplier_permissions, get_action_flag_permissions
+from get_operation_permissions import get_supplier_permissions, get_operation_permissions
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
@@ -104,9 +104,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
         self.assertIn(value, content)
 
     @patch("batch_processing.process_csv_to_fhir")
-    @patch("batch_processing.get_action_flag_permissions")
-    def test_lambda_handler(self, mock_get_action_flag_permissions, mock_process_csv_to_fhir):
-        mock_get_action_flag_permissions.return_value = {"NEW", "UPDATE", "DELETE"}
+    @patch("batch_processing.get_operation_permissions")
+    def test_lambda_handler(self, mock_get_operation_permissions, mock_process_csv_to_fhir):
+        mock_get_operation_permissions.return_value = {"NEW", "UPDATE", "DELETE"}
         message_body = {"vaccine_type": "COVID19", "supplier": "Pfizer", "filename": "testfile.csv"}
 
         main(json.dumps(message_body))
@@ -124,7 +124,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             process_csv_to_fhir(TEST_EVENT)
 
@@ -137,7 +137,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_string)
@@ -153,7 +153,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
@@ -169,7 +169,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_missing)
@@ -185,8 +185,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("process_row.convert_to_fhir_json", return_value=({}, False)), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
-        ):
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
+        ), patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -201,7 +201,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
         with patch("process_row.convert_to_fhir_json", return_value=({}, True)), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_params_missing)
@@ -218,7 +218,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         with patch("process_row.convert_to_fhir_json", return_value=({}, True)), patch(
             "process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 400)
-        ), patch("batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}):
+        ), patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -233,7 +233,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"NEW", "UPDATE", "DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
@@ -249,7 +249,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_action_flag_permissions", return_value={"DELETE"}
+            "batch_processing.get_operation_permissions", return_value={"DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
@@ -311,7 +311,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
 
-    @patch("get_action_flag_permissions.get_permissions_config_json_from_s3")
+    @patch("get_operation_permissions.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_success(self, mock_get_permissions_config_json_from_s3):
         mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
 
@@ -321,7 +321,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(permissions, ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"])
 
-    @patch("get_action_flag_permissions.get_permissions_config_json_from_s3")
+    @patch("get_operation_permissions.get_permissions_config_json_from_s3")
     def test_get_supplier_permissions_no_permissions(self, mock_get_permissions_config_json_from_s3):
         mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
 
@@ -332,39 +332,39 @@ class TestProcessLambdaFunction(unittest.TestCase):
         self.assertEqual(permissions, [""])
 
     def test_no_permissions(self):
-        with patch("get_action_flag_permissions.get_supplier_permissions", return_value=[]):
-            self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), set())
+        with patch("get_operation_permissions.get_supplier_permissions", return_value=[]):
+            self.assertEqual(get_operation_permissions("test_supplier", "FLU"), set())
 
     def test_full_permissions(self):
-        with patch("get_action_flag_permissions.get_supplier_permissions", return_value=["FLU_FULL", "MMR_CREATE"]):
-            self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), {"NEW", "UPDATE", "DELETE"})
+        with patch("get_operation_permissions.get_supplier_permissions", return_value=["FLU_FULL", "MMR_CREATE"]):
+            self.assertEqual(get_operation_permissions("test_supplier", "FLU"), {"CREATE", "UPDATE", "DELETE"})
 
     def test_partial_permissions(self):
         with patch(
-            "get_action_flag_permissions.get_supplier_permissions",
+            "get_operation_permissions.get_supplier_permissions",
             return_value=["FLU_CREATE", "FLU_DELETE", "MMR_CREATE"],
         ):
-            self.assertEqual(get_action_flag_permissions("test_supplier", "FLU"), {"NEW", "DELETE"})
+            self.assertEqual(get_operation_permissions("test_supplier", "FLU"), {"CREATE", "DELETE"})
 
-    @patch("get_action_flag_permissions.get_supplier_permissions")
-    def test_get_action_flag_permissions_success(self, mock_get_supplier_permissions):
+    @patch("get_operation_permissions.get_supplier_permissions")
+    def test_get_operation_permissions_success(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["MMR_FULL", "FLU_CREATE", "FLU_UPDATE"]
 
         supplier = "supplier1"
         vaccine_type = "FLU"
 
-        operations = get_action_flag_permissions(supplier, vaccine_type)
+        operations = get_operation_permissions(supplier, vaccine_type)
 
-        self.assertEqual(operations, {"UPDATE", "NEW"})
+        self.assertEqual(operations, {"UPDATE", "CREATE"})
 
-    @patch("get_action_flag_permissions.get_supplier_permissions")
-    def test_get_action_flag_permissions_one_permission(self, mock_get_supplier_permissions):
+    @patch("get_operation_permissions.get_supplier_permissions")
+    def test_get_operation_permissions_one_permission(self, mock_get_supplier_permissions):
         mock_get_supplier_permissions.return_value = ["MMR_UPDATE"]
 
         supplier = "supplier1"
         vaccine_type = "MMR"
 
-        operations = get_action_flag_permissions(supplier, vaccine_type)
+        operations = get_operation_permissions(supplier, vaccine_type)
 
         self.assertEqual(operations, {"UPDATE"})
 
