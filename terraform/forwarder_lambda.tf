@@ -63,7 +63,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*",
+        Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${local.prefix}-forwarding_lambda:*",
       },
       {
         Effect   = "Allow"
@@ -106,7 +106,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:DescribeStream",
           "kinesis:ListStreams"
         ]
-       Resource = "*"
+       Resource = "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${local.short_prefix}-processingdata-stream"
       }
     ]
   })

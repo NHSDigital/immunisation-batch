@@ -88,7 +88,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        Resource = "*"
+        Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*"
       },
       {
         Effect   = "Allow",
@@ -122,7 +122,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kinesis:PutRecord",
           "kinesis:PutRecords"
         ],
-        Resource = "*"
+        Resource = "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${local.short_prefix}-processingdata-stream"
       },
       {
         Effect   = "Allow",

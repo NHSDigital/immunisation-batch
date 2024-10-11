@@ -96,16 +96,16 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         Resource = "*"
       },
       {
-        Effect = "Allow"
-        Action = [
-          "ec2:CreateNetworkInterface"
-        ]
+        Effect   = "Allow",
+        Action   = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface"
+        ],
         Resource = [
-          "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:subnet/subnet-03727ab465af588cd",
-          "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:subnet/subnet-0865f12fc32c8ccf3",
-          "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:subnet/subnet-03727ab465af588cd"
-        ]
-      },
+            "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:network-interface/*"
+          ]
+        },
       {
         Effect   = "Allow"
         Action   = [
