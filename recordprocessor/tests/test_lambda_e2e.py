@@ -36,7 +36,6 @@ class TestRecordProcessor(unittest.TestCase):
     def setUp(self) -> None:
         # Tests run too quickly for cache to work. The workaround is to set _cached_last_modified to an earlier time
         # than the tests are run so that the _cached_json_data will always be updated by the test
-        self.patcher = patch("permissions_checker._CACHED_LAST_MODIFIED", yesterday).start()
 
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
