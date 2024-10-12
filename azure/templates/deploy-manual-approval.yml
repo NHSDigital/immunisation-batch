@@ -1,13 +1,10 @@
 parameters:
   - name: stage_name
     type: string
-  - name: depends_on
-    type: object
   - name: manual_approval_env
     type: string
 
 - stage: ${{ parameters.stage_name }}
-  dependsOn: ${{ parameters.depends_on }}
   jobs:
     - deployment: deploy
       displayName: Manual Approval Required
