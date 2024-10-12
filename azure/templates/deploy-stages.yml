@@ -29,13 +29,13 @@ stages:
   - stage: Reference
     dependsOn: Integration
     jobs:
-    - template: deploy-stage.yml
-      parameters:
-        service_name: ${{ parameters.service_name }}
-        short_service_name: ${{ parameters.short_service_name }}
-        environment: ref
-        post_init:
-            - template: post-deploy.yml
+      - template: deploy-stage.yml
+        parameters:
+          service_name: ${{ parameters.service_name }}
+          short_service_name: ${{ parameters.short_service_name }}
+          environment: ref
+          post_init:
+              - template: post-deploy.yml
     steps:
       - template: deploy-manual-approval.yml
         parameters:
