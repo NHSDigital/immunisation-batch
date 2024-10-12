@@ -15,7 +15,9 @@ resources:
     source: "Immunisation-Batch-Build"
     trigger:
       branches:
-        include:
+        exclude:
+          - master
+          - refs/heads/master
           - refs/tags/v*
 
 pool:
@@ -25,15 +27,7 @@ variables:
   - template: project.yml
 
 extends:
-  template: ./templates/deploy-stage.yml
+  template: ./templates/deploy-stages.yml
   parameters:
-    service_name: ${{ variables.service_name }}
-    short_service_name: ${{ variables.short_service_name }}
-    environment: internal-dev
-    post_init:
-        - template: ./templates/post-deploy.yml       
-      # - environment: internal-dev-sandbox
-      #   proxy_path: sandbox
-      #   post_deploy:
-      #     - template: ./templates/run-tests.yml
-      #   trying pipeline execution
+    service_name: ${{ variables.service_name }} 
+    short_service_name: ${{ variables.short_service_name }} 
