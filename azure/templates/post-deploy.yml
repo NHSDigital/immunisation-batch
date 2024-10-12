@@ -26,7 +26,12 @@ steps:
 
         service_name=$(FULLY_QUALIFIED_SERVICE_NAME)
 
-        workspace=$APIGEE_ENVIRONMENT
+        pr_no=$(echo $service_name | { grep -oE '[0-9]+$' || true; })
+        if [ -z $pr_no ]; then
+          workspace=$APIGEE_ENVIRONMENT
+        else
+          workspace=pr-$pr_no
+        fi
 
         echo sandbox with following parameters:
         echo service_name: $service_name

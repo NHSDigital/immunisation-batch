@@ -27,7 +27,15 @@ variables:
   - template: project.yml
 
 extends:
-  template: ./templates/deploy-stages.yml
+  template: ./templates/deploy-stage.yml
   parameters:
-    service_name: ${{ variables.service_name }} 
-    short_service_name: ${{ variables.short_service_name }} 
+    service_name: ${{ variables.service_name }}
+    short_service_name: ${{ variables.short_service_name }}
+    environment: internal-dev
+    post_init:
+        - template: ./templates/post-deploy.yml       
+      # - environment: internal-dev-sandbox
+      #   proxy_path: sandbox
+      #   post_deploy:
+      #     - template: ./templates/run-tests.yml
+      #   trying pipeline execution
