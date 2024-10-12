@@ -31,7 +31,6 @@ stages:
     jobs:
       - template: deploy-manual-approval.yml
         parameters:
-          stage_name: 'Reference'
           manual_approval_env: 'ref'
   - stage: Reference
     dependsOn: Ref_approval

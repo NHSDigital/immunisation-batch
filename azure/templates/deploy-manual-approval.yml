@@ -1,20 +1,20 @@
 parameters:
-  - name: stage_name
-    type: string
   - name: manual_approval_env
     type: string
 
-- stage: ${{ parameters.stage_name }}
-  jobs:
-    - deployment: deploy
-      displayName: Manual Approval Required
-      timeoutInMinutes: 60
-      pool:
-        vmImage: "ubuntu-latest"
-      environment: ${{ parameters.manual_approval_env }}
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - bash: |
-                  echo Approved
+jobs:
+  - job: deploy
+    displayName: Manual Approval Required
+    timeoutInMinutes: 30
+    pool:
+      vmImage: "ubuntu-latest"
+    environment: ${{ parameters.manual_approval_env }}
+      approvals:
+      - reviewers:
+          - id: 'VAAL1@hscic.gov.uk'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - bash: |
+                echo Approved
