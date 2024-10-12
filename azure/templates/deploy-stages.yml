@@ -26,8 +26,15 @@ stages:
           environment: int
           post_init:
               - template: post-deploy.yml
-  - stage: Reference
+  - stage: Ref_Approval
     dependsOn: Integration
+    jobs:
+      - template: deploy-manual-approval.yml
+        parameters:
+          reviewers:
+            - id: 'VAAL1@hscic.gov.uk'
+  - stage: Reference
+    dependsOn: Ref_Approval
     jobs:
       - template: deploy-stage.yml
         parameters:
@@ -37,7 +44,4 @@ stages:
           post_init:
               - template: post-deploy.yml
     steps:
-      - template: deploy-manual-approval.yml
-        parameters:
-          reviewers:
-            - id: 'VAAL1@hscic.gov.uk'
+      
