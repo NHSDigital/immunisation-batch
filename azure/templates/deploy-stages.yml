@@ -43,5 +43,4 @@ stages:
           environment: ref
           post_init:
               - template: post-deploy.yml
-    steps:
       
