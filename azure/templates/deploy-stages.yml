@@ -26,8 +26,15 @@ stages:
           environment: int
           post_init:
               - template: post-deploy.yml
-  - stage: Reference
+  - stage: Ref_approval
     dependsOn: Integration
+    jobs:
+      - template: deploy-manual-approval.yml
+        parameters:
+          stage_name: 'Reference'
+          manual_approval_env: 'ref'
+  - stage: Reference
+    dependsOn: Ref_approval
     jobs:
     - template: deploy-stage.yml
       parameters:
