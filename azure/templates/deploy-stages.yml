@@ -26,14 +26,15 @@ stages:
           environment: int
           post_init:
               - template: post-deploy.yml
-  - stage: Ref_approval
-    dependsOn: Integration
-    jobs:
-      - template: deploy-manual-approval.yml
-        parameters:
-          manual_approval_env: 'ref'
   - stage: Reference
-    dependsOn: Ref_approval
+    dependsOn: Integration
+    environment:
+      name: 'ref'
+      resourceType: 'VirtualMachine'
+      approvals:
+        - reviewers:
+          - id: 'VAAL1@hscic.gov.uk'
+        timeoutInMinutes: 60 
     jobs:
     - template: deploy-stage.yml
       parameters:
