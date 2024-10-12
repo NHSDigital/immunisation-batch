@@ -15,9 +15,7 @@ resources:
     source: "Immunisation-Batch-Build"
     trigger:
       branches:
-        exclude:
-          - master
-          - refs/heads/master
+        include:
           - refs/tags/v*
 
 pool:
