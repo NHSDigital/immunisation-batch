@@ -10,5 +10,6 @@ jobs:
         inputs:
           instructions: "Please approve the deployment."
           onTimeout: "reject"
-          timeoutInMinutes: 10
           reviewers: ${{ parameters.reviewers }}
+        timeoutInMinutes: 10
+          
