@@ -7,7 +7,7 @@ parameters:
     default: 'imms-batch'
 
 stages:
-  - stage: Internal-Dev
+  - stage: InternalDev
     jobs:
       - template: deploy-stage.yml
         parameters:
@@ -17,7 +17,7 @@ stages:
           post_init:
               - template: post-deploy.yml
   - stage: Integration
-    dependsOn: Internal-Dev
+    dependsOn: InternalDev
     jobs:
       - template: deploy-stage.yml
         parameters:
