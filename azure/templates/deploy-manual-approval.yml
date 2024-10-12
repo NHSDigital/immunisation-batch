@@ -2,9 +2,13 @@ parameters:
   - name: reviewers
     type: object
     default: []
-environment:
-  name: 'staging'
-  resourceType: 'VirtualMachine'
-  approvals:
-    - reviewers: ${{ parameters.reviewers }}
-      timeoutInMinutes: 60
+jobs:
+  - job: ApprovalJob
+    displayName: "Manual Approval Job"
+    steps:
+      - task: ManualValidation@0
+        inputs:
+          instructions: "Please approve the deployment."
+          onTimeout: "reject"
+          timeoutInMinutes: 10
+          reviewers: ${{ parameters.reviewers }}
