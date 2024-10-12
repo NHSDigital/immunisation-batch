@@ -1,17 +1,14 @@
 parameters:
   - name: manual_approval_env
     type: string
-
+   
 jobs:
-  - job: deploy
+  - deployment: deploy
     displayName: Manual Approval Required
-    timeoutInMinutes: 30
+    timeoutInMinutes: 60
     pool:
       vmImage: "ubuntu-latest"
     environment: ${{ parameters.manual_approval_env }}
-      approvals:
-      - reviewers:
-          - id: 'VAAL1@hscic.gov.uk'
     strategy:
       runOnce:
         deploy:
