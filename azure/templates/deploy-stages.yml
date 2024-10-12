@@ -28,13 +28,10 @@ stages:
               - template: post-deploy.yml
   - stage: Reference
     dependsOn: Integration
-    environment:
-      name: 'ref'
-      resourceType: 'VirtualMachine'
-      approvals:
-        - reviewers:
-          - id: 'VAAL1@hscic.gov.uk'
-        timeoutInMinutes: 60 
+    approvals:
+      - reviewers:
+        - id: 'VAAL1@hscic.gov.uk'
+    timeoutInMinutes: 60 
     jobs:
     - template: deploy-stage.yml
       parameters:
