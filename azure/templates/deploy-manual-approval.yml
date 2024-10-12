@@ -1,17 +1,10 @@
 parameters:
-  - name: manual_approval_env
-    type: string
-   
-jobs:
-  - deployment: deploy
-    displayName: Manual Approval Required
-    timeoutInMinutes: 60
-    pool:
-      vmImage: "ubuntu-latest"
-    environment: ${{ parameters.manual_approval_env }}
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - bash: |
-                echo Approved
+  - name: reviewers
+    type: object
+    default: []
+environment:
+  name: 'staging'
+  resourceType: 'VirtualMachine'
+  approvals:
+    - reviewers: ${{ parameters.reviewers }}
+      timeoutInMinutes: 60
