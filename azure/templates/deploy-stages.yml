@@ -1,10 +1,10 @@
 parameters:
   - name: service_name
     type: string
-    default:'immunisation-batch'
+    default: 'immunisation-batch'
   - name: short_service_name
     type: string
-    default:'imms-batch'
+    default: 'imms-batch'
 
 stages:
   - stage: Internal-Dev
