@@ -1,0 +1,14 @@
+parameters:
+  - name: reviewers
+    type: object
+    default: []
+jobs:
+  - job: ApprovalJob
+    displayName: "Manual Approval Job"
+    timeoutInMinutes: 10
+    steps:
+      - task: ManualValidation@0
+        inputs:
+          instructions: "Please approve the deployment."
+          onTimeout: "reject"
+          reviewers: ${{ parameters.reviewers }}

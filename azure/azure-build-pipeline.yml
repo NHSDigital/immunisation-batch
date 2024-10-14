@@ -27,9 +27,9 @@ variables:
   - template: project.yml
 
 extends:
-  template: azure/common/apigee-build.yml@common
+  template: ./templates/build-pipeline.yml
   parameters:
     service_name: ${{ variables.service_name }}
     short_service_name: ${{ variables.short_service_name }}
-    post_ecs_push:
+    post_lint:
         - template: ./templates/build.yml
