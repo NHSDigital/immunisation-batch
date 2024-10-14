@@ -192,7 +192,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
-        self.assert_value_in_ack_file("fatal-error")
+        self.assert_value_in_ack_file("Fatal")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
@@ -208,7 +208,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
-        self.assert_value_in_ack_file("fatal-error")
+        self.assert_value_in_ack_file("Fatal")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
@@ -224,7 +224,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
-        self.assert_value_in_ack_file("fatal-error")
+        self.assert_value_in_ack_file("Fatal")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")

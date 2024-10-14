@@ -147,10 +147,10 @@ class TestRecordProcessor(unittest.TestCase):
                     self.assertIn(key_to_ignore, kinesis_data)
                     kinesis_data.pop(key_to_ignore)
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|ok", ack_file_content)
+                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
                 else:
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|fatal-error", ack_file_content)
+                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
 
     def test_e2e_success(self):
         """
@@ -304,7 +304,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        self.assertIn("fatal-error", self.get_ack_file_content())
+        self.assertIn("Fatal", self.get_ack_file_content())
 
 
 if __name__ == "__main__":
