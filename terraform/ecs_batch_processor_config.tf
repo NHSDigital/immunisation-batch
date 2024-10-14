@@ -219,39 +219,55 @@ assume_role_policy = jsonencode({
 })
 }
 resource "aws_iam_policy" "fifo_pipe_policy" {
-   name   = "${local.prefix}-fifo-pipe-policy"
-   policy = jsonencode({
-     Version = "2012-10-17"
-     Statement = [
-       {
-         Action = [
-           "sqs:ReceiveMessage",
-           "sqs:DeleteMessage",
-           "sqs:GetQueueAttributes",
-           "ecs:RunTask",
-           "ecs:StartTask",
-           "logs:CreateLogGroup",
-           "logs:CreateLogStream",
-           "logs:PutLogEvents"
-         ]
-         Effect = "Allow"
-         Resource = ["arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/pipes/${local.prefix}-pipe-logs:*",
+  name   = "${local.prefix}-fifo-pipe-policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "pipes:CreatePipe",
+          "pipes:StartPipe",
+          "pipes:StopPipe",
+          "pipes:DeletePipe",
+          "pipes:UpdatePipe",
+          "pipes:DescribePipe"
+        ],
+        Resource = [
+          "arn:aws:pipes:${var.aws_region}:${local.local_account_id}:pipe/${local.prefix}-pipe",
+          aws_ecs_task_definition.ecs_task.arn
+        ]
+      },
+      {
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "ecs:RunTask",
+          "ecs:StartTask",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Effect = "Allow",
+        Resource = [
+          "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/pipes/${local.prefix}-pipe-logs:*",
           "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:task/${local.prefix}-ecs-cluster/*",
           "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*",
           "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${local.short_prefix}-metadata-queue.fifo",
           "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster",
-           aws_ecs_task_definition.ecs_task.arn
-          ]
-       },
-       {
-         Effect   = "Allow",
-         Action   = [
-            "iam:PassRole"
+          aws_ecs_task_definition.ecs_task.arn
+        ]
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "iam:PassRole"
         ],
-         Resource = aws_iam_role.ecs_task_exec_role.arn
+        Resource = aws_iam_role.ecs_task_exec_role.arn
       }
-     ]
-   })
+    ]
+  })
 }
 
  resource "aws_iam_role_policy_attachment" "fifo_pipe_policy_attachment" {

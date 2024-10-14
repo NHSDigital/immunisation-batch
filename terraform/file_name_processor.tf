@@ -267,7 +267,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:AddTagsToResource",
           "elasticache:RemoveTagsFromResource"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-redis-cluster"
       },
       {
         Effect = "Allow"
@@ -276,7 +276,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:DeleteCacheCluster",
           "elasticache:ModifyCacheCluster"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-redis-cluster"
         Condition = {
           "StringEquals": {
             "aws:RequestedRegion": "${var.aws_region}"
@@ -288,7 +288,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
         Action = [
           "elasticache:DescribeCacheSubnetGroups"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-sg"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-subnet-group"
       },
       {
         Effect = "Allow"
@@ -297,7 +297,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:DeleteCacheSubnetGroup",
           "elasticache:ModifyCacheSubnetGroup"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-sg"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-subnet-group"
         Condition = {
           "StringEquals": {
             "aws:RequestedRegion": "${var.aws_region}"
