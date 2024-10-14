@@ -31,6 +31,8 @@ def create_ack_data(
         "RECEIVED_TIME": created_at_formatted_string,
         "MAILBOX_FROM": "TBC",
         "LOCAL_ID": "DPS",
+        "IMMS_ID": "",  # TODO: Obtain imms id from response if not already obtained. Dummy is empty string
+        "OPERATION_OUTCOME": "",  # TODO: What should this look like
         "MESSAGE_DELIVERY": successful_api_response,
     }
 
@@ -40,13 +42,12 @@ def obtain_current_ack_content(ack_bucket_name: str, ack_file_key: str) -> Strin
     accumulated_csv_content = StringIO()
     try:
         # If ack file exists in S3 download the contents
-        s3_client.head_object(Bucket=ack_bucket_name, Key=ack_file_key)
         existing_ack_file = s3_client.get_object(Bucket=ack_bucket_name, Key=ack_file_key)
         existing_content = existing_ack_file["Body"].read().decode("utf-8")
         accumulated_csv_content.write(existing_content)
     except ClientError as error:
         logger.error("error:%s", error)
-        if error.response["Error"]["Code"] == "404":
+        if error.response["Error"]["Code"] in ("404", "NoSuchKey"):
             # If ack file does not exist in S3 create a new file
             accumulated_csv_content.write("|".join(Constants.ack_headers) + "\n")
         else:
@@ -63,7 +64,6 @@ def upload_ack_file(
     accumulated_csv_content.write(cleaned_row + "\n")
     csv_file_like_object = BytesIO(accumulated_csv_content.getvalue().encode("utf-8"))
     s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_file_key)
-    print(f"CSV content before upload:\n{accumulated_csv_content.getvalue()}")
     logger.info("Ack file updated to %s: %s", ack_bucket_name, ack_file_key)
 
 
