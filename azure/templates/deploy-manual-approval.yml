@@ -1,14 +1,19 @@
 parameters:
-  - name: reviewers
-    type: object
-    default: []
+  - name: stage_name
+    type: string
+  - name: manual_approval_env
+    type: string
+
 jobs:
-  - job: ApprovalJob
-    displayName: "Manual Approval Job"
-    timeoutInMinutes: 10
-    steps:
-      - task: ManualValidation@0
-        inputs:
-          instructions: "Please approve the deployment."
-          onTimeout: "reject"
-          reviewers: ${{ parameters.reviewers }}
+  - deployment: deploy
+    displayName: Manual Approval Required
+    timeoutInMinutes: 60
+    pool:
+      vmImage: "ubuntu-latest"
+    environment: ${{ parameters.manual_approval_env }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - bash: |
+                echo Approved
