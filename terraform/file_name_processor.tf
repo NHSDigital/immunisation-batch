@@ -102,9 +102,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface"
         ],
-        Resource = [
-            "arn:aws:ec2:${var.aws_region}:${local.local_account_id}:network-interface/*"
-          ]
+        Resource = "*"
         },
       {
         Effect   = "Allow"
@@ -182,23 +180,6 @@ resource "aws_lambda_function" "file_processor_lambda" {
   }
 }
 
-# ElastiCache Cluster for Redis with Security Group
-resource "aws_elasticache_cluster" "redis_cluster" {
-  cluster_id           = "${local.prefix}-redis-cluster"
-  engine               = "redis"
-  node_type            = "cache.t2.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  port                 = 6379
-  security_group_ids   = [aws_security_group.redis_sg.id]
-  subnet_group_name    = aws_elasticache_subnet_group.redis_subnet_group.name
-}
-
-# Subnet Group for Redis
-resource "aws_elasticache_subnet_group" "redis_subnet_group" {
-  name       = "${local.prefix}-redis-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
-}
 
 # Permission for S3 to invoke Lambda function
 resource "aws_lambda_permission" "s3_invoke_permission" {
@@ -378,11 +359,11 @@ resource "aws_security_group_rule" "lambda_to_sqs_https" {
 resource "aws_vpc_endpoint" "s3_endpoint" {
   vpc_id       = data.aws_vpc.default.id
   service_name = "com.amazonaws.${var.aws_region}.s3"
-
+ 
   route_table_ids = [
     for rt in data.aws_route_tables.default_route_tables.ids : rt
   ]
-
+ 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -421,11 +402,11 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
   vpc_id            = data.aws_vpc.default.id
   service_name      = "com.amazonaws.${var.aws_region}.sqs"
   vpc_endpoint_type = "Interface"
-
+ 
   subnet_ids          = data.aws_subnets.default.ids
   security_group_ids  = [aws_security_group.lambda_sg.id]
   private_dns_enabled = true
-
+ 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
