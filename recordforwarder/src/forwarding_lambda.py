@@ -6,6 +6,7 @@ import logging
 from update_ack_file import update_ack_file
 from send_request_to_api import send_request_to_api
 
+logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 
 
