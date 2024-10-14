@@ -15,8 +15,8 @@ steps:
       pwd
       ls -la
       cd terraform
-    displayName: 'Check Directory and Navigate to Terraform'
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
+    displayName: 'Check Directory and Navigate to Terraform for AWS Deployment'
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)"
 
   - bash: |
       set -e
@@ -36,7 +36,7 @@ steps:
         echo sandbox with following parameters:
         echo service_name: $service_name
         echo workspace: $workspace
-        echo Apigee environment: $APIGEE_ENVIRONMENT
+        echo AWS environment: $APIGEE_ENVIRONMENT
         echo pr_no: $pr_no
 
           cd terraform
@@ -45,5 +45,5 @@ steps:
         make apply aws_account_no=${aws_account_no} environment=$workspace
       fi
     displayName: Apply Terraform
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/$(SERVICE_ARTIFACT_NAME)"
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)"
     retryCountOnTaskFailure: 2
