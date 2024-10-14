@@ -70,7 +70,9 @@ def upload_ack_file(
     logger.info("Ack file updated to %s: %s", ack_bucket_name, ack_file_key)
 
 
-def update_ack_file(file_key: str, row_id: str, successful_api_response: bool, diagnostics: str, imms_id: str) -> None:
+def update_ack_file(
+    file_key: str, row_id: str, successful_api_response: bool, diagnostics: Union[None, str], imms_id: Union[None, str]
+) -> None:
     """Updates the ack file with the new data row based on the given arguments"""
     imms_env = get_environment()
     source_bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
