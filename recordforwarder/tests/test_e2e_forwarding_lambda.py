@@ -15,6 +15,7 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     TEST_SUPPLIER,
     TEST_ROW_ID,
 )
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response
 import base64
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
@@ -43,13 +44,9 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
         self.assertIn(expected_content, ack_file_content)
 
-    def execute_test(self, mock_api, message, response_code, expected_content, is_create=True):
+    def execute_test(self, mock_api, message, response_code, expected_content, is_create=True, mock_diagnostics=None):
         self.setup_s3()
-        mock_response = Mock(spec=requests.Response)
-        mock_response.status_code = response_code
-        mock_response.headers = {
-            "location": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization/test_id"
-        }
+        mock_response = create_mock_api_response(response_code, mock_diagnostics)
         mock_api.create_immunization.return_value = mock_response
         mock_api.update_immunization.return_value = mock_response
 
@@ -84,7 +81,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 422, "Fatal Error")
+        mock_diagnostics = (
+            "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
+        )
+        self.execute_test(mock_api, message, 422, "Fatal Error", mock_diagnostics=mock_diagnostics)
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_failed(self, mock_api):
@@ -97,7 +97,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 400, "Fatal Error")
+        mock_diagnostics = "the provided event ID is either missing or not in the expected format."
+        self.execute_test(mock_api, message, 400, "Fatal Error", mock_diagnostics=mock_diagnostics)
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_none_request(self, mock_api):
@@ -141,7 +142,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 400, "Fatal Error", is_create=False)
+        mock_diagnstics = "the provided event ID is either missing or not in the expected format."
+        self.execute_test(mock_api, message, 400, "Fatal Error", is_create=False, mock_diagnostics=mock_diagnstics)
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_delete_success(self, mock_api):
@@ -169,9 +171,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_delete_failed(self, mock_api):
         self.setup_s3()
-        mock_response = Mock(spec=requests.Response)
-        mock_response.status_code = 404
-        mock_api.delete_immunization.return_value = mock_response
+        mock_diagnostics = "The requested resource was not found."
+        mock_api.delete_immunization.return_value = create_mock_api_response(404, mock_diagnostics)
 
         message = {
             "row_id": TEST_ROW_ID,

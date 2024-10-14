@@ -2,12 +2,24 @@
 
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
+import requests
 from immunisation_api import ImmunizationApi
 
 
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
+
+
+def get_operation_outcome_diagnostics(response: requests.Response) -> str:
+    """
+    Returns the diagnostics from the API response. If the diagnostics can't be found in the API response,
+    returns a default diagnostics string
+    """
+    try:
+        return response.json().get("issue")[0].get("diagnostics")
+    except (requests.exceptions.JSONDecodeError, AttributeError, IndexError):
+        return "Unable to obtain diagnostics from API response"
 
 
 def send_request_to_api(message_body):
@@ -38,10 +50,8 @@ def send_request_to_api(message_body):
                 imms_id = response.headers.get("location").split("immunisation-fhir-api/Immunization/")[1]
             except (AttributeError, IndexError):
                 imms_id = None
-        elif response.status_code == 422:
-            diagnostics = "Duplicate Message received"
         else:
-            diagnostics = "Payload validation failure"
+            diagnostics = get_operation_outcome_diagnostics(response)
 
     elif operation_requested == "UPDATE":
         fhir_json["id"] = imms_id
@@ -49,13 +59,13 @@ def send_request_to_api(message_body):
         if response.status_code == 200:
             successful_api_response = True
         else:
-            diagnostics = "Payload validation failure"
+            diagnostics = get_operation_outcome_diagnostics(response)
 
     elif operation_requested == "DELETE":
         response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
         if response.status_code == 204:
             successful_api_response = True
         else:
-            diagnostics = "Payload validation failure"
+            diagnostics = get_operation_outcome_diagnostics(response)
 
     return successful_api_response, diagnostics, imms_id
