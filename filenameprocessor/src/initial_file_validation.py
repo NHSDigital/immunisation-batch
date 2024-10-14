@@ -1,12 +1,11 @@
 """Functions for initial file validation"""
 
 import logging
-import os
 from re import match
 from datetime import datetime
 from constants import Constants
-from fetch_permissions import get_permissions_config_json_from_s3
-from utils_for_filenameprocessor import extract_file_key_elements, get_environment, get_csv_content_dict_reader
+from fetch_permissions import get_permissions_config_json_from_cache
+from utils_for_filenameprocessor import extract_file_key_elements, get_csv_content_dict_reader
 
 logger = logging.getLogger()
 
@@ -40,8 +39,7 @@ def get_supplier_permissions(supplier: str) -> list:
     Returns the permissions for the given supplier. Returns an empty list if the permissions config json could not
     be downloaded, or the supplier has no permissions.
     """
-    config_bucket_name = os.getenv("CONFIG_BUCKET_NAME", f"immunisation-batch-{get_environment()}-configs")
-    return get_permissions_config_json_from_s3(config_bucket_name).get("all_permissions", {}).get(supplier, [])
+    return get_permissions_config_json_from_cache().get("all_permissions", {}).get(supplier, [])
 
 
 def validate_vaccine_type_permissions(supplier: str, vaccine_type: str):
@@ -83,7 +81,7 @@ def validate_action_flag_permissions(csv_content_dict_reader, supplier: str, vac
     return False
 
 
-def initial_file_validation(file_key: str, bucket_name: str) -> bool:
+def initial_file_validation(file_key: str, bucket_name: str):
     """
     Returns True if all elements of file key are valid, content headers are valid and the supplier has the
     appropriate permissions. Else returns False.
@@ -130,4 +128,4 @@ def initial_file_validation(file_key: str, bucket_name: str) -> bool:
         )
         return False
 
-    return True
+    return True, get_permissions_config_json_from_cache().get("all_permissions", {}).get(supplier, [])

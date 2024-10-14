@@ -63,7 +63,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "*"
+        Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${local.prefix}-forwarding_lambda:*",
       },
       {
         Effect   = "Allow"
@@ -91,12 +91,14 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
       {
         Effect   = "Allow"
         Action   = "kms:Decrypt"
-        Resource = "*"
+        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
       },
       {
         Effect   = "Allow"
         Action   = "secretsmanager:GetSecretValue"
-        Resource = "*"
+         Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
+        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
+        ]
       },
       {
         Effect   = "Allow"
@@ -106,7 +108,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:DescribeStream",
           "kinesis:ListStreams"
         ]
-        Resource = "*"
+       Resource = "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${local.short_prefix}-processingdata-stream"
       }
     ]
   })
@@ -152,3 +154,4 @@ resource "aws_lambda_function" "forwarding_lambda" {
 
    depends_on = [aws_lambda_function.forwarding_lambda]
  }
+ 
