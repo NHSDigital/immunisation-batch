@@ -1,9 +1,10 @@
 """Function to send the request to the Imms API (or return appropriate diagnostics if this is not possible)"""
 
+import requests
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
-import requests
 from immunisation_api import ImmunizationApi
+from errors import MessageNotSuccessfulError
 
 
 cache = Cache("/tmp")
@@ -11,43 +12,39 @@ authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
 
 
-def send_create_request(fhir_json, supplier):
+def send_create_request(fhir_json: dict, supplier: str) -> str:
+    """Sends the create request and handles the response. Returns the imms_id."""
     response = immunization_api_instance.create_immunization(fhir_json, supplier)
-    successful_api_response = False
-    diagnostics = None
-    imms_id = None
-    if response.status_code == 201:
-        successful_api_response = True
-        try:
-            imms_id = response.headers.get("location").split("immunisation-fhir-api/Immunization/")[1]
-        except (AttributeError, IndexError):
-            imms_id = None
-    else:
-        diagnostics = get_operation_outcome_diagnostics(response)
-    return successful_api_response, diagnostics, imms_id
+
+    if response.status_code != 201:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+
+    try:
+        imms_id = response.headers.get("location").split("immunisation-fhir-api/Immunization/")[1]
+    except (AttributeError, IndexError):
+        imms_id = None
+    return imms_id
 
 
-def send_update_request(fhir_json, supplier, imms_id, version):
-    successful_api_response = False
-    diagnostics = None
+def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: str) -> str:
+    """Sends the update request and handles the response. Returns the imms_id."""
     fhir_json["id"] = imms_id
     response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
-    if response.status_code == 200:
-        successful_api_response = True
-    else:
-        diagnostics = get_operation_outcome_diagnostics(response)
-    return successful_api_response, diagnostics, imms_id
+
+    if response.status_code != 200:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+
+    return imms_id
 
 
-def send_delete_request(fhir_json, supplier, imms_id):
-    successful_api_response = False
-    diagnostics = None
+def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
+    """Sends the delete request and handles the response. Returns the imms_id."""
     response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
-    if response.status_code == 204:
-        successful_api_response = True
-    else:
-        diagnostics = get_operation_outcome_diagnostics(response)
-    return successful_api_response, diagnostics, imms_id
+
+    if response.status_code != 204:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+
+    return imms_id
 
 
 def get_operation_outcome_diagnostics(response: requests.Response) -> str:
@@ -63,11 +60,9 @@ def get_operation_outcome_diagnostics(response: requests.Response) -> str:
 
 def send_request_to_api(message_body):
     """
-    Sends request to the Imms API (unless there was a failure at the recordprocessor level).
-    Returns successful_api_response (bool indicating if a response in the 200s was received from the Imms API),
-    any diagnostics, and the imms_id.
+    Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
+    If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
     """
-
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     operation_requested = message_body.get("operation_requested")
@@ -76,13 +71,13 @@ def send_request_to_api(message_body):
     incoming_diagnostics = message_body.get("diagnostics")
 
     if incoming_diagnostics:
-        return False, incoming_diagnostics, None
+        raise MessageNotSuccessfulError(incoming_diagnostics)
 
-    elif operation_requested == "CREATE":
+    if operation_requested == "CREATE":
         return send_create_request(fhir_json, supplier)
 
-    elif operation_requested == "UPDATE":
+    if operation_requested == "UPDATE":
         return send_update_request(fhir_json, supplier, imms_id, version)
 
-    elif operation_requested == "DELETE":
+    if operation_requested == "DELETE":
         return send_delete_request(fhir_json, supplier, imms_id)

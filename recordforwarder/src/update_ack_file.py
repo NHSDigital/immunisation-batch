@@ -70,7 +70,7 @@ def upload_ack_file(
     logger.info("Ack file updated to %s: %s", ack_bucket_name, ack_file_key)
 
 
-def update_ack_file(file_key: str, row_id: str, message_delivered: bool, diagnostics: str, imms_id: str) -> None:
+def update_ack_file(file_key: str, row_id: str, successful_api_response: bool, diagnostics: str, imms_id: str) -> None:
     """Updates the ack file with the new data row based on the given arguments"""
     imms_env = get_environment()
     source_bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
@@ -79,6 +79,6 @@ def update_ack_file(file_key: str, row_id: str, message_delivered: bool, diagnos
     response = s3_client.head_object(Bucket=source_bucket_name, Key=file_key)
     created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
-    ack_data_row = create_ack_data(created_at_formatted_string, row_id, message_delivered, diagnostics, imms_id)
+    ack_data_row = create_ack_data(created_at_formatted_string, row_id, successful_api_response, diagnostics, imms_id)
     accumulated_csv_content = obtain_current_ack_content(ack_bucket_name, ack_file_key)
     upload_ack_file(ack_bucket_name, ack_file_key, accumulated_csv_content, ack_data_row)
