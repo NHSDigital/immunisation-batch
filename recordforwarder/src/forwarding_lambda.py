@@ -14,12 +14,13 @@ def forward_request_to_api(message_body):
     """Forwards the request to the Imms API (where possible) and updates the ack file with the outcome"""
     file_key = message_body.get("file_key")
     row_id = message_body.get("row_id")
-    successful_api_response, response_code, diagnostics = send_request_to_api(message_body)
-    update_ack_file(file_key, row_id, successful_api_response, response_code, diagnostics)
+    successful_api_response, diagnostics, imms_id = send_request_to_api(message_body)
+    update_ack_file(file_key, row_id, successful_api_response, diagnostics, imms_id)
 
 
 def forward_lambda_handler(event, _):
     """Forward each row to the Imms API"""
+    logger.info("Processing started")
     for record in event["Records"]:
         try:
             kinesis_payload = record["kinesis"]["data"]
@@ -28,6 +29,7 @@ def forward_lambda_handler(event, _):
             forward_request_to_api(message_body)
         except Exception as error:  # pylint:disable=broad-exception-caught
             logger.error("Error processing message: %s", error)
+    logger.info("Processing ended")
 
 
 if __name__ == "__main__":

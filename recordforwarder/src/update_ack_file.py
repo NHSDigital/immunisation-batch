@@ -16,23 +16,26 @@ def create_ack_data(
     created_at_formatted_string: str,
     row_id: str,
     successful_api_response: bool,
-    response_code: str,
     diagnostics: Union[None, str] = None,
+    imms_id: str = None,
 ) -> dict:
     """Returns a dictionary containing the ack headers as keys, along with the relevant values."""
     return {
         "MESSAGE_HEADER_ID": row_id,
-        "HEADER_RESPONSE_CODE": "fatal-error" if diagnostics else "ok",
-        "ISSUE_SEVERITY": "error" if diagnostics else "information",
-        "ISSUE_CODE": "error" if diagnostics else "informational",
-        "RESPONSE_TYPE": "business",
-        "RESPONSE_CODE": response_code,
-        "RESPONSE_DISPLAY": diagnostics if diagnostics else "Success",
+        "HEADER_RESPONSE_CODE": "OK" if successful_api_response else "Fatal Error",
+        "ISSUE_SEVERITY": "Information" if not diagnostics else "Fatal",
+        "ISSUE_CODE": "OK" if not diagnostics else "Fatal Error",
+        "ISSUE_DETAILS_CODE": "30001" if not diagnostics else "30002",
+        "RESPONSE_TYPE": "Business",
+        "RESPONSE_CODE": "30001" if not successful_api_response else "30002",
+        "RESPONSE_DISPLAY": (
+            "Success" if successful_api_response else "Business Level Response Value - Processing Error"
+        ),
         "RECEIVED_TIME": created_at_formatted_string,
-        "MAILBOX_FROM": "TBC",
-        "LOCAL_ID": "DPS",
-        "IMMS_ID": "",  # TODO: Obtain imms id from response if not already obtained. Dummy is empty string
-        "OPERATION_OUTCOME": "",  # TODO: What should this look like
+        "MAILBOX_FROM": "",  # TODO: Leave blank for DPS, use mailbox name if picked up from MESH mail box
+        "LOCAL_ID": "",  # TODO: Leave blank for DPS, obtain from ctl file if picked up from MESH mail box
+        "IMMS_ID": imms_id or "",
+        "OPERATION_OUTCOME": diagnostics or "",  # TODO: Amend this if non successful api response
         "MESSAGE_DELIVERY": successful_api_response,
     }
 
@@ -67,7 +70,7 @@ def upload_ack_file(
     logger.info("Ack file updated to %s: %s", ack_bucket_name, ack_file_key)
 
 
-def update_ack_file(file_key: str, row_id: str, message_delivered: bool, response_code: str, diagnostics: str) -> None:
+def update_ack_file(file_key: str, row_id: str, message_delivered: bool, diagnostics: str, imms_id: str) -> None:
     """Updates the ack file with the new data row based on the given arguments"""
     imms_env = get_environment()
     source_bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
@@ -76,6 +79,6 @@ def update_ack_file(file_key: str, row_id: str, message_delivered: bool, respons
     response = s3_client.head_object(Bucket=source_bucket_name, Key=file_key)
     created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
-    ack_data_row = create_ack_data(created_at_formatted_string, row_id, message_delivered, response_code, diagnostics)
+    ack_data_row = create_ack_data(created_at_formatted_string, row_id, message_delivered, diagnostics, imms_id)
     accumulated_csv_content = obtain_current_ack_content(ack_bucket_name, ack_file_key)
     upload_ack_file(ack_bucket_name, ack_file_key, accumulated_csv_content, ack_data_row)

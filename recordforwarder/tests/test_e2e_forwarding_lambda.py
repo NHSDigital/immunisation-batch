@@ -1,5 +1,6 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
+import requests
 from boto3 import client as boto3_client
 import json
 from moto import mock_s3
@@ -44,8 +45,13 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
     def execute_test(self, mock_api, message, response_code, expected_content, is_create=True):
         self.setup_s3()
-        mock_api.create_immunization.return_value = ("", response_code)
-        mock_api.update_immunization.return_value = ("", response_code)
+        mock_response = Mock(spec=requests.Response)
+        mock_response.status_code = response_code
+        mock_response.headers = {
+            "location": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization/test_id"
+        }
+        mock_api.create_immunization.return_value = mock_response
+        mock_api.update_immunization.return_value = mock_response
 
         kinesis_message = self.create_kinesis_message(message)
         forward_lambda_handler(kinesis_message, None)
@@ -65,7 +71,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
         }
-        self.execute_test(mock_api, message, 201, "ok")
+        self.execute_test(mock_api, message, 201, "OK")
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
@@ -78,7 +84,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 422, "fatal-error")
+        self.execute_test(mock_api, message, 422, "Fatal Error")
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_create_failed(self, mock_api):
@@ -91,7 +97,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 400, "fatal-error")
+        self.execute_test(mock_api, message, 400, "Fatal Error")
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_none_request(self, mock_api):
@@ -108,7 +114,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         kinesis_message = self.create_kinesis_message(message)
         forward_lambda_handler(kinesis_message, None)
 
-        self.check_ack_file(s3_client, "fatal-error")
+        self.check_ack_file(s3_client, "Fatal Error")
         mock_api.create_immunization.assert_not_called()
 
     @patch("send_request_to_api.immunization_api_instance")
@@ -122,7 +128,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 200, "ok", is_create=False)
+        self.execute_test(mock_api, message, 200, "OK", is_create=False)
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_update_failed(self, mock_api):
@@ -135,12 +141,14 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "imms_id": "test",
             "version": 1,
         }
-        self.execute_test(mock_api, message, 400, "fatal-error", is_create=False)
+        self.execute_test(mock_api, message, 400, "Fatal Error", is_create=False)
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_delete_success(self, mock_api):
         self.setup_s3()
-        mock_api.delete_immunization.return_value = ("", 204)
+        mock_response = Mock(spec=requests.Response)
+        mock_response.status_code = 204
+        mock_api.delete_immunization.return_value = mock_response
 
         message = {
             "row_id": TEST_ROW_ID,
@@ -155,13 +163,15 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         kinesis_message = self.create_kinesis_message(message)
         forward_lambda_handler(kinesis_message, None)
 
-        self.check_ack_file(s3_client, "ok")
+        self.check_ack_file(s3_client, "OK")
         mock_api.delete_immunization.assert_called_once()
 
     @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_delete_failed(self, mock_api):
         self.setup_s3()
-        mock_api.delete_immunization.return_value = ("", 404)
+        mock_response = Mock(spec=requests.Response)
+        mock_response.status_code = 404
+        mock_api.delete_immunization.return_value = mock_response
 
         message = {
             "row_id": TEST_ROW_ID,
@@ -176,7 +186,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         kinesis_message = self.create_kinesis_message(message)
         forward_lambda_handler(kinesis_message, None)
 
-        self.check_ack_file(s3_client, "fatal-error")
+        self.check_ack_file(s3_client, "Fatal Error")
         mock_api.delete_immunization.assert_called_once()
 
     def test_forward_lambda_e2e_no_permissions(self):
@@ -192,7 +202,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         kinesis_message = self.create_kinesis_message(message)
         forward_lambda_handler(kinesis_message, None)
 
-        self.check_ack_file(s3_client, "fatal-error")
+        self.check_ack_file(s3_client, "Fatal Error")
 
 
 if __name__ == "__main__":
