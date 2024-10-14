@@ -4,9 +4,7 @@
 def get_operation_permissions(vaccine_type: str, permission: str) -> set:
     """Returns the set of allowed action flags."""
     return (
-        {"NEW", "UPDATE", "DELETE"}
+        {"CREATE", "UPDATE", "DELETE"}
         if f"{vaccine_type}_FULL" in permission
-        else {
-            perm.split("_")[1].replace("CREATE", "NEW") for perm in permission if perm.startswith(vaccine_type)
-        }
+        else {perm.split("_")[1] for perm in permission if perm.startswith(vaccine_type)}
     )
