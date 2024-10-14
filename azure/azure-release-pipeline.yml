@@ -15,9 +15,7 @@ resources:
     source: "Immunisation-Batch-Build"
     trigger:
       branches:
-        exclude:
-          - master
-          - refs/heads/master
+        include:
           - refs/tags/v*
 
 pool:
@@ -27,7 +25,25 @@ variables:
   - template: project.yml
 
 extends:
-  template: ./templates/deploy-stages.yml
+  template: azure/common/apigee-deployment.yml@common
   parameters:
     service_name: ${{ variables.service_name }} 
     short_service_name: ${{ variables.short_service_name }} 
+    service_base_path: ${{ variables.service_base_path }} 
+    apigee_deployments:
+      - environment: internal-dev
+        post_deploy:
+          - template: ./templates/post-deploy.yml
+      - environment: manual-approval
+        manual_approval_prod: true
+      - environment: ref
+        depends_on:
+          - internal_dev
+          - manual_approval
+        post_deploy:
+          - template: ./templates/post-deploy.yml
+      - environment: int
+        depends_on:
+          - internal_dev
+        post_deploy:
+           - template: ./templates/post-deploy.yml
