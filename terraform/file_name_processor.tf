@@ -416,7 +416,7 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
 data "aws_route_tables" "default_route_tables" {
   vpc_id = data.aws_vpc.default.id
 }
-# VPC Endpoint for SQS
+# VPC Endpoint for SQS.
 resource "aws_vpc_endpoint" "sqs_endpoint" {
   vpc_id            = data.aws_vpc.default.id
   service_name      = "com.amazonaws.${var.aws_region}.sqs"
