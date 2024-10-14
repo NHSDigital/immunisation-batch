@@ -159,7 +159,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
-    name      = "${local.prefix}-process-records-container"
+    name      = "${local.prefix}-processor-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
     environment = [
@@ -272,7 +272,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       overrides {
         container_override {
           cpu = 256
-          name = "${local.prefix}-process-records-container"
+          name = "${local.prefix}-processor-container"
           environment {
             name  = "EVENT_DETAILS"
             value = "$.body"

@@ -16,3 +16,13 @@ steps:
 
     displayName: Test lambda code for recordforwarder
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder"
+
+  - bash: |
+      mkdir -p build
+      npm run publish 2> /dev/null
+      cp build/immunisation-batch.json sandbox/
+
+      cd sandbox
+      docker build -t sandbox .
+    displayName: Build sandbox image
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)"
