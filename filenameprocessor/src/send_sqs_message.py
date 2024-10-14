@@ -3,7 +3,6 @@
 import logging
 import os
 from json import dumps as json_dumps
-from constants import Constants
 from utils_for_filenameprocessor import extract_file_key_elements
 from s3_clients import sqs_client
 
