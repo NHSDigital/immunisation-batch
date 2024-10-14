@@ -295,65 +295,65 @@ resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
   policy_arn = aws_iam_policy.elasticache_permissions.arn
 }
 # Create Lambda Security Group without rules
-resource "aws_security_group" "lambda_sg" {
-  name   = "${local.prefix}-lambda-sg"
-  vpc_id = data.aws_vpc.default.id
-}
+# resource "aws_security_group" "lambda_sg" {
+#   name   = "${local.prefix}-lambda-sg"
+#   vpc_id = data.aws_vpc.default.id
+# }
 
 # Create Redis Security Group without rules
-resource "aws_security_group" "redis_sg" {
-  name   = "${local.prefix}-redis-sg"
-  vpc_id = data.aws_vpc.default.id
-}
+# resource "aws_security_group" "redis_sg" {
+#   name   = "${local.prefix}-redis-sg"
+#   vpc_id = data.aws_vpc.default.id
+# }
 
 # Add egress rule to Lambda SG to allow outbound traffic to Redis on port 6379
-resource "aws_security_group_rule" "lambda_to_redis" {
-  type              = "egress"
-  from_port         = 6379
-  to_port           = 6379
-  protocol          = "tcp"
-  security_group_id = aws_security_group.lambda_sg.id
-  source_security_group_id = aws_security_group.redis_sg.id
-}
+# resource "aws_security_group_rule" "lambda_to_redis" {
+#   type              = "egress"
+#   from_port         = 6379
+#   to_port           = 6379
+#   protocol          = "tcp"
+#   security_group_id = aws_security_group.lambda_sg.id
+#   source_security_group_id = aws_security_group.redis_sg.id
+# }
 
 # Add ingress rule to Redis SG to allow inbound traffic from Lambda SG on port 6379
-resource "aws_security_group_rule" "redis_from_lambda" {
-  type              = "ingress"
-  from_port         = 6379
-  to_port           = 6379
-  protocol          = "tcp"
-  security_group_id = aws_security_group.redis_sg.id
-  source_security_group_id = aws_security_group.lambda_sg.id
-}
+# resource "aws_security_group_rule" "redis_from_lambda" {
+#   type              = "ingress"
+#   from_port         = 6379
+#   to_port           = 6379
+#   protocol          = "tcp"
+#   security_group_id = aws_security_group.redis_sg.id
+#   source_security_group_id = aws_security_group.lambda_sg.id
+# }
 
 # Egress rule to allow all outbound traffic from Lambda to internet
-resource "aws_security_group_rule" "lambda_sg_internet_egress" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  security_group_id = aws_security_group.lambda_sg.id
-  cidr_blocks       = ["0.0.0.0/0"]
-}
+# resource "aws_security_group_rule" "lambda_sg_internet_egress" {
+#   type              = "egress"
+#   from_port         = 0
+#   to_port           = 0
+#   protocol          = "-1"
+#   security_group_id = aws_security_group.lambda_sg.id
+#   cidr_blocks       = ["0.0.0.0/0"]
+# }
 
 # Ingress rule to allow inbound connections to Redis (if needed for management)
-resource "aws_security_group_rule" "redis_sg_inbound_management" {
-  type              = "ingress"
-  from_port         = 6379
-  to_port           = 6379
-  protocol          = "tcp"
-  security_group_id = aws_security_group.redis_sg.id
-  cidr_blocks       = ["0.0.0.0/0"] # Replace with your trusted CIDR range if needed
-}
+# resource "aws_security_group_rule" "redis_sg_inbound_management" {
+#   type              = "ingress"
+#   from_port         = 6379
+#   to_port           = 6379
+#   protocol          = "tcp"
+#   security_group_id = aws_security_group.redis_sg.id
+#   cidr_blocks       = ["0.0.0.0/0"] # Replace with your trusted CIDR range if needed
+# }
 # Allow Lambda to communicate with SQS over HTTPS (port 443)
-resource "aws_security_group_rule" "lambda_to_sqs_https" {
-  type              = "egress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  security_group_id = aws_security_group.lambda_sg.id
-  cidr_blocks       = ["0.0.0.0/0"]
-}
+# resource "aws_security_group_rule" "lambda_to_sqs_https" {
+#   type              = "egress"
+#   from_port         = 443
+#   to_port           = 443
+#   protocol          = "tcp"
+#   security_group_id = aws_security_group.lambda_sg.id
+#   cidr_blocks       = ["0.0.0.0/0"]
+# }
 
 # VPC Endpoint for S3
 resource "aws_vpc_endpoint" "s3_endpoint" {
@@ -404,7 +404,7 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
   vpc_endpoint_type = "Interface"
  
   subnet_ids          = data.aws_subnets.default.ids
-  security_group_ids  = [aws_security_group.lambda_sg.id]
+  security_group_ids  = [aws_security_group.lambda_redis_sg.id]
   private_dns_enabled = true
  
   policy = jsonencode({
@@ -428,11 +428,11 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
 }
 
 # vpc_endpoint_sqs_ingress
-resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  security_group_id = aws_security_group.lambda_sg.id
-  cidr_blocks       = ["0.0.0.0/0"]
-}
+# resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {
+#   type              = "ingress"
+#   from_port         = 443
+#   to_port           = 443
+#   protocol          = "tcp"
+#   security_group_id = aws_security_group.lambda_sg.id
+#   cidr_blocks       = ["0.0.0.0/0"]
+# }
