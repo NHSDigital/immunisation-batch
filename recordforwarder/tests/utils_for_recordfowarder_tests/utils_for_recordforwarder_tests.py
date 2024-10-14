@@ -20,7 +20,7 @@ def create_mock_operation_outcome(diagnostics: str) -> dict:
     }
 
 
-def create_mock_api_response(status_code: int, diagnostics: dict = None) -> requests.Response:
+def create_mock_api_response(status_code: int, diagnostics: str = None) -> requests.Response:
     mock_response = Mock(spec=requests.Response)
     mock_response.status_code = status_code
     mock_response.headers = {
