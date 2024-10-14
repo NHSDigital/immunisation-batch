@@ -1,0 +1,19 @@
+parameters:
+  - name: stage_name
+    type: string
+  - name: manual_approval_env
+    type: string
+
+jobs:
+  - deployment: deploy
+    displayName: Manual Approval Required
+    timeoutInMinutes: 60
+    pool:
+      vmImage: "ubuntu-latest"
+    environment: ${{ parameters.manual_approval_env }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - bash: |
+                echo Approved
