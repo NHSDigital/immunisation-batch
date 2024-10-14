@@ -162,7 +162,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   vpc_config {
     subnet_ids         = data.aws_subnets.default.ids
-    security_group_ids = [aws_security_group.lambda_sg.id]
+    security_group_ids = [aws_security_group.lambda_redis_sg.id]
   }
 
   environment {
