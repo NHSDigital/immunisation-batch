@@ -16,15 +16,18 @@ def create_ack_data(
     """Returns a dictionary containing the ack headers as keys, along with the relevant values."""
     return {
         "MESSAGE_HEADER_ID": row_id,
-        "HEADER_RESPONSE_CODE": "fatal-error" if diagnostics else "ok",
+        "HEADER_RESPONSE_CODE": "fatal-error" if (diagnostics or not delivered) else "ok",
         "ISSUE_SEVERITY": "error" if diagnostics else "information",
         "ISSUE_CODE": "error" if diagnostics else "informational",
-        "RESPONSE_TYPE": "business",
-        "RESPONSE_CODE": "20005" if diagnostics else "20013",
+        "ISSUE_DETAILS_CODE": "",  # TODO: THIS
+        "RESPONSE_TYPE": "Business",
+        "RESPONSE_CODE": "",  # TODO: This
         "RESPONSE_DISPLAY": diagnostics if diagnostics else "Success",
         "RECEIVED_TIME": created_at_formatted_string,
-        "MAILBOX_FROM": "TBC",
-        "LOCAL_ID": "DPS",
+        "MAILBOX_FROM": "",  # TODO: Empty string for DPS, else mailbox if picked up from MESH
+        "LOCAL_ID": "",  # Empty string for DPS or else obtain id from ctl file if picked up from MESH
+        "IMMS_ID": "",  # TODO: This
+        "OPERATION_OUTCOME": diagnostics or "",
         "MESSAGE_DELIVERY": delivered,
     }
 
