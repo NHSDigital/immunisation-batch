@@ -11,6 +11,45 @@ authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
 
 
+def send_create_request(fhir_json, supplier):
+    response = immunization_api_instance.create_immunization(fhir_json, supplier)
+    successful_api_response = False
+    diagnostics = None
+    imms_id = None
+    if response.status_code == 201:
+        successful_api_response = True
+        try:
+            imms_id = response.headers.get("location").split("immunisation-fhir-api/Immunization/")[1]
+        except (AttributeError, IndexError):
+            imms_id = None
+    else:
+        diagnostics = get_operation_outcome_diagnostics(response)
+    return successful_api_response, diagnostics, imms_id
+
+
+def send_update_request(fhir_json, supplier, imms_id, version):
+    successful_api_response = False
+    diagnostics = None
+    fhir_json["id"] = imms_id
+    response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
+    if response.status_code == 200:
+        successful_api_response = True
+    else:
+        diagnostics = get_operation_outcome_diagnostics(response)
+    return successful_api_response, diagnostics, imms_id
+
+
+def send_delete_request(fhir_json, supplier, imms_id):
+    successful_api_response = False
+    diagnostics = None
+    response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
+    if response.status_code == 204:
+        successful_api_response = True
+    else:
+        diagnostics = get_operation_outcome_diagnostics(response)
+    return successful_api_response, diagnostics, imms_id
+
+
 def get_operation_outcome_diagnostics(response: requests.Response) -> str:
     """
     Returns the diagnostics from the API response. If the diagnostics can't be found in the API response,
@@ -36,36 +75,14 @@ def send_request_to_api(message_body):
     version = message_body.get("version")
     incoming_diagnostics = message_body.get("diagnostics")
 
-    successful_api_response = False
-    diagnostics = None
-
     if incoming_diagnostics:
-        diagnostics = incoming_diagnostics
+        return False, incoming_diagnostics, None
 
     elif operation_requested == "CREATE":
-        response = immunization_api_instance.create_immunization(fhir_json, supplier)
-        if response.status_code == 201:
-            successful_api_response = True
-            try:
-                imms_id = response.headers.get("location").split("immunisation-fhir-api/Immunization/")[1]
-            except (AttributeError, IndexError):
-                imms_id = None
-        else:
-            diagnostics = get_operation_outcome_diagnostics(response)
+        return send_create_request(fhir_json, supplier)
 
     elif operation_requested == "UPDATE":
-        fhir_json["id"] = imms_id
-        response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
-        if response.status_code == 200:
-            successful_api_response = True
-        else:
-            diagnostics = get_operation_outcome_diagnostics(response)
+        return send_update_request(fhir_json, supplier, imms_id, version)
 
     elif operation_requested == "DELETE":
-        response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
-        if response.status_code == 204:
-            successful_api_response = True
-        else:
-            diagnostics = get_operation_outcome_diagnostics(response)
-
-    return successful_api_response, diagnostics, imms_id
+        return send_delete_request(fhir_json, supplier, imms_id)
