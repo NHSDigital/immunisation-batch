@@ -33,9 +33,4 @@ extends:
     short_service_name: ${{ variables.short_service_name }}
     environment: internal-dev
     post_init:
-        - template: ./templates/post-deploy.yml       
-      # - environment: internal-dev-sandbox
-      #   proxy_path: sandbox
-      #   post_deploy:
-      #     - template: ./templates/run-tests.yml
-      #   trying pipeline execution
+        - template: ./templates/post-deploy.yml
