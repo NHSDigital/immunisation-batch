@@ -12,6 +12,7 @@ class DiseaseCodes:
     measles: str = "14189004"
     mumps: str = "36989005"
     rubella: str = "36653000"
+    rsv: str = "55735004"
 
 
 class DiseaseDisplayTerms:
@@ -22,12 +23,14 @@ class DiseaseDisplayTerms:
     measles: str = "Measles"
     mumps: str = "Mumps"
     rubella: str = "Rubella"
+    rsv: str = "Respiratory syncytial virus infection (disorder)"
 
 
 VACCINE_DISEASE_MAPPING = {
     "covid19": ["covid_19"],
     "flu": ["flu"],
     "mmr": ["measles", "mumps", "rubella"],
+    "rsv": ["rsv"],
 }
 
 

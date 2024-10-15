@@ -104,6 +104,11 @@ class TestInitialFileValidation(TestCase):
             ("COVID19", ["COVID19_FULL", "FLU_FULL"], True),  # Full permissions for COVID19
             ("COVID19", ["COVID19_CREATE", "FLU_FULL"], True),  # Create permissions for COVID19
             ("COVID19", ["FLU_CREATE"], False),  # No permissions for COVID19
+            ("RSV", ["RSV_CREATE", "FLU_FULL"], True),  # Full permissions for rsv
+            ("RSV", ["RSV_CREATE"], True),  # Create permissions for rsv
+            ("RSV", ["RSV_UPDATE"], True),  # Update permissions for rsv
+            ("RSV", ["RSV_DELETE"], True),  # Delete permissions for rsv
+            ("RSV", ["COVID19_FULL"], False),  # No permissions for rsv
         ]
 
         for vaccine_type, vaccine_permissions, expected_result in test_cases:
@@ -148,6 +153,14 @@ class TestInitialFileValidation(TestCase):
             ("COVID19", ["COVID19_UPDATE"], valid_content_update_and_delete_lowercase, True),
             # COVID19, no permissions
             ("COVID19", ["FLU_CREATE", "FLU_UPDATE"], valid_content_update_and_delete_lowercase, False),
+            # RSV, full permissions
+            ("RSV", ["RSV_FULL"], valid_content_new_and_delete_lowercase, True),
+            # RSV, partial permissions
+            ("RSV", ["RSV_UPDATE"], valid_content_update_and_delete_lowercase, True),
+            # RSV, no permissions
+            ("RSV", ["FLU_CREATE", "FLU_UPDATE"], valid_content_update_and_delete_lowercase, False),
+            # RSV, full permissions, mixed case action flags
+            ("RSV", ["RSV_FULL"], valid_content_new_and_update_mixedcase, True),
         ]
 
         for vaccine_type, vaccine_permissions, file_content, expected_result in test_cases:

@@ -368,6 +368,27 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assertEqual(operations, {"UPDATE"})
 
+    @patch("get_operation_permissions.get_supplier_permissions")
+    def test_get_operation_permissions_one_RSV_permission(self, mock_get_supplier_permissions):
+        mock_get_supplier_permissions.return_value = ["RSV_UPDATE", "COVID19_CREATE"]
+
+        supplier = "supplier2"
+        vaccine_type = "RSV"
+
+        operations = get_operation_permissions(supplier, vaccine_type)
+
+        self.assertEqual(operations, {"UPDATE"})
+
+    @patch("get_operation_permissions.get_permissions_config_json_from_s3")
+    def test_get_supplier_permissions_RSV_permissions(self, mock_get_permissions_config_json_from_s3):
+        mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
+
+        supplier = "SUPPLIER2"
+
+        permissions = get_supplier_permissions(supplier)
+
+        self.assertEqual(permissions, ["RSV_UPDATE"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -184,8 +184,8 @@ PERMISSIONS_FILE_KEY = "permissions_config.json"
 
 MOCK_PERMISSIONS = {
     "all_permissions": {
-        "DPSFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
-        "DPSREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+        "DPSFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"],
+        "DPSREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"],
         "EMIS": ["FLU_FULL"],
         "PINNACLE": [""],
         "SONAR": ["FLU_CREATE", "FLU_DELETE"],
@@ -211,10 +211,10 @@ MOCK_PERMISSIONS = {
 
 TEST_PERMISSIONS_CONFIG = {
     "all_permissions": {
-        "DPFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
-        "DPREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
+        "DPFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"],
+        "DPREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"],
         "SUPPLIER1": ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"],
-        "SUPPLIER2": ["FLU_CREATE"],
+        "SUPPLIER2": ["RSV_UPDATE"],
         "EMIS": ["FLU_CREATE", "FLU_DELETE"],
         "SUPPLIER4": [""],
     },
@@ -327,3 +327,29 @@ class TestValues:
     mock_request_dose_sequence_missing = mock_request_dose_sequence_missing
     mock_request_only_mandatory = mock_request_only_mandatory
     mock_request_params_missing = mock_request_params_missing
+
+
+mock_disease_codes = {
+    "covid_19": "840539006",
+    "flu": "6142004",
+    "measles": "14189004",
+    "mumps": "36989005",
+    "rubella": "36653000",
+    "rsv": "55735004",
+}
+
+mock_disease_display_terms = {
+    "covid_19": "Disease caused by severe acute respiratory syndrome coronavirus 2",
+    "flu": "Influenza",
+    "measles": "Measles",
+    "mumps": "Mumps",
+    "rubella": "Rubella",
+    "rsv": "Respiratory syncytial virus infection (disorder)",
+}
+
+MOCK_VACCINE_DISEASE_MAPPING = {
+    "covid19": ["covid_19"],
+    "flu": ["flu"],
+    "mmr": ["measles", "mumps", "rubella"],
+    "rsv": ["rsv"],
+}
