@@ -101,6 +101,36 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.execute_test(mock_api, message, 400, "Fatal Error", mock_diagnostics=mock_diagnostics)
 
     @patch("send_request_to_api.immunization_api_instance")
+    def test_forward_lambda_e2e_create_multi_line_diagnostics(self, mock_api):
+        message = {
+            "row_id": TEST_ROW_ID,
+            "fhir_json": test_fhir_json,
+            "operation_requested": "CREATE",
+            "file_key": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
+            "imms_id": "test",
+            "version": 1,
+        }
+        mock_diagnostics = """This a string
+                    of diagnostics which spans multiple lines
+            and has some carriage returns\n\nand random space"""
+
+        expected_single_line_diagnostics = (
+            "This a string of diagnostics which spans multiple lines and has some carriage returns and random space"
+        )
+
+        self.setup_s3()
+        mock_response = create_mock_api_response(400, mock_diagnostics)
+        mock_api.create_immunization.return_value = mock_response
+
+        kinesis_message = self.create_kinesis_message(message)
+        forward_lambda_handler(kinesis_message, None)
+
+        ack_file_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_ACK_FILE_KEY)
+        ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
+        self.assertIn(expected_single_line_diagnostics, ack_file_content)
+
+    @patch("send_request_to_api.immunization_api_instance")
     def test_forward_lambda_e2e_none_request(self, mock_api):
         self.setup_s3()
         mock_api.create_immunization.return_value = ("", 201)
