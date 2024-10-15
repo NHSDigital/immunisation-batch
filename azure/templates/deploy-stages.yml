@@ -1,0 +1,42 @@
+parameters:
+  - name: service_name
+    type: string
+    default: 'immunisation-batch'
+  - name: short_service_name
+    type: string
+    default: 'imms-batch'
+
+stages:
+  - stage: InternalDev
+    jobs:
+      - template: deploy-stage.yml
+        parameters:
+          service_name: ${{ parameters.service_name }}
+          short_service_name: ${{ parameters.short_service_name }}
+          environment: internal-dev
+          post_init:
+              - template: post-deploy.yml
+  - stage: Integration
+    dependsOn: InternalDev
+    jobs:
+      - template: deploy-stage.yml
+        parameters:
+          service_name: ${{ parameters.service_name }}
+          short_service_name: ${{ parameters.short_service_name }}
+          environment: int
+          post_init:
+              - template: post-deploy.yml
+  - stage: Ref_Approval
+    dependsOn: Integration
+    jobs:
+      - template: deploy-manual-approval.yml
+  - stage: Reference
+    dependsOn: Ref_Approval
+    jobs:
+      - template: deploy-stage.yml
+        parameters:
+          service_name: ${{ parameters.service_name }}
+          short_service_name: ${{ parameters.short_service_name }}
+          environment: ref
+          post_init:
+              - template: post-deploy.yml
