@@ -136,7 +136,6 @@ resource "aws_lambda_function" "forwarding_lambda" {
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
-      PROD_ACCOUNT_ID    = local.account_id
     }
   }
 

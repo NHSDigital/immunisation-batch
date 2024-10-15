@@ -18,14 +18,14 @@ def send_to_supplier_queue(message_body: dict) -> bool:
 
     # Find the URL of the relevant queue
     imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    account_id = os.getenv("PROD_ACCOUNT_ID") if "prod" in imms_env else os.getenv("LOCAL_ACCOUNT_ID")
+    account_id = os.getenv("LOCAL_ACCOUNT_ID")
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-metadata-queue.fifo"
 
     # Send to queue
     try:
         sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body),
                                 MessageGroupId=supplier)
-        logger.info("Message sent to SQS queue '%s' for supplier %s", supplier)
+        logger.info(f"Message sent to SQS queue for supplier:{supplier}")
     except Exception as e:
         logger.error("An unexpected error occurred: %s", e)
         return False

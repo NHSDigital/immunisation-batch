@@ -112,8 +112,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::imms-supplier-config",           
-          "arn:aws:s3:::imms-supplier-config/*"        
+          "arn:aws:s3:::${data.aws_s3_bucket.existing_bucket.bucket}",           
+          "arn:aws:s3:::${data.aws_s3_bucket.existing_bucket.bucket}/*"        
         ]
       }
     ]
@@ -172,8 +172,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
       ENVIRONMENT          = local.environment
       LOCAL_ACCOUNT_ID     = local.local_account_id
       SHORT_QUEUE_PREFIX   = local.short_queue_prefix
-      PROD_ACCOUNT_ID      = local.account_id
-      CONFIG_BUCKET_NAME   = "imms-supplier-config"
+      CONFIG_BUCKET_NAME   = data.aws_s3_bucket.existing_bucket.bucket
       REDIS_HOST           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].address
       REDIS_PORT           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].port
     }
