@@ -15,12 +15,14 @@ def forward_request_to_api(message_body):
     """Forwards the request to the Imms API (where possible) and updates the ack file with the outcome"""
     file_key = message_body.get("file_key")
     row_id = message_body.get("row_id")
+    logger.info("BEGINNIING FORWARDING MESSAGE: ID %s", row_id)
     try:
         imms_id = send_request_to_api(message_body)
         update_ack_file(file_key, row_id, successful_api_response=True, diagnostics=None, imms_id=imms_id)
     except MessageNotSuccessfulError as error:
         imms_id = message_body.get("imms_id")  # imms_id may already have been identified in recordprocessing
         update_ack_file(file_key, row_id, successful_api_response=False, diagnostics=error.message, imms_id=imms_id)
+    logger.info("FINISHED FORWARDING MESSAGE: ID %s", row_id)
 
 
 def forward_lambda_handler(event, _):
