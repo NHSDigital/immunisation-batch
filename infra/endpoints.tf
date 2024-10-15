@@ -30,13 +30,20 @@ resource "aws_vpc_endpoint" "sqs_endpoint" {
     Statement = [
       {
         Effect    = "Allow"
-        Principal = "*"
+        Principal = {
+          "AWS": [
+            "arn:aws:iam::${local.local_account_id}:root"
+          ]
+        },
         Action    = [
           "sqs:SendMessage",
           "sqs:ReceiveMessage",
           "kms:Decrypt"
         ]
-        Resource  = "*"
+        Resource  = ["arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${var.project_short_name}-int-metadata-queue.fifo",
+          "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${var.project_short_name}-ref-metadata-queue.fifo",
+          "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${var.project_short_name}-internal-dev-metadata-queue.fifo",
+          "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${var.project_short_name}-pr-78-metadata-queue.fifo"]
       }
     ]
   })
@@ -58,13 +65,37 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Statement = [
       {
         Effect    = "Allow"
-        Principal = "*",
+        Principal = {
+          "AWS": [
+            "arn:aws:iam::${local.local_account_id}:root"
+          ]
+        },
         Action    = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
         ]
-        Resource  = "*"
+        Resource  = [
+          "arn:aws:s3:::${var.project_name}-pr-78-data-sources",
+          "arn:aws:s3:::${var.project_name}-pr-78-data-sources/*",
+          "arn:aws:s3:::${var.project_name}-int-data-sources",
+          "arn:aws:s3:::${var.project_name}-int-data-sources/*",
+          "arn:aws:s3:::${var.project_name}-ref-data-sources",
+          "arn:aws:s3:::${var.project_name}-ref-data-sources/*",
+          "arn:aws:s3:::${var.project_name}-internal-dev-data-sources",
+          "arn:aws:s3:::${var.project_name}-internal-dev-data-sources/*",
+          "arn:aws:s3:::${var.project_name}-pr-78-data-destinations",
+          "arn:aws:s3:::${var.project_name}-pr-78-data-destinations/*",
+          "arn:aws:s3:::${var.project_name}-int-data-destinations",
+          "arn:aws:s3:::${var.project_name}-int-data-destinations/*",
+          "arn:aws:s3:::${var.project_name}-ref-data-destinations",
+          "arn:aws:s3:::${var.project_name}-ref-data-destinations/*",
+          "arn:aws:s3:::${var.project_name}-internal-dev-data-destinations",
+          "arn:aws:s3:::${var.project_name}-internal-dev-data-destinations/*",
+          "arn:aws:s3:::${aws_s3_bucket.batch_config_bucket.bucket}",
+          "arn:aws:s3:::${aws_s3_bucket.batch_config_bucket.bucket}/*",
+          "arn:aws:s3:::prod-${var.aws_region}-starport-layer-bucket/*"
+        ]
       }
     ]
   })
