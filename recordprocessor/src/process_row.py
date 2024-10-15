@@ -21,6 +21,7 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
     operation_requested = action_flag.upper().replace("NEW", "CREATE") if action_flag is not None else ""
     logger.info("OPERATION REQUESTED:  %s", operation_requested)
     logger.info("OPERATION ALLOWED: %s", permission_operations)
+    logger.info("ROW INFO: %s", action_flag)
 
     # Handle no permissions
     if operation_requested not in permission_operations:
