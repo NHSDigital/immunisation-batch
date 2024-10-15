@@ -292,6 +292,28 @@ class TestRecordProcessor(unittest.TestCase):
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE no unique id", 0, expected_kinesis_data, False)])
 
+    def test_e2e_no_action_flag(self):
+        """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace("new", ""))
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        self.make_assertions([("CREATE no unique id", 0, expected_kinesis_data, False)])
+
+    def test_e2e_invalid_action_flag(self):
+        """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace("new", "invalid"))
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        self.make_assertions([("CREATE no unique id", 0, expected_kinesis_data, False)])
+
     def test_e2e_kinesis_failed(self):
         """
         Tests that, for a file with valid content and supplier with full permissions, when the kinesis send fails, the

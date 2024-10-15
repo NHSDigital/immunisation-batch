@@ -19,7 +19,13 @@ def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
     (where applicable), version(where applicable) and any diagnostics.
     """
     action_flag = row.get("ACTION_FLAG")
-    operation_requested = action_flag.upper().replace("NEW", "CREATE") if action_flag is not None else ""
+    action_flag = action_flag.upper() if action_flag is not None else action_flag
+    # Handle invalid action_flag
+    if action_flag not in ("NEW", "UPDATE", "DELETE"):
+        logger.info("Invalid ACTION_FLAG '%s' - ACTION_FLAG MUST BE 'NEW', 'UPDATE' or 'DELETE'", action_flag)
+        return {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+
+    operation_requested = action_flag.replace("NEW", "CREATE")
     logger.info("OPERATION REQUESTED:  %s", operation_requested)
     logger.info("OPERATION ALLOWED: %s", allowed_operations)
 
