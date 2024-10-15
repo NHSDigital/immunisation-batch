@@ -33,7 +33,7 @@ def create_ack_data(
         "ISSUE_CODE": "OK" if not diagnostics else "Fatal Error",
         "ISSUE_DETAILS_CODE": "30001" if not diagnostics else "30002",
         "RESPONSE_TYPE": "Business",
-        "RESPONSE_CODE": "30001" if not successful_api_response else "30002",
+        "RESPONSE_CODE": "30001" if successful_api_response else "30002",
         "RESPONSE_DISPLAY": (
             "Success" if successful_api_response else "Business Level Response Value - Processing Error"
         ),
