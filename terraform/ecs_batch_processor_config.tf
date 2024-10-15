@@ -276,7 +276,7 @@ resource "aws_iam_policy" "fifo_pipe_policy" {
  }
 
  
-# EventBridge Pipe
+# EventBridge Pipe.
 resource "aws_pipes_pipe" "fifo_pipe" {
   name       = "${local.prefix}-pipe"
   role_arn   = aws_iam_role.fifo_pipe_role.arn
