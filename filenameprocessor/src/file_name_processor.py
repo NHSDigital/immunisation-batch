@@ -13,8 +13,9 @@ from make_and_upload_ack_file import make_and_upload_ack_file
 from s3_clients import s3_client
 from elasticcache import upload_to_elasticache
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig()
 logger = logging.getLogger()
+logger.setLevel("INFO")
 
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument
@@ -43,7 +44,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 make_and_upload_ack_file(
                     message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
                 )
-            elif "configs" in bucket_name:
+            elif "config" in bucket_name:
                 # For files in batch_config_bucket, upload to ElastiCache
                 logger.info("cache upload initiated started")
                 try:
@@ -68,10 +69,10 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))
-    if "configs" in bucket_name and not error_files:
+    if "config" in bucket_name and not error_files:
         logger.info("The upload of file content from the S3 bucket to the cache has been successfully completed")
         return {"statusCode": 200, "body": json_dumps("File content upload to cache from S3 bucket completed")}
-    elif "configs" in bucket_name:
+    elif "config" in bucket_name:
         logger.info("The upload of file content from the S3 bucket to the cache has not been successfully completed")
         return {"statusCode": 400, "body": json_dumps("Failed to upload file content to cache from S3 bucket")}
     else:

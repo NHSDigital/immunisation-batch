@@ -112,8 +112,8 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${local.prefix}-configs",           
-          "arn:aws:s3:::${local.prefix}-configs/*"        
+          "arn:aws:s3:::imms-supplier-config",           
+          "arn:aws:s3:::imms-supplier-config/*"        
         ]
       }
     ]
@@ -162,7 +162,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   vpc_config {
     subnet_ids         = data.aws_subnets.default.ids
-    security_group_ids = [aws_security_group.lambda_redis_sg.id]
+    security_group_ids = [data.aws_security_group.existing_sg.id]
   }
 
   environment {
@@ -173,9 +173,9 @@ resource "aws_lambda_function" "file_processor_lambda" {
       LOCAL_ACCOUNT_ID     = local.local_account_id
       SHORT_QUEUE_PREFIX   = local.short_queue_prefix
       PROD_ACCOUNT_ID      = local.account_id
-      CONFIG_BUCKET_NAME   = "${local.prefix}-configs"
-      REDIS_HOST           = aws_elasticache_cluster.redis_cluster.cache_nodes[0].address
-      REDIS_PORT           = aws_elasticache_cluster.redis_cluster.port
+      CONFIG_BUCKET_NAME   = "imms-supplier-config"
+      REDIS_HOST           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].address
+      REDIS_PORT           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].port
     }
   }
 }
@@ -202,7 +202,7 @@ resource "aws_s3_bucket_notification" "lambda_notification" {
 
 # S3 Bucket notification to trigger Lambda function for config bucket
 resource "aws_s3_bucket_notification" "new_lambda_notification" {
-  bucket = aws_s3_bucket.batch_config_bucket.bucket
+  bucket = data.aws_s3_bucket.existing_bucket.bucket
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.file_processor_lambda.arn
@@ -216,7 +216,7 @@ resource "aws_lambda_permission" "new_s3_invoke_permission" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.file_processor_lambda.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.batch_config_bucket.arn
+  source_arn    = data.aws_s3_bucket.existing_bucket.arn
 }
 
 # IAM Role for ElastiCache.
@@ -248,7 +248,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:AddTagsToResource",
           "elasticache:RemoveTagsFromResource"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-redis-cluster"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/immunisation-redis-cluster"
       },
       {
         Effect = "Allow"
@@ -257,7 +257,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:DeleteCacheCluster",
           "elasticache:ModifyCacheCluster"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-redis-cluster"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:cluster/immunisation-redis-cluster"
         Condition = {
           "StringEquals": {
             "aws:RequestedRegion": "${var.aws_region}"
@@ -269,7 +269,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
         Action = [
           "elasticache:DescribeCacheSubnetGroups"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-subnet-group"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/immunisation-redis-subnet-group"
       },
       {
         Effect = "Allow"
@@ -278,7 +278,7 @@ resource "aws_iam_policy" "elasticache_permissions" {
           "elasticache:DeleteCacheSubnetGroup",
           "elasticache:ModifyCacheSubnetGroup"
         ]
-        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/${local.prefix}-redis-subnet-group"
+        Resource = "arn:aws:elasticache:${var.aws_region}:${local.local_account_id}:subnet-group/immunisation-redis-subnet-group"
         Condition = {
           "StringEquals": {
             "aws:RequestedRegion": "${var.aws_region}"
@@ -356,76 +356,76 @@ resource "aws_iam_role_policy_attachment" "elasticache_policy_attachment" {
 # }
 
 # VPC Endpoint for S3
-resource "aws_vpc_endpoint" "s3_endpoint" {
-  vpc_id       = data.aws_vpc.default.id
-  service_name = "com.amazonaws.${var.aws_region}.s3"
+# resource "aws_vpc_endpoint" "s3_endpoint" {
+#   vpc_id       = data.aws_vpc.default.id
+#   service_name = "com.amazonaws.${var.aws_region}.s3"
  
-  route_table_ids = [
-    for rt in data.aws_route_tables.default_route_tables.ids : rt
-  ]
+#   route_table_ids = [
+#     for rt in data.aws_route_tables.default_route_tables.ids : rt
+#   ]
  
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow"
-        Principal = "*",
-        Action    = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket"
-        ]
-        Resource  = [
-          "arn:aws:s3:::${local.prefix}-data-sources",
-          "arn:aws:s3:::${local.prefix}-data-sources/*",
-          "arn:aws:s3:::${local.prefix}-data-destinations",
-          "arn:aws:s3:::${local.prefix}-data-destinations/*",
-          "arn:aws:s3:::${local.prefix}-configs",
-          "arn:aws:s3:::${local.prefix}-configs/*",
-          "arn:aws:s3:::prod-eu-west-2-starport-layer-bucket/*"
-        ]
-      }
-    ]
-  })
-  tags = {
-    Name = "${var.project_name}-s3-endpoint"
-  }
-}
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect    = "Allow"
+#         Principal = "*",
+#         Action    = [
+#           "s3:GetObject",
+#           "s3:PutObject",
+#           "s3:ListBucket"
+#         ]
+#         Resource  = [
+#           "arn:aws:s3:::${local.prefix}-data-sources",
+#           "arn:aws:s3:::${local.prefix}-data-sources/*",
+#           "arn:aws:s3:::${local.prefix}-data-destinations",
+#           "arn:aws:s3:::${local.prefix}-data-destinations/*",
+#           "arn:aws:s3:::${local.prefix}-configs",
+#           "arn:aws:s3:::${local.prefix}-configs/*",
+#           "arn:aws:s3:::prod-eu-west-2-starport-layer-bucket/*"
+#         ]
+#       }
+#     ]
+#   })
+#   tags = {
+#     Name = "${var.project_name}-s3-endpoint"
+#   }
+# }
 
 
 # Get the Route Tables for the default VPC.
-data "aws_route_tables" "default_route_tables" {
-  vpc_id = data.aws_vpc.default.id
-}
+# data "aws_route_tables" "default_route_tables" {
+#   vpc_id = data.aws_vpc.default.id
+# }
 # VPC Endpoint for SQS.
-resource "aws_vpc_endpoint" "sqs_endpoint" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.aws_region}.sqs"
-  vpc_endpoint_type = "Interface"
+# resource "aws_vpc_endpoint" "sqs_endpoint" {
+#   vpc_id            = data.aws_vpc.default.id
+#   service_name      = "com.amazonaws.${var.aws_region}.sqs"
+#   vpc_endpoint_type = "Interface"
  
-  subnet_ids          = data.aws_subnets.default.ids
-  security_group_ids  = [aws_security_group.lambda_redis_sg.id]
-  private_dns_enabled = true
+#   subnet_ids          = data.aws_subnets.default.ids
+#   security_group_ids  = [aws_security_group.lambda_redis_sg.id]
+#   private_dns_enabled = true
  
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = [
-          "sqs:SendMessage",
-          "sqs:ReceiveMessage",
-          "kms:Decrypt"
-        ]
-        Resource  = aws_sqs_queue.fifo_queue.arn
-      }
-    ]
-  })
-  tags = {
-    Name = "${var.project_name}-sqs-endpoint"
-  }
-}
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect    = "Allow"
+#         Principal = "*"
+#         Action    = [
+#           "sqs:SendMessage",
+#           "sqs:ReceiveMessage",
+#           "kms:Decrypt"
+#         ]
+#         Resource  = aws_sqs_queue.fifo_queue.arn
+#       }
+#     ]
+#   })
+#   tags = {
+#     Name = "${var.project_name}-sqs-endpoint"
+#   }
+# }
 
 # vpc_endpoint_sqs_ingress
 # resource "aws_security_group_rule" "vpc_endpoint_sqs_ingress" {

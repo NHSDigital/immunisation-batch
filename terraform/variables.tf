@@ -51,36 +51,51 @@ variable "root_domain_name" {
     default = "dev.api.platform.nhs.uk"
 }
 
-variable "suppliers" {
-    description = "List of supplier names. 5 extra pipelines"
-    type        = list(string)
-    default = [
-        "EMIS", "PINNACLE", "SONAR", "TPP",
-    "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
-    "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
-    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "DPS"
-    ]
-
+data "aws_elasticache_cluster" "existing_redis" {
+  cluster_id = "immunisation-redis-cluster"
 }
 
-variable "supplier_name_map" { 
-  description = "Mapping of long supplier names to shorter names"
-  type = map(string)
-  default = {
-    "EMIS"                  = "EMIS"
-    "PINNACLE"              = "PINN"
-    "SONAR"                 = "SONAR"
-    "TPP"                   = "TPP"
-    "AGEM-NIVS"             = "AGEM_NIVS"
-    "NIMS"                  = "NIMS"
-    "EVA"                   = "EVA"
-    "RAVS"                  = "RAVS"
-    "MEDICAL_DIRECTOR"      = "M_D"
-    "WELSH_DA_1"            = "WELSHDA1"
-    "WELSH_DA_2"            = "WELSHDA2"
-    "NORTHERN_IRELAND_DA"   = "NIREDA"
-    "SCOTLAND_DA"           = "SCOTDA"
-    "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
-    "DPS"                   = "DPS"
+data "aws_security_group" "existing_sg" {
+  filter {
+    name   = "group-name"
+    values = ["immunisation-security-group"]
   }
 }
+
+data "aws_s3_bucket" "existing_bucket" {
+  bucket = "imms-supplier-config"
+}
+
+# variable "suppliers" {
+#     description = "List of supplier names. 5 extra pipelines"
+#     type        = list(string)
+#     default = [
+#         "EMIS", "PINNACLE", "SONAR", "TPP",
+#     "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
+#     "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
+#     "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "DPS"
+#     ]
+
+# }
+
+# variable "supplier_name_map" { 
+#   description = "Mapping of long supplier names to shorter names"
+#   type = map(string)
+#   default = {
+#     "EMIS"                  = "EMIS"
+#     "PINNACLE"              = "PINN"
+#     "SONAR"                 = "SONAR"
+#     "TPP"                   = "TPP"
+#     "AGEM-NIVS"             = "AGEM_NIVS"
+#     "NIMS"                  = "NIMS"
+#     "EVA"                   = "EVA"
+#     "RAVS"                  = "RAVS"
+#     "MEDICAL_DIRECTOR"      = "M_D"
+#     "WELSH_DA_1"            = "WELSHDA1"
+#     "WELSH_DA_2"            = "WELSHDA2"
+#     "NORTHERN_IRELAND_DA"   = "NIREDA"
+#     "SCOTLAND_DA"           = "SCOTDA"
+#     "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
+#     "DPS"                   = "DPS"
+#   }
+# }
