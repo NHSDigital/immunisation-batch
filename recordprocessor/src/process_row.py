@@ -17,9 +17,7 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
     Processes a row of the file and returns a dictionary containing the fhir_json, action_flag, imms_id
     (where applicable), version(where applicable) and any diagnostics.
     """
-    logger.info("ROW: %s", row)
     action_flag = row.get("ACTION_FLAG")
-    logger.info("ACTION_FLAG: %s", action_flag)
     operation_requested = action_flag.upper().replace("NEW", "CREATE") if action_flag is not None else ""
     logger.info("OPERATION REQUESTED:  %s", operation_requested)
     logger.info("OPERATION ALLOWED: %s", permission_operations)

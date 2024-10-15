@@ -38,7 +38,6 @@ def add_row_to_ack_file(ack_data: dict, accumulated_ack_file_content: StringIO, 
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destinations")
     ack_filename = f"processedFile/{file_key.replace('.csv', '_response.csv')}"
     s3_client.upload_fileobj(csv_file_like_object, ack_bucket_name, ack_filename)
-    logger.info("CSV content before upload with perms:\n%s", accumulated_ack_file_content.getvalue())
     return accumulated_ack_file_content
 
 

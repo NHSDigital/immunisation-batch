@@ -75,6 +75,13 @@ class TestRecordProcessor(unittest.TestCase):
         """
         Uploads a test file with the TEST_FILE_KEY (Flu EMIS file) the given file content to the source bucket
         """
+        # # Construct the path to the test file
+        # test_file_path = os.path.join(
+        #     os.path.dirname(__file__), "sample_files", "FLU_vaccinations_v5_DPSFULL_20200101000000.csv"
+        # )
+        # with open(test_file_path, "rb") as file_data:
+        #     s3_client.upload_fileobj(file_data, SOURCE_BUCKET_NAME, TEST_FILE_KEY)
+
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=sourc_file_content)
         s3_client.put_object(Bucket=CONFIG_BUCKET_NAME, Key=PERMISSIONS_FILE_KEY, Body=json.dumps(mock_permissions))
 
