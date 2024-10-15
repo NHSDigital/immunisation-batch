@@ -45,7 +45,9 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
         logger.info("MESSAGE ID : %s", row_id)
 
         # Process the row to obtain the details needed for the message_body and ack file
-        cleaned_row = {key.strip(): value.strip().strip('"') for key, value in row.items()}
+        cleaned_row = {
+            key.strip(): (value.strip().strip('"').strip() if value is not None else None) for key, value in row.items()
+        }
         details_from_processing = process_row(vaccine_type, action_flag_permissions, cleaned_row)
 
         # Create the message body for sending
