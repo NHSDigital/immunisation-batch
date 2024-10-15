@@ -18,6 +18,8 @@ def create_ack_data(
     imms_id: Union[None, str],
 ) -> dict:
     """Returns a dictionary containing the ack headers as keys, along with the relevant values."""
+    # Pack multi-line diagnostics down to single line (because Imms API diagnostics may be multi-line)
+    diagnostics = " ".join(diagnostics.split()) if diagnostics is not None else None
     return {
         "MESSAGE_HEADER_ID": row_id,
         "HEADER_RESPONSE_CODE": "OK" if (delivered and not diagnostics) else "Fatal Error",
