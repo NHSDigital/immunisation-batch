@@ -153,7 +153,7 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
 
 # Lambda Function with Security Group and VPC.
 resource "aws_lambda_function" "file_processor_lambda" {
-  function_name   = "${local.prefix}-file_processor_lambda"
+  function_name   = "${local.prefix}-file_name_processor_lambda"
   role            = aws_iam_role.lambda_exec_role.arn
   package_type    = "Image"
   image_uri       = module.file_processor_docker_image.image_uri
