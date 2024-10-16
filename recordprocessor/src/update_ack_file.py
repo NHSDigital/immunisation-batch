@@ -18,8 +18,6 @@ def create_ack_data(
     imms_id: Union[None, str],
 ) -> dict:
     """Returns a dictionary containing the ack headers as keys, along with the relevant values."""
-    # Pack multi-line diagnostics down to single line (because Imms API diagnostics may be multi-line)
-    diagnostics = " ".join(diagnostics.split()) if diagnostics is not None else None
     return {
         "MESSAGE_HEADER_ID": row_id,
         "HEADER_RESPONSE_CODE": "OK" if (delivered and not diagnostics) else "Fatal Error",
@@ -35,7 +33,7 @@ def create_ack_data(
         "MAILBOX_FROM": "",  # TODO: Leave blank for DPS, use mailbox name if picked up from MESH mail box
         "LOCAL_ID": "",  # TODO: Leave blank for DPS, obtain from ctl file if picked up from MESH mail box
         "IMMS_ID": imms_id or "",
-        "OPERATION_OUTCOME": diagnostics or "",  # TODO: Amend this if non successful api response
+        "OPERATION_OUTCOME": diagnostics or "",
         "MESSAGE_DELIVERY": delivered,
     }
 
