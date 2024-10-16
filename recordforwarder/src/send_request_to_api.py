@@ -63,15 +63,14 @@ def send_request_to_api(message_body):
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
     If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
     """
+    if incoming_diagnostics := message_body.get("diagnostics"):
+        raise MessageNotSuccessfulError(incoming_diagnostics)
+
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     operation_requested = message_body.get("operation_requested")
     imms_id = message_body.get("imms_id")
     version = message_body.get("version")
-    incoming_diagnostics = message_body.get("diagnostics")
-
-    if incoming_diagnostics:
-        raise MessageNotSuccessfulError(incoming_diagnostics)
 
     if operation_requested == "CREATE":
         return send_create_request(fhir_json, supplier)

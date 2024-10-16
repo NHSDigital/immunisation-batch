@@ -41,7 +41,7 @@ def create_ack_data(
         "MAILBOX_FROM": "",  # TODO: Leave blank for DPS, use mailbox name if picked up from MESH mail box
         "LOCAL_ID": "",  # TODO: Leave blank for DPS, obtain from ctl file if picked up from MESH mail box
         "IMMS_ID": imms_id or "",
-        "OPERATION_OUTCOME": diagnostics or "",  # TODO: Amend this if non successful api response
+        "OPERATION_OUTCOME": diagnostics or "",
         "MESSAGE_DELIVERY": successful_api_response,
     }
 

@@ -9,6 +9,7 @@ import base64
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION
 from forwarding_lambda import forward_lambda_handler, forward_request_to_api
 from utils_for_record_forwarder import get_environment
+from update_ack_file import create_ack_data
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
@@ -31,6 +32,57 @@ class TestForwardingLambda(unittest.TestCase):
     def test_get_environment_default(self, mock_getenv):
         mock_getenv.return_value = None
         self.assertEqual(get_environment(), "internal-dev")
+
+    def test_create_ack_data(self):
+        created_at_formatted_string = "20241015T18504900"
+        row_id = "test_file_id#1"
+
+        success_ack_data = {
+            "MESSAGE_HEADER_ID": row_id,
+            "HEADER_RESPONSE_CODE": "OK",
+            "ISSUE_SEVERITY": "Information",
+            "ISSUE_CODE": "OK",
+            "ISSUE_DETAILS_CODE": "30001",
+            "RESPONSE_TYPE": "Business",
+            "RESPONSE_CODE": "30001",
+            "RESPONSE_DISPLAY": "Success",
+            "RECEIVED_TIME": created_at_formatted_string,
+            "MAILBOX_FROM": "",
+            "LOCAL_ID": "",
+            "IMMS_ID": "test_imms_id",
+            "OPERATION_OUTCOME": "",
+            "MESSAGE_DELIVERY": True,
+        }
+
+        failure_ack_data = {
+            "MESSAGE_HEADER_ID": row_id,
+            "HEADER_RESPONSE_CODE": "Fatal Error",
+            "ISSUE_SEVERITY": "Fatal",
+            "ISSUE_CODE": "Fatal Error",
+            "ISSUE_DETAILS_CODE": "30002",
+            "RESPONSE_TYPE": "Business",
+            "RESPONSE_CODE": "30002",
+            "RESPONSE_DISPLAY": "Business Level Response Value - Processing Error",
+            "RECEIVED_TIME": created_at_formatted_string,
+            "MAILBOX_FROM": "",
+            "LOCAL_ID": "",
+            "IMMS_ID": "",
+            "OPERATION_OUTCOME": "Some diagnostics",
+            "MESSAGE_DELIVERY": False,
+        }
+
+        # Test cas tuples are structured as (test_name, successful_api_response, diagnostics, imms_id, expected output)
+        test_cases = [
+            ("ack data for success", True, None, "test_imms_id", success_ack_data),
+            ("ack data for failure", False, "Some diagnostics", "", failure_ack_data),
+        ]
+
+        for test_name, successful_api_response, diagnostics, imms_id, expected_output in test_cases:
+            with self.subTest(test_name):
+                self.assertEqual(
+                    create_ack_data(created_at_formatted_string, row_id, successful_api_response, diagnostics, imms_id),
+                    expected_output,
+                )
 
     @patch("update_ack_file.s3_client")
     @patch("send_request_to_api.immunization_api_instance")
