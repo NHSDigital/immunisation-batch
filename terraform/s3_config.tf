@@ -1,11 +1,4 @@
-locals {
-    policy_path = "${path.root}/policies"
-    is_temp = length(regexall("[a-z]{2,4}-?[0-9]+", local.environment)) > 0
-    account_id = local.environment == "prod" ? 232116723729 : 603871901111
-    local_account_id = local.environment == "prod" ? 345594581768 : 345594581768
-}
-
- resource "aws_kms_key" "shared_key" {
+resource "aws_kms_key" "shared_key" {
     description = "KMS key for S3 batch bucket"
     enable_key_rotation = true  
     policy = <<POLICY
