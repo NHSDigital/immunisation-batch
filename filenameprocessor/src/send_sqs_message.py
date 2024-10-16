@@ -23,7 +23,12 @@ def send_to_supplier_queue(message_body: dict) -> bool:
 
     # Send to queue
     try:
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body), MessageGroupId=supplier)
+        sqs_client.send_message(
+            QueueUrl=queue_url,
+            MessageBody=json_dumps(message_body),
+            MessageDeduplicationId="1",
+            MessageGroupId=supplier,
+        )
         logger.info("Message sent to SQS queue '%s' for supplier %s", queue_url, supplier)
     except sqs_client.exceptions.QueueDoesNotExist:
         logger.error("Failed to send message because queue %s does not exist", queue_url)
