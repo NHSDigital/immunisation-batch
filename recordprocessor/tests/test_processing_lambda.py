@@ -12,7 +12,6 @@ from batch_processing import (
 )
 from convert_fhir_json import convert_to_fhir_json
 from utils_for_recordprocessor import get_csv_content_dict_reader
-from get_operation_permissions import get_supplier_permissions, get_operation_permissions
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
@@ -23,7 +22,6 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_ACK_FILE_KEY,
     TEST_EVENT,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
-    TEST_PERMISSIONS_CONFIG,
     TestValues,
 )
 

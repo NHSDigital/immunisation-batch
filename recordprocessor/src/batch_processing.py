@@ -28,7 +28,8 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     vaccine_type = incoming_message_body.get("vaccine_type").upper()
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
-    action_flag_permissions = get_operation_permissions(supplier, vaccine_type)
+    permission = incoming_message_body.get("permission")
+    action_flag_permissions = get_operation_permissions(vaccine_type, permission)
 
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")

@@ -21,21 +21,16 @@ data "aws_subnets" "default" {
 }
 
 locals {
-    root_domain = "dev.api.platform.nhs.uk"
-}
-
-#locals {
-#    project_domain_name = data.aws_route53_zone.project_zone.name
-#}
-
-
-locals {
     environment         = terraform.workspace
     prefix              = "${var.project_name}-${local.environment}"
     short_prefix        = "${var.project_short_name}-${local.environment}"
     short_queue_prefix  = "${var.project_short_name}-${local.environment}"
-    #service_domain_name = "${local.environment}.${local.project_domain_name}"
-
+    policy_path = "${path.root}/policies"
+    is_temp = length(regexall("[a-z]{2,4}-?[0-9]+", local.environment)) > 0
+    account_id = local.environment == "prod" ? 232116723729 : 603871901111
+    local_account_id = local.environment == "prod" ? 664418956997 : 345594581768
+    config_bucket = local.environment == "prod" ? "prod" : "internal-dev"
+    
     tags = {
         Project     = var.project_name
         Environment = local.environment
@@ -47,40 +42,17 @@ variable "aws_region" {
     default = "eu-west-2"
 }
 
-variable "root_domain_name" {
-    default = "dev.api.platform.nhs.uk"
+data "aws_elasticache_cluster" "existing_redis" {
+  cluster_id = "immunisation-redis-cluster"
 }
 
-variable "suppliers" {
-    description = "List of supplier names. 5 extra pipelines"
-    type        = list(string)
-    default = [
-        "EMIS", "PINNACLE", "SONAR", "TPP",
-    "AGEM-NIVS", "NIMS", "EVA", "RAVS", "MEDICAL_DIRECTOR",
-    "WELSH_DA_1", "WELSH_DA_2", "NORTHERN_IRELAND_DA",
-    "SCOTLAND_DA", "COVID19_VACCINE_RESOLUTION_SERVICEDESK", "DPS"
-    ]
-
-}
-
-variable "supplier_name_map" { 
-  description = "Mapping of long supplier names to shorter names"
-  type = map(string)
-  default = {
-    "EMIS"                  = "EMIS"
-    "PINNACLE"              = "PINN"
-    "SONAR"                 = "SONAR"
-    "TPP"                   = "TPP"
-    "AGEM-NIVS"             = "AGEM_NIVS"
-    "NIMS"                  = "NIMS"
-    "EVA"                   = "EVA"
-    "RAVS"                  = "RAVS"
-    "MEDICAL_DIRECTOR"      = "M_D"
-    "WELSH_DA_1"            = "WELSHDA1"
-    "WELSH_DA_2"            = "WELSHDA2"
-    "NORTHERN_IRELAND_DA"   = "NIREDA"
-    "SCOTLAND_DA"           = "SCOTDA"
-    "COVID19_VACCINE_RESOLUTION_SERVICEDESK" = "C19VAX_SRVCEDSK"
-    "DPS"                   = "DPS"
+data "aws_security_group" "existing_sg" {
+  filter {
+    name   = "group-name"
+    values = ["immunisation-security-group"]
   }
+}
+
+data "aws_s3_bucket" "existing_bucket" {
+  bucket = "imms-${local.config_bucket}-supplier-config"
 }

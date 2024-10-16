@@ -8,7 +8,7 @@ MOCK_ENVIRONMENT_DICT = {
     "PROD_ACCOUNT_ID": "3456789109",
     "CONFIG_BUCKET_NAME": "immunisation-batch-internal-dev-configs",
 }
-
+CONFIGS_BUCKET_NAME = "immunisation-batch-internal-dev-data-configs"
 SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
 DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 
@@ -20,7 +20,13 @@ VALID_RSV_EMIS_ACK_FILE_KEY = "ack/RSV_Vaccinations_v5_YGM41_20240708T12130100_r
 
 
 SQS_ATTRIBUTES = {"FifoQueue": "true", "ContentBasedDeduplication": "true"}
-
+PERMISSION_JSON = {
+            "all_permissions": {
+                "EMIS": ["COVID19_FULL", "FLU_FULL"],
+                "DPSFULL": ["FLU_CREATE", "FLU_DELETE"],
+                "PINNACLE": ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"],
+            }
+        }
 
 VALID_FILE_CONTENT = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
