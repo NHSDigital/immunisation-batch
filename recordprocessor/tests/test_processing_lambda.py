@@ -12,7 +12,6 @@ from batch_processing import (
 )
 from convert_fhir_json import convert_to_fhir_json
 from utils_for_recordprocessor import get_csv_content_dict_reader
-from get_operation_permissions import get_supplier_permissions, get_operation_permissions
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
@@ -23,7 +22,6 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_ACK_FILE_KEY,
     TEST_EVENT,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
-    TEST_PERMISSIONS_CONFIG,
     TestValues,
 )
 
@@ -310,63 +308,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         with patch("batch_processing.os.getenv", return_value="unknown-env"):
             env = get_environment()
             self.assertEqual(env, "internal-dev")
-
-    @patch("get_operation_permissions.get_permissions_config_json_from_s3")
-    def test_get_supplier_permissions_success(self, mock_get_permissions_config_json_from_s3):
-        mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
-
-        supplier = "SUPPLIER1"
-
-        permissions = get_supplier_permissions(supplier)
-
-        self.assertEqual(permissions, ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"])
-
-    @patch("get_operation_permissions.get_permissions_config_json_from_s3")
-    def test_get_supplier_permissions_no_permissions(self, mock_get_permissions_config_json_from_s3):
-        mock_get_permissions_config_json_from_s3.return_value = TEST_PERMISSIONS_CONFIG
-
-        supplier = "SUPPLIER4"
-
-        permissions = get_supplier_permissions(supplier)
-
-        self.assertEqual(permissions, [""])
-
-    def test_no_permissions(self):
-        with patch("get_operation_permissions.get_supplier_permissions", return_value=[]):
-            self.assertEqual(get_operation_permissions("test_supplier", "FLU"), set())
-
-    def test_full_permissions(self):
-        with patch("get_operation_permissions.get_supplier_permissions", return_value=["FLU_FULL", "MMR_CREATE"]):
-            self.assertEqual(get_operation_permissions("test_supplier", "FLU"), {"CREATE", "UPDATE", "DELETE"})
-
-    def test_partial_permissions(self):
-        with patch(
-            "get_operation_permissions.get_supplier_permissions",
-            return_value=["FLU_CREATE", "FLU_DELETE", "MMR_CREATE"],
-        ):
-            self.assertEqual(get_operation_permissions("test_supplier", "FLU"), {"CREATE", "DELETE"})
-
-    @patch("get_operation_permissions.get_supplier_permissions")
-    def test_get_operation_permissions_success(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = ["MMR_FULL", "FLU_CREATE", "FLU_UPDATE"]
-
-        supplier = "supplier1"
-        vaccine_type = "FLU"
-
-        operations = get_operation_permissions(supplier, vaccine_type)
-
-        self.assertEqual(operations, {"UPDATE", "CREATE"})
-
-    @patch("get_operation_permissions.get_supplier_permissions")
-    def test_get_operation_permissions_one_permission(self, mock_get_supplier_permissions):
-        mock_get_supplier_permissions.return_value = ["MMR_UPDATE"]
-
-        supplier = "supplier1"
-        vaccine_type = "MMR"
-
-        operations = get_operation_permissions(supplier, vaccine_type)
-
-        self.assertEqual(operations, {"UPDATE"})
 
 
 if __name__ == "__main__":

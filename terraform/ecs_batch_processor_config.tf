@@ -31,11 +31,11 @@ module "processing_docker_image" {
     "rules" : [
       {
         "rulePriority" : 1,
-        "description" : "Keep only the last 2 images",
+        "description" : "Keep only the last 1 images",
         "selection" : {
           "tagStatus" : "any",
           "countType" : "imageCountMoreThan",
-          "countNumber" : 2
+          "countNumber" : 1
         },
         "action" : {
           "type" : "expire"
@@ -88,7 +88,7 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        Resource = "*"
+        Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*"
       },
       {
         Effect   = "Allow",
@@ -109,12 +109,14 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
       {
         Effect   = "Allow",
         Action   = "kms:Decrypt",
-        Resource = "*"
+        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
       },
       {
         Effect   = "Allow",
         Action   = "secretsmanager:GetSecretValue",
-        Resource = "*"
+        Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
+        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
+        ]
       },
       {
         Effect   = "Allow",
@@ -122,14 +124,14 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kinesis:PutRecord",
           "kinesis:PutRecords"
         ],
-        Resource = "*"
+        Resource = "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${local.short_prefix}-processingdata-stream"
       },
       {
         Effect   = "Allow",
         Action   = [
           "ecr:GetAuthorizationToken"
         ],
-        Resource = "*"
+        Resource = "arn:aws:ecr:${var.aws_region}:${local.local_account_id}:repository/${local.short_prefix}-processing-repo"
       }
     ]
   })
@@ -159,7 +161,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
   execution_role_arn       = aws_iam_role.ecs_task_exec_role.arn
 
   container_definitions = jsonencode([{
-    name      = "${local.prefix}-processor-container"
+    name      = "${local.prefix}-process-records-container"
     image     = "${aws_ecr_repository.processing_repository.repository_url}:${local.image_tag}"
     essential = true
     environment = [
@@ -217,33 +219,55 @@ assume_role_policy = jsonencode({
 })
 }
 resource "aws_iam_policy" "fifo_pipe_policy" {
-   name   = "${local.prefix}-fifo-pipe-policy"
-   policy = jsonencode({
-     Version = "2012-10-17"
-     Statement = [
-       {
-         Action = [
-           "sqs:ReceiveMessage",
-           "sqs:DeleteMessage",
-           "sqs:GetQueueAttributes",
-           "ecs:RunTask",
-           "ecs:StartTask",
-           "logs:CreateLogGroup",
-           "logs:CreateLogStream",
-           "logs:PutLogEvents"
-         ]
-         Effect = "Allow"
-         Resource = "*"
-       },
-       {
-         Effect   = "Allow",
-         Action   = [
-            "iam:PassRole"
+  name   = "${local.prefix}-fifo-pipe-policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "pipes:CreatePipe",
+          "pipes:StartPipe",
+          "pipes:StopPipe",
+          "pipes:DeletePipe",
+          "pipes:UpdatePipe",
+          "pipes:DescribePipe"
         ],
-         Resource = aws_iam_role.ecs_task_exec_role.arn
+        Resource = [
+          "arn:aws:pipes:${var.aws_region}:${local.local_account_id}:pipe/${local.prefix}-pipe",
+          aws_ecs_task_definition.ecs_task.arn
+        ]
+      },
+      {
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "ecs:RunTask",
+          "ecs:StartTask",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Effect = "Allow",
+        Resource = [
+          "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/pipes/${local.prefix}-pipe-logs:*",
+          "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:task/${local.prefix}-ecs-cluster/*",
+          "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/vendedlogs/ecs/${local.prefix}-processor-task:*",
+          "arn:aws:sqs:${var.aws_region}:${local.local_account_id}:${local.short_prefix}-metadata-queue.fifo",
+          "arn:aws:ecs:${var.aws_region}:${local.local_account_id}:cluster/${local.prefix}-ecs-cluster",
+          aws_ecs_task_definition.ecs_task.arn
+        ]
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "iam:PassRole"
+        ],
+        Resource = aws_iam_role.ecs_task_exec_role.arn
       }
-     ]
-   })
+    ]
+  })
 }
 
  resource "aws_iam_role_policy_attachment" "fifo_pipe_policy_attachment" {
@@ -272,7 +296,7 @@ resource "aws_pipes_pipe" "fifo_pipe" {
       overrides {
         container_override {
           cpu = 256
-          name = "${local.prefix}-processor-container"
+          name = "${local.prefix}-process-records-container"
           environment {
             name  = "EVENT_DETAILS"
             value = "$.body"

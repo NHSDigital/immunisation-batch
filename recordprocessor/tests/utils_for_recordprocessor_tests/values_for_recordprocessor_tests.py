@@ -152,6 +152,7 @@ TEST_VACCINE_TYPE = "flu"
 TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
 TEST_FILE_ID = "123456"
+TEST_PERMISSION = ['COVID19_FULL', 'FLU_FULL', 'MMR_FULL']
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
@@ -162,6 +163,7 @@ TEST_EVENT_DUMPED = json.dumps(
         "vaccine_type": TEST_VACCINE_TYPE,
         "supplier": TEST_SUPPLIER,
         "filename": TEST_FILE_KEY,
+        "permission": TEST_PERMISSION
     }
 )
 
@@ -200,23 +202,6 @@ MOCK_PERMISSIONS = {
         "NORTHERN_IRELAND_DA": [""],
         "SCOTLAND_DA": [""],
         "COVID19_VACCINE_RESOLUTION_SERVICEDESK": [""],
-    },
-    "definitions:": {
-        "_FULL": "Full permissions to create, update and delete a batch record",
-        "_CREATE": "Permission to create a batch record",
-        "_UPDATE": "Permission to update a batch record",
-        "_DELETE": "Permission to delete a batch record",
-    },
-}
-
-TEST_PERMISSIONS_CONFIG = {
-    "all_permissions": {
-        "DPFULL": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
-        "DPREDUCED": ["COVID19_FULL", "FLU_FULL", "MMR_FULL"],
-        "SUPPLIER1": ["COVID19_CREATE", "COVID19_DELETE", "COVID19_UPDATE"],
-        "SUPPLIER2": ["FLU_CREATE"],
-        "EMIS": ["FLU_CREATE", "FLU_DELETE"],
-        "SUPPLIER4": [""],
     },
     "definitions:": {
         "_FULL": "Full permissions to create, update and delete a batch record",

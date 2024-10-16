@@ -51,7 +51,6 @@ class TestRecordProcessor(unittest.TestCase):
     def setUp(self) -> None:
         # Tests run too quickly for cache to work. The workaround is to set _cached_last_modified to an earlier time
         # than the tests are run so that the _cached_json_data will always be updated by the test
-        self.patcher = patch("permissions_checker._CACHED_LAST_MODIFIED", yesterday).start()
 
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME, CONFIG_BUCKET_NAME]:
             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
@@ -175,12 +174,14 @@ class TestRecordProcessor(unittest.TestCase):
         Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier does not have
         any permissions.
         """
-        permissions = deepcopy(MOCK_PERMISSIONS)
-        permissions["all_permissions"]["EMIS"] = []
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE, mock_permissions=permissions)
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE)
+        event = deepcopy(TEST_EVENT_DUMPED)
+        test_event = json.loads(event)
+        test_event["permission"] = ["COVID19_FULL"]
+        test_event = json.dumps(test_event)
 
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(TEST_EVENT_DUMPED)
+            main(test_event)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
@@ -198,12 +199,13 @@ class TestRecordProcessor(unittest.TestCase):
         Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier has partial
         permissions.
         """
-        permissions = deepcopy(MOCK_PERMISSIONS)
-        permissions["all_permissions"]["EMIS"] = ["FLU_CREATE"]
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE, mock_permissions=permissions)
-
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE)
+        event = deepcopy(TEST_EVENT_DUMPED)
+        test_event = json.loads(event)
+        test_event["permission"] = ["FLU_CREATE"]
+        test_event = json.dumps(test_event)
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(TEST_EVENT_DUMPED)
+            main(test_event)
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
