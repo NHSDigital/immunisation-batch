@@ -32,7 +32,7 @@ def make_ack_data(
 
 def upload_ack_file(file_key: str, ack_data: dict) -> None:
     """Formats the ack data into a csv file and uploads it to the ack bucket"""
-    ack_filename = "ack/" + file_key.replace(".csv", "_response.csv")
+    ack_filename = "ack/" + file_key.replace(".csv", "_InfAck.csv")
 
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()

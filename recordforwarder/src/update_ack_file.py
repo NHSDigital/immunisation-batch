@@ -83,7 +83,7 @@ def update_ack_file(
     imms_env = get_environment()
     source_bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
     ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destinations")
-    ack_file_key = f"forwardedFile/{file_key.split('.')[0]}_response.csv"
+    ack_file_key = f"forwardedFile/{file_key.replace('.csv', '_BusAck.csv')}"
     response = s3_client.head_object(Bucket=source_bucket_name, Key=file_key)
     created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
 
