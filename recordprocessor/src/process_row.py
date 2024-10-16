@@ -18,8 +18,7 @@ def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
     Processes a row of the file and returns a dictionary containing the fhir_json, action_flag, imms_id
     (where applicable), version(where applicable) and any diagnostics.
     """
-    action_flag = row.get("ACTION_FLAG")
-    action_flag = action_flag.upper() if action_flag is not None else action_flag
+    action_flag = row.get("ACTION_FLAG", "").upper()
     # Handle invalid action_flag
     if action_flag not in ("NEW", "UPDATE", "DELETE"):
         logger.info("Invalid ACTION_FLAG '%s' - ACTION_FLAG MUST BE 'NEW', 'UPDATE' or 'DELETE'", action_flag)
