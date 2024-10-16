@@ -71,3 +71,7 @@ class TestMapTargetDisease(unittest.TestCase):
                 actual_result = map_target_disease(case["vaccine"])
                 self.assertNotEqual(actual_result, case["expected_output"])
                 self.assertEqual(actual_result, [])
+
+
+if __name__ == "__main__":
+    unittest.main()

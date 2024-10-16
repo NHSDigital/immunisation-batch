@@ -15,6 +15,10 @@ DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 VALID_FLU_EMIS_FILE_KEY = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
 VALID_FLU_EMIS_ACK_FILE_KEY = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
 
+VALID_RSV_EMIS_FILE_KEY = "RSV_Vaccinations_v5_YGM41_20240708T12130100.csv"
+VALID_RSV_EMIS_ACK_FILE_KEY = "ack/RSV_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
+
+
 SQS_ATTRIBUTES = {"FifoQueue": "true", "ContentBasedDeduplication": "true"}
 
 

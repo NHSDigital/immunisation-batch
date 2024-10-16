@@ -13,6 +13,8 @@ from tests.utils_for_tests.values_for_tests import (
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
+    VALID_RSV_EMIS_FILE_KEY,
+    VALID_RSV_EMIS_ACK_FILE_KEY,
 )
 
 
@@ -242,3 +244,36 @@ class TestLambdaHandler(TestCase):
 
         mock_send_to_supplier_queue.assert_not_called()
         self.assert_ack_file_in_destination_s3_bucket(s3_client)
+
+    @mock_s3
+    @mock_sqs
+    def test_lambda_handler_full_rsv_permissions(self):
+        """Tests lambda function end to end for RSV files"""
+
+        # Set up S3
+        s3_client = self.set_up_s3_buckets_and_upload_file(file_key=VALID_RSV_EMIS_FILE_KEY)
+
+        # Set up SQS
+        sqs_client = boto3_client("sqs", region_name="eu-west-2")
+        queue_name = "imms-batch-internal-dev-metadata-queue.fifo"
+        attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
+        queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
+
+        # Mock get_supplier_permissions with full RSV permissions
+        with patch("initial_file_validation.get_supplier_permissions", return_value=["RSV_FULL"]):
+            response = lambda_handler(self.make_event(file_key=VALID_RSV_EMIS_FILE_KEY), None)
+
+        # Assertions
+        self.assertEqual(response["statusCode"], 200)
+        self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key=VALID_RSV_EMIS_ACK_FILE_KEY)
+
+        # Check if the message was sent to the SQS queue
+        messages = sqs_client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1)
+        self.assertIn("Messages", messages)
+        received_message = json_loads(messages["Messages"][0]["Body"])
+
+        # Validate message content
+        self.assertEqual(received_message["vaccine_type"], "RSV")
+        self.assertEqual(received_message["supplier"], "EMIS")
+        self.assertEqual(received_message["timestamp"], "20240708T12130100")
+        self.assertEqual(received_message["filename"], "RSV_Vaccinations_v5_YGM41_20240708T12130100.csv")
