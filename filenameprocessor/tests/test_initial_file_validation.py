@@ -193,9 +193,10 @@ class TestInitialFileValidation(TestCase):
             (valid_file_key.replace("Flu", "Covid19"), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
             # Valid file key (all lowercase)
             (valid_file_key.lower(), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
+            # Valid file key (all uppercase)
+            (valid_file_key.upper(), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
             # File key with no '.'
             (valid_file_key.replace(".", ""), valid_file_content, False),
-            (valid_file_key.upper(), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
             # File key with additional '.'
             (valid_file_key[:2] + "." + valid_file_key[2:], valid_file_content, False),
             # File key with additional '_'

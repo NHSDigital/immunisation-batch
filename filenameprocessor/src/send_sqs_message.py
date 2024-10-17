@@ -23,10 +23,9 @@ def send_to_supplier_queue(message_body: dict) -> bool:
 
     # Send to queue
     try:
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body),
-                                MessageGroupId=supplier)
-        logger.info(f"Message sent to SQS queue for supplier:{supplier}")
-    except Exception as e:
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json_dumps(message_body), MessageGroupId=supplier)
+        logger.info("Message sent to SQS queue for supplier:%s", supplier)
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error("An unexpected error occurred: %s", e)
         return False
     return True
@@ -41,7 +40,7 @@ def make_message_body_for_sqs(file_key: str, message_id: str, permission: str) -
         "supplier": file_key_elements["supplier"],
         "timestamp": file_key_elements["timestamp"],
         "filename": file_key,
-        "permission": permission
+        "permission": permission,
     }
 
 
