@@ -46,4 +46,4 @@ class ImmunizationApi:
             method=method, url=f"{self.base_url}/{path}", json=imms, headers=request_headers, timeout=5
         )
 
-        return response.text, response.status_code
+        return response

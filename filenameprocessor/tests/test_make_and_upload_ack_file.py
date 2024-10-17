@@ -35,22 +35,22 @@ class TestMakeAndUploadAckFile(TestCase):
             "RESPONSE_CODE": "20013",
             "RESPONSE_DISPLAY": "Success",
             "RECEIVED_TIME": self.created_at_formatted_string,
-            "MAILBOX_FROM": "TBC",
-            "LOCAL_ID": "TBC",
+            "MAILBOX_FROM": "",
+            "LOCAL_ID": "",
             "MESSAGE_DELIVERY": True,
         }
         self.ack_data_validation_passed_and_message_not_delivered = {
             "MESSAGE_HEADER_ID": self.message_id,
-            "HEADER_RESPONSE_CODE": "Success",
+            "HEADER_RESPONSE_CODE": "Failure",
             "ISSUE_SEVERITY": "Information",
             "ISSUE_CODE": "OK",
             "ISSUE_DETAILS_CODE": "20013",
             "RESPONSE_TYPE": "Technical",
-            "RESPONSE_CODE": "20013",
-            "RESPONSE_DISPLAY": "Success",
+            "RESPONSE_CODE": "10002",
+            "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
             "RECEIVED_TIME": self.created_at_formatted_string,
-            "MAILBOX_FROM": "TBC",
-            "LOCAL_ID": "TBC",
+            "MAILBOX_FROM": "",
+            "LOCAL_ID": "",
             "MESSAGE_DELIVERY": False,
         }
         self.ack_data_validation_failed = {
@@ -63,8 +63,8 @@ class TestMakeAndUploadAckFile(TestCase):
             "RESPONSE_CODE": "10002",
             "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
             "RECEIVED_TIME": self.created_at_formatted_string,
-            "MAILBOX_FROM": "TBC",
-            "LOCAL_ID": "TBC",
+            "MAILBOX_FROM": "",
+            "LOCAL_ID": "",
             "MESSAGE_DELIVERY": False,
         }
 
