@@ -9,7 +9,7 @@ from mappings import map_target_disease
 
 ImmunizationDecorator = Callable[[Dict, Dict[str, str]], None]
 """
-A decorator function (Callable) takes current immunization object and adds appropriate fields to it. 
+A decorator function (Callable) takes current immunization object and adds appropriate fields to it.
 NOTE: The decorators are order independent. They can be called in any order, so don't rely on previous changes.
 NOTE: decorate function is the only public function. If you add a new decorator, call it in this function.
 NOTE: NO VALIDATION should be performed. Validation is left to the Imms API
