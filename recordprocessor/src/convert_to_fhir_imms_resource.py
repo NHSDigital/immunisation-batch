@@ -4,18 +4,15 @@ from typing import List, Callable, Dict
 from csv import DictReader
 
 from utils_for_fhir_conversion import _is_not_empty, Create, Add, Convert
+from mappings import map_target_disease
 
 
 ImmunizationDecorator = Callable[[Dict, Dict[str, str]], None]
 """
-A decorator function (Callable) takes current immunization object, validates it and adds appropriate fields to it. 
-It returns None if no error occurs, otherwise it returns an error object that has a list of all field errors. 
-DO NOT raise any exception during this process. The caller will catch exceptions and treat them as unhandled errors. 
-This way we can log these errors which are bugs or a result of a batch file with unexpected headers/values.
+A decorator function (Callable) takes current immunization object and adds appropriate fields to it. 
 NOTE: The decorators are order independent. They can be called in any order, so don't rely on previous changes.
 NOTE: decorate function is the only public function. If you add a new decorator, call it in this function.
-NOTE: Validation should be handled by the API validator wherever possible. Immunization decorators should only
-perform validation that is essential for the transformation to take place.
+NOTE: NO VALIDATION should be performed. Validation is left to the Imms API
 NOTE: An overarching data rule is that where data is not present the field should not be added to the FHIR Immunization
 resource. Therefore before adding an element it is necessary to check that at least one of its values is non-empty.
 """
@@ -23,8 +20,6 @@ resource. Therefore before adding an element it is necessary to check that at le
 
 def _decorate_immunization(imms: dict, record: DictReader):
     """Every thing related to the immunization object itself like status and identifier"""
-
-    # reasonCode (note that this is reason for vaccination, which is different from statusReason)
     Add.custom_item(
         imms,
         "reasonCode",
@@ -97,15 +92,14 @@ def _decorate_vaccination(imms: dict, record: Dict[str, str]):
     if any(_is_not_empty(value) for value in vaccination_extension_values):
         imms["extension"] = []
 
-        if any(_is_not_empty(value) for value in [vaccination_procedure_code, vaccination_procedure_term]):
-            imms["extension"].append(
-                Create.extension_item(
-                    url="https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
-                    system="http://snomed.info/sct",
-                    code=vaccination_procedure_code,
-                    display=vaccination_procedure_term,
-                )
+        imms["extension"].append(
+            Create.extension_item(
+                url="https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
+                system="http://snomed.info/sct",
+                code=vaccination_procedure_code,
+                display=vaccination_procedure_term,
             )
+        )
 
     Add.item(imms, "occurrenceDateTime", record.get("date_and_time"), Convert.date_time)
 
@@ -128,8 +122,6 @@ def _decorate_vaccination(imms: dict, record: Dict[str, str]):
     }
     Add.custom_item(imms, "doseQuantity", dose_quantity_values, Create.dictionary(dose_quantity_dict))
 
-    Add.list_of_dict(imms, "protocolApplied", {"doseNumberPositiveInt": Convert.integer(record.get("dose_sequence"))})
-
 
 def _decorate_performer(imms: dict, record: Dict[str, str]):
     """Create the 'practitioner' object and 'organization' and append them to the 'contained' list"""
@@ -138,8 +130,8 @@ def _decorate_performer(imms: dict, record: Dict[str, str]):
         site_code := record.get("site_code"),
     ]
     practitioner_values = [
-        performing_professional_surname := record.get("performing_professional_surname"),
-        performing_professional_forename := record.get("performing_professional_forename"),
+        performing_prof_surname := record.get("performing_professional_surname"),
+        performing_prof_forename := record.get("performing_professional_forename"),
     ]
     peformer_values = organization_values + practitioner_values
 
@@ -164,16 +156,11 @@ def _decorate_performer(imms: dict, record: Dict[str, str]):
             imms["performer"].append({"actor": {"reference": f"#{internal_practitioner_id}"}})
 
             # Add practitioner name if there is at least one non-empty practitioner name value
-            if any(
-                _is_not_empty(value) for value in [performing_professional_surname, performing_professional_forename]
-            ):
+            if any(_is_not_empty(value) for value in [performing_prof_surname, performing_prof_forename]):
                 practitioner["name"] = [{}]
-                Add.item(practitioner["name"][0], "family", performing_professional_surname)
+                Add.item(practitioner["name"][0], "family", performing_prof_surname)
                 Add.custom_item(
-                    practitioner["name"][0],
-                    "given",
-                    [performing_professional_forename],
-                    [performing_professional_forename],
+                    practitioner["name"][0], "given", [performing_prof_forename], [performing_prof_forename]
                 )
 
             imms["contained"].append(practitioner)
@@ -189,6 +176,12 @@ def _decorate_performer(imms: dict, record: Dict[str, str]):
     )
 
 
+def _decorate_protocol_applied(imms: dict, record: Dict[str, str], vaccine_type):
+    protocol_applied = [{"targetDisease": map_target_disease(vaccine_type)}]
+    Add.item(protocol_applied, "doseNumberPositiveInt", record.get("dose_sequence"), Convert.integer)
+    imms["protocolApplied"] = protocol_applied
+
+
 all_decorators: List[ImmunizationDecorator] = [
     _decorate_immunization,
     _decorate_patient,
@@ -202,3 +195,4 @@ def convert_to_fhir_imms_resource(row, vaccine_type):
     imms_resource = {"resourceType": "Immunization", "contained": [], "status": "completed"}
     for decorator in all_decorators:
         decorator(imms_resource, row)
+    _decorate_protocol_applied(imms_resource, row, vaccine_type)

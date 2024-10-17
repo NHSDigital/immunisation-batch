@@ -65,7 +65,6 @@ class AllHeaders:
         "dose_amount": "0.5",
         "dose_unit_term": "a_dose_unit_term",
         "dose_unit_code": "a_dose_unit_code",
-        "dose_sequence": "3",
     }
 
     performer = {
@@ -148,7 +147,6 @@ class AllHeadersExpectedOutput:
             "system": "http://unitsofmeasure.org",
             "code": "a_dose_unit_code",
         },
-        "protocolApplied": [{"doseNumberPositiveInt": 3}],
     }
 
     performer = {
