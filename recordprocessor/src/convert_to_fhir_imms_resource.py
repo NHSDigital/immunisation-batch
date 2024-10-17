@@ -192,6 +192,7 @@ all_decorators: List[ImmunizationDecorator] = [
 
 
 def convert_to_fhir_imms_resource(row, vaccine_type):
+    """Converts a row to a FHIR Immunization Resource"""
     imms_resource = {"resourceType": "Immunization", "contained": [], "status": "completed"}
     for decorator in all_decorators:
         decorator(imms_resource, row)

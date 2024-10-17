@@ -302,4 +302,5 @@ class TestPerformerDecorator(unittest.TestCase):
         _decorate_performer(imms, headers)
         self.assertDictEqual(imms["location"], {"type": "Location", "identifier": {"system": "a_location_code_uri"}})
 
+
 # TODO: Test _decorate_protocol_applied
