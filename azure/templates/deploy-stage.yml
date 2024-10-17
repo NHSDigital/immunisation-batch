@@ -123,7 +123,7 @@ jobs:
             set -euo pipefail
             echo "For backward compatibility..."
             echo "##vso[task.setvariable variable=APIGEE_ENVIRONMENT]${{ parameters.environment }}"
-          displayName: Setting APIGEE_ENVIRONMENT=${{ parameters.environment }}
+          displayName: Setting AWS_ENVIRONMENT=${{ parameters.environment }}
         - bash: |
             if [[ ! -z $(UTILS_PR_NUMBER) ]]; then
                 echo "##[debug]Triggered from utils repository, PR_NUMBER=$(UTILS_PR_NUMBER)"
