@@ -21,12 +21,12 @@ VALID_RSV_EMIS_ACK_FILE_KEY = "ack/RSV_Vaccinations_v5_YGM41_20240708T12130100_r
 
 SQS_ATTRIBUTES = {"FifoQueue": "true", "ContentBasedDeduplication": "true"}
 PERMISSION_JSON = {
-            "all_permissions": {
-                "EMIS": ["COVID19_FULL", "FLU_FULL"],
-                "DPSFULL": ["FLU_CREATE", "FLU_DELETE"],
-                "PINNACLE": ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"],
-            }
-        }
+    "all_permissions": {
+        "EMIS": ["COVID19_FULL", "FLU_FULL", "RSV_FULL"],
+        "DPSFULL": ["FLU_CREATE", "FLU_DELETE", "RSV_FULL"],
+        "PINNACLE": ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"],
+    }
+}
 
 VALID_FILE_CONTENT = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
