@@ -4,7 +4,7 @@
 class Constants:
     """Constants for the filenameprocessor lambda"""
 
-    VALID_VACCINE_TYPES = ["FLU", "COVID19", "MMR"]
+    VALID_VACCINE_TYPES = ["FLU", "COVID19", "MMR", "RSV"]
 
     VALID_VERSIONS = ["V5"]
 
