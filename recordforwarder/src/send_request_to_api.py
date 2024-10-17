@@ -1,72 +1,82 @@
 """Function to send the request to the Imms API (or return appropriate diagnostics if this is not possible)"""
 
+import requests
 from models.authentication import AppRestrictedAuth, Service
 from models.cache import Cache
 from immunisation_api import ImmunizationApi
+from errors import MessageNotSuccessfulError
 
 
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
 immunization_api_instance = ImmunizationApi(authenticator)
 
-incoming_to_outgoing_diagnostics = {
-    "No permissions for operation": "Skipped As No permissions for operation",
-    "Unsupported file type received as an attachment": "failed in json conversion or obtaining imms_id and version",
-    "Unable to obtain imms_id": "Unable to obtain imms_id",
-    "Unable to obtain version": "Unable to obtain version",
-}
+
+def send_create_request(fhir_json: dict, supplier: str) -> str:
+    """Sends the create request and handles the response. Returns the imms_id."""
+    response = immunization_api_instance.create_immunization(fhir_json, supplier)
+
+    if response.status_code != 201:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+
+    try:
+        imms_id = response.headers.get("location").split("immunisation-fhir-api/Immunization/")[1]
+    except (AttributeError, IndexError):
+        imms_id = None
+    return imms_id
+
+
+def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: str) -> str:
+    """Sends the update request and handles the response. Returns the imms_id."""
+    fhir_json["id"] = imms_id
+    response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
+
+    if response.status_code != 200:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+
+    return imms_id
+
+
+def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
+    """Sends the delete request and handles the response. Returns the imms_id."""
+    response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
+
+    if response.status_code != 204:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+
+    return imms_id
+
+
+def get_operation_outcome_diagnostics(response: requests.Response) -> str:
+    """
+    Returns the diagnostics from the API response. If the diagnostics can't be found in the API response,
+    returns a default diagnostics string
+    """
+    try:
+        return response.json().get("issue")[0].get("diagnostics")
+    except (requests.exceptions.JSONDecodeError, AttributeError, IndexError):
+        return "Unable to obtain diagnostics from API response"
 
 
 def send_request_to_api(message_body):
     """
-    Sends request to the Imms API (unless there was a failure at the recordprocessor level).
-    Returns message_delivered (bool indicating if a response in the 200s was received from the Imms API),
-    response_code (for ack file) and any diagnostics.
+    Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
+    If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
     """
+    if incoming_diagnostics := message_body.get("diagnostics"):
+        raise MessageNotSuccessfulError(incoming_diagnostics)
 
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     operation_requested = message_body.get("operation_requested")
     imms_id = message_body.get("imms_id")
     version = message_body.get("version")
-    incoming_diagnostics = message_body.get("diagnostics")
 
-    successful_api_response = False
-    diagnostics = None
-    response_code = None
+    if operation_requested == "CREATE":
+        return send_create_request(fhir_json, supplier)
 
-    if incoming_diagnostics:
-        response_code = "20005"
-        diagnostics = incoming_to_outgoing_diagnostics.get(incoming_diagnostics, "Failed at record processing level")
+    if operation_requested == "UPDATE":
+        return send_update_request(fhir_json, supplier, imms_id, version)
 
-    elif operation_requested == "CREATE":
-        _, status_code = immunization_api_instance.create_immunization(fhir_json, supplier)
-        if status_code == 201:
-            response_code = "20013"
-            successful_api_response = True
-        elif status_code == 422:
-            diagnostics = "Duplicate Message received"
-            response_code = "20007"
-        else:
-            diagnostics = "Payload validation failure"
-            response_code = "20009"
-
-    elif operation_requested == "UPDATE":
-        fhir_json["id"] = imms_id
-        _, status_code = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
-        if status_code == 200:
-            response_code = "20013"
-        else:
-            diagnostics = "Payload validation failure"
-            response_code = "20009"
-
-    elif operation_requested == "DELETE":
-        _, status_code = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
-        if status_code == 204:
-            response_code = "20013"
-            successful_api_response = True
-        else:
-            diagnostics = "Payload validation failure"
-            response_code = "20009"
-
-    return successful_api_response, response_code, diagnostics
+    if operation_requested == "DELETE":
+        return send_delete_request(fhir_json, supplier, imms_id)

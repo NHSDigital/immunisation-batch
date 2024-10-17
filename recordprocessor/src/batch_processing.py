@@ -63,7 +63,13 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
         # Update the ack file
         accumulated_ack_file_content = update_ack_file(
-            file_key, bucket_name, accumulated_ack_file_content, row_id, message_delivered, diagnostics
+            file_key,
+            bucket_name,
+            accumulated_ack_file_content,
+            row_id,
+            message_delivered,
+            diagnostics,
+            outgoing_message_body.get("imms_id"),
         )
 
     logger.info("Total rows processed: %s", row_count)

@@ -23,9 +23,8 @@ from tests.utils_for_tests.values_for_tests import (
 class TestLambdaHandler(TestCase):
     """
     Tests for lambda_handler.
-NOTE: All helper functions default to use valid file content with
-'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
-    as the test_file_key and'ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv' as the ack_file_key
+    NOTE: All helper functions default to use valid file content with 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+    as the test_file_key and'ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv' as the ack_file_key
     """
 
     def set_up_s3_buckets_and_upload_file(self, file_key: Optional[str] = None, file_content: str = None):
@@ -213,7 +212,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_vaccine_type(self):
         """tests SQS queue is not called when file key includes invalid vaccine type"""
         test_file_key = "InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
+        ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -229,7 +228,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_vaccination(self):
         """tests SQS queue is not called when file key does not include 'Vaccinations'"""
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -245,7 +244,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_version(self):
         """tests SQS queue is not called when file key includes invalid version"""
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -261,7 +260,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_odscode(self):
         """tests SQS queue is not called when file key includes invalid ods code"""
         test_file_key = "Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -277,7 +276,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_datetime(self):
         """tests SQS queue is not called when file key includes invalid dateTime"""
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240732T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.

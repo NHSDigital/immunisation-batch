@@ -1,3 +1,5 @@
+"""Values for use in recordforwarder tests"""
+
 SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
 DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 CONFIG_BUCKET_NAME = "immunisation-batch-internal-dev-configs"
@@ -11,23 +13,7 @@ TEST_ODS_CODE = "8HK48"
 TEST_ROW_ID = "123456"
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
-TEST_ACK_FILE_KEY = f"forwardedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
-
-# TEST_EVENT_DUMPED = json.dumps(
-#     {
-#         "message_id": TEST_MESSAGE_ID,
-#         "vaccine_type": TEST_VACCINE_TYPE,
-#         "supplier": TEST_SUPPLIER,
-#         "filename": TEST_FILE_KEY,
-#     }
-# )
-
-# TEST_EVENT = {
-#     "message_id": TEST_MESSAGE_ID,
-#     "vaccine_type": TEST_VACCINE_TYPE,
-#     "supplier": TEST_SUPPLIER,
-#     "filename": TEST_FILE_KEY,
-# }
+TEST_ACK_FILE_KEY = f"forwardedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_BusAck.csv"
 
 MOCK_ENVIRONMENT_DICT = {
     "ENVIRONMENT": "internal-dev",

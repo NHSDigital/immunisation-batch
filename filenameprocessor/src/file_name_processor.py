@@ -13,7 +13,7 @@ from make_and_upload_ack_file import make_and_upload_ack_file
 from s3_clients import s3_client
 from elasticcache import upload_to_elasticache
 
-logging.basicConfig()
+logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
