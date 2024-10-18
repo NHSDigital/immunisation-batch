@@ -15,14 +15,18 @@ DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 VALID_FLU_EMIS_FILE_KEY = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
 VALID_FLU_EMIS_ACK_FILE_KEY = "ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv"
 
+VALID_RSV_EMIS_FILE_KEY = "RSV_Vaccinations_v5_YGM41_20240708T12130100.csv"
+VALID_RSV_EMIS_ACK_FILE_KEY = "ack/RSV_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv"
+
+
 SQS_ATTRIBUTES = {"FifoQueue": "true", "ContentBasedDeduplication": "true"}
 PERMISSION_JSON = {
-            "all_permissions": {
-                "EMIS": ["COVID19_FULL", "FLU_FULL"],
-                "DPSFULL": ["FLU_CREATE", "FLU_DELETE"],
-                "PINNACLE": ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"],
-            }
-        }
+    "all_permissions": {
+        "EMIS": ["COVID19_FULL", "FLU_FULL", "RSV_FULL"],
+        "DPSFULL": ["FLU_CREATE", "FLU_DELETE", "RSV_FULL"],
+        "PINNACLE": ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"],
+    }
+}
 
 VALID_FILE_CONTENT = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
