@@ -3,7 +3,7 @@
 import unittest
 from decimal import Decimal
 
-from src.utils_for_fhir_conversion import _is_not_empty, Create, Add, Convert
+from src.utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert
 
 
 class TestBatchUtils(unittest.TestCase):
@@ -146,7 +146,7 @@ class TestBatchUtilsCreate(unittest.TestCase):
         """
         input_dict = {"key1": "value1", "key2": None, "key3": False, "key4": ""}
         expected_output = {"key1": "value1", "key3": False}
-        self.assertEqual(Create.dictionary(input_dict), expected_output)
+        self.assertEqual(Generate.dictionary(input_dict), expected_output)
 
     def test_create_extension_item(self):
         """
@@ -154,7 +154,7 @@ class TestBatchUtilsCreate(unittest.TestCase):
         containing only key-value pairs where the value is non-empty.
         """
         # All values non-empty
-        actual = Create.extension_item("testUrl", "testSystem", "ABC", "testDisplay")
+        actual = Generate.extension_item("testUrl", "testSystem", "ABC", "testDisplay")
         expected = {
             "url": "testUrl",
             "valueCodeableConcept": {"coding": [{"system": "testSystem", "code": "ABC", "display": "testDisplay"}]},
@@ -162,7 +162,7 @@ class TestBatchUtilsCreate(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         # Only display non-empty
-        actual = Create.extension_item("testUrl", "testSystem", None, "testDisplay")
+        actual = Generate.extension_item("testUrl", "testSystem", None, "testDisplay")
         expected = {
             "url": "testUrl",
             "valueCodeableConcept": {"coding": [{"system": "testSystem", "display": "testDisplay"}]},
@@ -170,7 +170,7 @@ class TestBatchUtilsCreate(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         # Only code non-empty
-        actual = Create.extension_item("testUrl", "testSystem", "ABC", "")
+        actual = Generate.extension_item("testUrl", "testSystem", "ABC", "")
         expected = {
             "url": "testUrl",
             "valueCodeableConcept": {"coding": [{"system": "testSystem", "code": "ABC"}]},

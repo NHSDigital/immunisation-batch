@@ -3,7 +3,7 @@
 from typing import List, Callable, Dict
 from csv import DictReader
 
-from utils_for_fhir_conversion import _is_not_empty, Create, Add, Convert
+from utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert
 from mappings import map_target_disease
 
 
@@ -18,29 +18,27 @@ resource. Therefore before adding an element it is necessary to check that at le
 """
 
 
-def _decorate_immunization(imms: dict, record: DictReader):
+def _decorate_immunization(imms: dict, row: DictReader):
     """Every thing related to the immunization object itself like status and identifier"""
+    indication_code = row.get("INDICATION_CODE")
     Add.custom_item(
-        imms,
-        "reasonCode",
-        [indication_code := record.get("indication_code")],
-        [{"coding": [Create.dictionary({"code": indication_code})]}],
+        imms, "reasonCode", [indication_code], [{"coding": [Generate.dictionary({"code": indication_code})]}]
     )
 
-    Add.item(imms, "recorded", record.get("recorded_date"), Convert.date)
+    Add.item(imms, "recorded", row.get("RECORDED_DATE"), Convert.date)
 
-    Add.list_of_dict(imms, "identifier", {"value": record.get("unique_id"), "system": record.get("unique_id_uri")})
+    Add.list_of_dict(imms, "identifier", {"value": row.get("UNIQUE_ID"), "system": row.get("UNIQUE_ID_URI")})
 
 
-def _decorate_patient(imms: dict, record: Dict[str, str]):
+def _decorate_patient(imms: dict, row: Dict[str, str]):
     """Create the 'patient' object and append to 'contained' list"""
     patient_values = [
-        person_surname := record.get("person_surname"),
-        person_forename := record.get("person_forename"),
-        person_gender_code := record.get("person_gender_code"),
-        person_dob := record.get("person_dob"),
-        person_postcode := record.get("person_postcode"),
-        nhs_number := record.get("nhs_number"),
+        person_surname := row.get("PERSON_SURNAME"),
+        person_forename := row.get("PERSON_FORENAME"),
+        person_gender_code := row.get("PERSON_GENDER_CODE"),
+        person_dob := row.get("PERSON_DOB"),
+        person_postcode := row.get("PERSON_POSTCODE"),
+        nhs_number := row.get("NHS_NUMBER"),
     ]
 
     # Add patient if there is at least one non-empty patient value
@@ -70,22 +68,22 @@ def _decorate_patient(imms: dict, record: Dict[str, str]):
         imms["contained"].append(patient)
 
 
-def _decorate_vaccine(imms: dict, record: Dict[str, str]):
+def _decorate_vaccine(imms: dict, row: Dict[str, str]):
     """Vaccine refers to the physical vaccine product the manufacturer"""
-    Add.snomed(imms, "vaccineCode", record.get("vaccine_product_code"), record.get("vaccine_product_term"))
+    Add.snomed(imms, "vaccineCode", row.get("VACCINE_PRODUCT_CODE"), row.get("VACCINE_PRODUCT_TERM"))
 
-    Add.dictionary(imms, "manufacturer", {"display": record.get("vaccine_manufacturer")})
+    Add.dictionary(imms, "manufacturer", {"display": row.get("VACCINE_MANUFACTURER")})
 
-    Add.item(imms, "expirationDate", record.get("expiry_date"), Convert.date)
+    Add.item(imms, "expirationDate", row.get("EXPIRY_DATE"), Convert.date)
 
-    Add.item(imms, "lotNumber", record.get("batch_number"))
+    Add.item(imms, "lotNumber", row.get("BATCH_NUMBER"))
 
 
-def _decorate_vaccination(imms: dict, record: Dict[str, str]):
+def _decorate_vaccination(imms: dict, row: Dict[str, str]):
     """Vaccination refers to the actual administration of a vaccine to a patient"""
     vaccination_extension_values = [
-        vaccination_procedure_code := record.get("vaccination_procedure_code"),
-        vaccination_procedure_term := record.get("vaccination_procedure_term"),
+        vaccination_procedure_code := row.get("VACCINATION_PROCEDURE_CODE"),
+        vaccination_procedure_term := row.get("VACCINATION_PROCEDURE_TERM"),
     ]
 
     # Add extension item if at least one extension item value is non-empty
@@ -93,7 +91,7 @@ def _decorate_vaccination(imms: dict, record: Dict[str, str]):
         imms["extension"] = []
 
         imms["extension"].append(
-            Create.extension_item(
+            Generate.extension_item(
                 url="https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
                 system="http://snomed.info/sct",
                 code=vaccination_procedure_code,
@@ -101,18 +99,18 @@ def _decorate_vaccination(imms: dict, record: Dict[str, str]):
             )
         )
 
-    Add.item(imms, "occurrenceDateTime", record.get("date_and_time"), Convert.date_time)
+    Add.item(imms, "occurrenceDateTime", row.get("DATE_AND_TIME"), Convert.date_time)
 
-    Add.item(imms, "primarySource", record.get("primary_source"), Convert.boolean)
+    Add.item(imms, "primarySource", row.get("PRIMARY_SOURCE"), Convert.boolean)
 
-    Add.snomed(imms, "site", record.get("site_of_vaccination_code"), record.get("site_of_vaccination_term"))
+    Add.snomed(imms, "site", row.get("SITE_OF_VACCINATION_CODE"), row.get("SITE_OF_VACCINATION_TERM"))
 
-    Add.snomed(imms, "route", record.get("route_of_vaccination_code"), record.get("route_of_vaccination_term"))
+    Add.snomed(imms, "route", row.get("ROUTE_OF_VACCINATION_CODE"), row.get("ROUTE_OF_VACCINATION_TERM"))
 
     dose_quantity_values = [
-        dose_amount := record.get("dose_amount"),
-        dose_unit_term := record.get("dose_unit_term"),
-        dose_unit_code := record.get("dose_unit_code"),
+        dose_amount := row.get("DOSE_AMOUNT"),
+        dose_unit_term := row.get("DOSE_UNIT_TERM"),
+        dose_unit_code := row.get("DOSE_UNIT_CODE"),
     ]
     dose_quantity_dict = {
         "value": Convert.integer_or_decimal(dose_amount),
@@ -120,18 +118,18 @@ def _decorate_vaccination(imms: dict, record: Dict[str, str]):
         "system": "http://unitsofmeasure.org",
         "code": dose_unit_code,
     }
-    Add.custom_item(imms, "doseQuantity", dose_quantity_values, Create.dictionary(dose_quantity_dict))
+    Add.custom_item(imms, "doseQuantity", dose_quantity_values, Generate.dictionary(dose_quantity_dict))
 
 
-def _decorate_performer(imms: dict, record: Dict[str, str]):
+def _decorate_performer(imms: dict, row: Dict[str, str]):
     """Create the 'practitioner' object and 'organization' and append them to the 'contained' list"""
     organization_values = [
-        site_code_type_uri := record.get("site_code_type_uri"),
-        site_code := record.get("site_code"),
+        site_code_type_uri := row.get("SITE_CODE_TYPE_URI"),
+        site_code := row.get("SITE_CODE"),
     ]
     practitioner_values = [
-        performing_prof_surname := record.get("performing_professional_surname"),
-        performing_prof_forename := record.get("performing_professional_forename"),
+        performing_prof_surname := row.get("PERFORMING_PROFESSIONAL_SURNAME"),
+        performing_prof_forename := row.get("PERFORMING_PROFESSIONAL_FORENAME"),
     ]
     peformer_values = organization_values + practitioner_values
 
@@ -168,18 +166,26 @@ def _decorate_performer(imms: dict, record: Dict[str, str]):
     Add.custom_item(
         imms,
         "location",
-        [location_code := record.get("location_code"), location_code_type_uri := record.get("location_code_type_uri")],
+        [location_code := row.get("LOCATION_CODE"), location_code_type_uri := row.get("LOCATION_CODE_TYPE_URI")],
         {
             "type": "Location",
-            "identifier": Create.dictionary({"value": location_code, "system": location_code_type_uri}),
+            "identifier": Generate.dictionary({"value": location_code, "system": location_code_type_uri}),
         },
     )
 
 
-def _decorate_protocol_applied(imms: dict, record: Dict[str, str], vaccine_type):
-    protocol_applied = [{"targetDisease": map_target_disease(vaccine_type)}]
-    Add.item(protocol_applied, "doseNumberPositiveInt", record.get("dose_sequence"), Convert.integer)
-    imms["protocolApplied"] = protocol_applied
+def _decorate_protocol_applied(imms: dict, row: Dict[str, str], vaccine_type):
+    protocol_applied = {"targetDisease": map_target_disease(vaccine_type)}
+
+    dose_sequence = row.get("DOSE_SEQUENCE", "").strip()
+    if dose_sequence.isdigit():  # Check if 'DOSE_SEQUENCE' is an integer (all digits)
+        protocol_applied["doseNumberPositiveInt"] = int(dose_sequence)
+    elif dose_sequence:  # If it's a non-empty string but not an integer
+        protocol_applied["doseNumberString"] = dose_sequence
+    else:  # If it's empty or null
+        protocol_applied["doseNumberString"] = "Not recorded"
+
+    imms["protocolApplied"] = [protocol_applied]
 
 
 all_decorators: List[ImmunizationDecorator] = [

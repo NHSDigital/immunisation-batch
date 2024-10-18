@@ -115,12 +115,12 @@ class Convert:
             return value
 
 
-class Create:
-    """Each function creates an element with empty items removed"""
+class Generate:
+    """Each function generates an element with empty items removed"""
 
     @staticmethod
     def dictionary(dictionary: dict) -> dict:
-        """Creates a dictionary with all empty items removed"""
+        """Generates a dictionary with all empty items removed"""
         new_dict = {}
         for k, v in dictionary.items():
             if _is_not_empty(v):
@@ -129,7 +129,7 @@ class Create:
 
     @staticmethod
     def extension_item(url: str, system: str, code: str, display: str) -> dictionary:
-        """Creates an extension item using only the non-empty items"""
+        """Generates an extension item using only the non-empty items"""
         extension_item = {"url": url, "valueCodeableConcept": {}}
 
         Add.list_of_dict(
@@ -160,7 +160,7 @@ class Add:
         The key-value pair will only be added if at least one of the values is non-empty.
         """
         if any(_is_not_empty(value) for value in values.values()):
-            Add.item(dictionary, key, Create.dictionary(values))
+            Add.item(dictionary, key, Generate.dictionary(values))
 
     @staticmethod
     def list_of_dict(dictionary: dictionary, key: str, values: dictionary):
@@ -170,7 +170,7 @@ class Add:
         The key-value pair will only be added if at least one of the values is non-empty.
         """
         if any(_is_not_empty(value) for value in values.values()):
-            Add.item(dictionary, key, [Create.dictionary(values)])
+            Add.item(dictionary, key, [Generate.dictionary(values)])
 
     @staticmethod
     def custom_item(dictionary: dictionary, key: str, values: list, value_to_add: any):
@@ -189,5 +189,5 @@ class Add:
         """
         if any(_is_not_empty(value) for value in [code, display]):
             dictionary[key] = {
-                "coding": [Create.dictionary({"system": "http://snomed.info/sct", "code": code, "display": display})]
+                "coding": [Generate.dictionary({"system": "http://snomed.info/sct", "code": code, "display": display})]
             }
