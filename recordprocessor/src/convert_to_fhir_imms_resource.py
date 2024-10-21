@@ -1,24 +1,20 @@
 """"Decorators to add the relevant fields to the FHIR immunization resource from the batch stream"""
 
 from typing import List, Callable, Dict
-from csv import DictReader
-
 from utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert
 from mappings import map_target_disease
 
 
 ImmunizationDecorator = Callable[[Dict, Dict[str, str]], None]
 """
-A decorator function (Callable) takes current immunization object and adds appropriate fields to it.
-NOTE: The decorators are order independent. They can be called in any order, so don't rely on previous changes.
-NOTE: decorate function is the only public function. If you add a new decorator, call it in this function.
-NOTE: NO VALIDATION should be performed. Validation is left to the Imms API
+A decorator function (Callable) takes the current immunization resource and adds appropriate fields to it.
+NOTE: NO VALIDATION should be performed. Validation is left to the Imms API.
 NOTE: An overarching data rule is that where data is not present the field should not be added to the FHIR Immunization
 resource. Therefore before adding an element it is necessary to check that at least one of its values is non-empty.
 """
 
 
-def _decorate_immunization(imms: dict, row: DictReader):
+def _decorate_immunization(imms: dict, row: Dict[str, str]) -> None:
     """Every thing related to the immunization object itself like status and identifier"""
     indication_code = row.get("INDICATION_CODE")
     Add.custom_item(
@@ -33,7 +29,7 @@ def _decorate_immunization(imms: dict, row: DictReader):
     Add.list_of_dict(imms, "identifier", {"value": row.get("UNIQUE_ID"), "system": row.get("UNIQUE_ID_URI")})
 
 
-def _decorate_patient(imms: dict, row: Dict[str, str]):
+def _decorate_patient(imms: dict, row: Dict[str, str]) -> None:
     """Create the 'patient' object and append to 'contained' list"""
     patient_values = [
         person_surname := row.get("PERSON_SURNAME"),
@@ -71,7 +67,7 @@ def _decorate_patient(imms: dict, row: Dict[str, str]):
         imms["contained"].append(patient)
 
 
-def _decorate_vaccine(imms: dict, row: Dict[str, str]):
+def _decorate_vaccine(imms: dict, row: Dict[str, str]) -> None:
     """Vaccine refers to the physical vaccine product the manufacturer"""
 
     # vaccineCode is a mandatory FHIR field. If no values are supplied a default null flavour code of 'NAVU' is used.
@@ -97,7 +93,7 @@ def _decorate_vaccine(imms: dict, row: Dict[str, str]):
     Add.item(imms, "lotNumber", row.get("BATCH_NUMBER"))
 
 
-def _decorate_vaccination(imms: dict, row: Dict[str, str]):
+def _decorate_vaccination(imms: dict, row: Dict[str, str]) -> None:
     """Vaccination refers to the actual administration of a vaccine to a patient"""
     vaccination_extension_values = [
         vaccination_procedure_code := row.get("VACCINATION_PROCEDURE_CODE"),
@@ -147,7 +143,7 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]):
         Add.item(imms["protocolApplied"][0], "doseNumberString", "Not recorded")
 
 
-def _decorate_performer(imms: dict, row: Dict[str, str]):
+def _decorate_performer(imms: dict, row: Dict[str, str]) -> None:
     """Create the 'practitioner' object and 'organization' and append them to the 'contained' list"""
     organization_values = [
         site_code_type_uri := row.get("SITE_CODE_TYPE_URI"),
@@ -209,11 +205,16 @@ all_decorators: List[ImmunizationDecorator] = [
 ]
 
 
-def convert_to_fhir_imms_resource(row, vaccine_type):
+def convert_to_fhir_imms_resource(row: dict, vaccine_type: str) -> dict:
     """Converts a row to a FHIR Immunization Resource"""
+    # Prepare the imms_resource with the basic fields
     imms_resource = {"resourceType": "Immunization", "contained": [], "status": "completed"}
+
+    # Add the targetDisease element based on the vaccine_type
     imms_resource["protocolApplied"] = [{"targetDisease": map_target_disease(vaccine_type)}]
+
+    # Apply all decorators to add the relevant fields to the imms_resource
     for decorator in all_decorators:
         decorator(imms_resource, row)
-    # _decorate_protocol_applied(imms_resource, row, vaccine_type)
+
     return imms_resource

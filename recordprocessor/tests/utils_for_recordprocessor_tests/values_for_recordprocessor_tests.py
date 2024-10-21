@@ -332,31 +332,6 @@ class TestValues:
     mock_request_params_missing = mock_request_params_missing
 
 
-mock_disease_codes = {
-    "covid_19": "840539006",
-    "flu": "6142004",
-    "measles": "14189004",
-    "mumps": "36989005",
-    "rubella": "36653000",
-    "rsv": "55735004",
-}
-
-mock_disease_display_terms = {
-    "covid_19": "Disease caused by severe acute respiratory syndrome coronavirus 2",
-    "flu": "Influenza",
-    "measles": "Measles",
-    "mumps": "Mumps",
-    "rubella": "Rubella",
-    "rsv": "Respiratory syncytial virus infection (disorder)",
-}
-
-MOCK_VACCINE_DISEASE_MAPPING = {
-    "covid19": ["covid_19"],
-    "flu": ["flu"],
-    "mmr": ["measles", "mumps", "rubella"],
-    "rsv": ["rsv"],
-}
-
 TARGET_DISEASE_ELEMENTS = {
     "RSV": [
         {

@@ -16,7 +16,6 @@ from src.convert_to_fhir_imms_resource import (
     _decorate_performer,
     _decorate_immunization,
 )
-from src.mappings import map_target_disease
 from tests.utils_for_recordprocessor_tests.decorator_constants import (
     AllHeaders,
     AllHeadersExpectedOutput,
