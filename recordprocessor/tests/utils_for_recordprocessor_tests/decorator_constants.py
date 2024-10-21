@@ -77,6 +77,7 @@ class AllHeaders:
         "DOSE_AMOUNT": "0.5",
         "DOSE_UNIT_TERM": "a_dose_unit_term",
         "DOSE_UNIT_CODE": "a_dose_unit_code",
+        "DOSE_SEQUENCE": "1",
     }
 
     performer = {
@@ -87,8 +88,6 @@ class AllHeaders:
         "LOCATION_CODE": "a_location_code",
         "LOCATION_CODE_TYPE_URI": "a_location_code_uri",
     }
-
-    protocol_applied = {"DOSE_SEQUENCE": "1"}
 
 
 class AllHeadersExpectedOutput:
@@ -101,6 +100,7 @@ class AllHeadersExpectedOutput:
         "resourceType": "Immunization",
         "contained": [],
         "status": "completed",
+        "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
         "reasonCode": [{"coding": [{"code": "INDICATION_CODE"}]}],
         "recorded": "2000-01-01",
         "identifier": [{"system": "unique_id_uri", "value": "UNIQUE_ID_123"}],
@@ -109,6 +109,7 @@ class AllHeadersExpectedOutput:
     patient = {
         "resourceType": "Immunization",
         "status": "completed",
+        "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
         "contained": [
             {
                 "resourceType": "Patient",
@@ -131,6 +132,7 @@ class AllHeadersExpectedOutput:
     vaccine = {
         "resourceType": "Immunization",
         "status": "completed",
+        "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
         "contained": [],
         "vaccineCode": {
             "coding": [{"system": "http://snomed.info/sct", "code": "a_vacc_code", "display": "a_vacc_term"}]
@@ -143,6 +145,7 @@ class AllHeadersExpectedOutput:
     vaccination = {
         "resourceType": "Immunization",
         "status": "completed",
+        "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberPositiveInt": 1}],
         "contained": [],
         "extension": [ExtensionItems.vaccination_procedure],
         "occurrenceDateTime": "2000-01-01T11:11:11+01:00",
@@ -166,6 +169,7 @@ class AllHeadersExpectedOutput:
     performer = {
         "resourceType": "Immunization",
         "status": "completed",
+        "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
         "contained": [
             {
                 "resourceType": "Practitioner",

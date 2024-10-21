@@ -57,9 +57,8 @@ def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
         return {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_VERSION}
 
     # Handle success
-    fhir_json = convert_to_fhir_imms_resource(row, vaccine_type)
     return {
-        "fhir_json": fhir_json,
+        "fhir_json": convert_to_fhir_imms_resource(row, vaccine_type),
         "operation_requested": operation_requested,
         **({"imms_id": imms_id} if imms_id is not None else {}),
         **({"version": version} if version is not None else {}),

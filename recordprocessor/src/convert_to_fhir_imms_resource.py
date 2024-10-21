@@ -135,6 +135,13 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]):
     }
     Add.custom_item(imms, "doseQuantity", dose_quantity_values, Generate.dictionary(dose_quantity_dict))
 
+    # If DOSE_SEQUENCE is empty, default FHIR "doseNumberString" to "Not recorded",
+    # otherwise assume the sender's intentiion is to supply a positive integer
+    if _is_not_empty(dose_sequence := row.get("DOSE_SEQUENCE")):
+        Add.item(imms["protocolApplied"][0], "doseNumberPositiveInt", dose_sequence, Convert.integer)
+    else:
+        Add.item(imms["protocolApplied"][0], "doseNumberString", "Not recorded")
+
 
 def _decorate_performer(imms: dict, row: Dict[str, str]):
     """Create the 'practitioner' object and 'organization' and append them to the 'contained' list"""
@@ -189,18 +196,18 @@ def _decorate_performer(imms: dict, row: Dict[str, str]):
     )
 
 
-def _decorate_protocol_applied(imms: dict, row: Dict[str, str], vaccine_type):
-    protocol_applied = {"targetDisease": map_target_disease(vaccine_type)}
+# def _decorate_protocol_applied(imms: dict, row: Dict[str, str], vaccine_type):
+#     protocol_applied = {"targetDisease": map_target_disease(vaccine_type)}
 
-    dose_sequence = row.get("DOSE_SEQUENCE", "").strip()
-    if dose_sequence.isdigit():  # Check if 'DOSE_SEQUENCE' is an integer (all digits)
-        protocol_applied["doseNumberPositiveInt"] = int(dose_sequence)
-    elif dose_sequence:  # If it's a non-empty string but not an integer
-        protocol_applied["doseNumberString"] = dose_sequence
-    else:  # If it's empty or null
-        protocol_applied["doseNumberString"] = "Not recorded"
+#     dose_sequence = row.get("DOSE_SEQUENCE", "").strip()
+#     if dose_sequence.isdigit():  # Check if 'DOSE_SEQUENCE' is an integer (all digits)
+#         protocol_applied["doseNumberPositiveInt"] = int(dose_sequence)
+#     elif dose_sequence:  # If it's a non-empty string but not an integer
+#         protocol_applied["doseNumberString"] = dose_sequence
+#     else:  # If it's empty or null
+#         protocol_applied["doseNumberString"] = "Not recorded"
 
-    imms["protocolApplied"] = [protocol_applied]
+#     imms["protocolApplied"] = [protocol_applied]
 
 
 all_decorators: List[ImmunizationDecorator] = [
@@ -215,7 +222,8 @@ all_decorators: List[ImmunizationDecorator] = [
 def convert_to_fhir_imms_resource(row, vaccine_type):
     """Converts a row to a FHIR Immunization Resource"""
     imms_resource = {"resourceType": "Immunization", "contained": [], "status": "completed"}
+    imms_resource["protocolApplied"] = [{"targetDisease": map_target_disease(vaccine_type)}]
     for decorator in all_decorators:
         decorator(imms_resource, row)
-    _decorate_protocol_applied(imms_resource, row, vaccine_type)
+    # _decorate_protocol_applied(imms_resource, row, vaccine_type)
     return imms_resource

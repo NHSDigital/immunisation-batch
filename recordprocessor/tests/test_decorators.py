@@ -15,7 +15,6 @@ from src.convert_to_fhir_imms_resource import (
     _decorate_vaccine,
     _decorate_performer,
     _decorate_immunization,
-    _decorate_protocol_applied,
 )
 from src.mappings import map_target_disease
 from tests.utils_for_recordprocessor_tests.decorator_constants import (
@@ -25,7 +24,12 @@ from tests.utils_for_recordprocessor_tests.decorator_constants import (
     COVID_19_TARGET_DISEASE_ELEMENT,
 )
 
-raw_imms: dict = {"resourceType": "Immunization", "contained": [], "status": "completed"}
+raw_imms: dict = {
+    "resourceType": "Immunization",
+    "contained": [],
+    "status": "completed",
+    "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
+}
 
 
 class TestImmunizationDecorator(unittest.TestCase):
@@ -44,7 +48,7 @@ class TestImmunizationDecorator(unittest.TestCase):
     def test_no_immunization_headers(self):
         """Test that no fields are added when no immunization fields contain non-empty data"""
         _decorate_immunization(self.imms, {"UNIQUE_ID": ""})
-        self.assertDictEqual(self.imms, {"resourceType": "Immunization", "contained": [], "status": "completed"})
+        self.assertDictEqual(self.imms, copy.deepcopy(raw_imms))
 
     def test_unique_id(self):
         """Test that only non-empty unique_id values are added"""
@@ -71,7 +75,7 @@ class TestPatientDecorator(unittest.TestCase):
     def test_no_patient_headers(self):
         """Test that no fields are added when no patient fields contain non-empty data"""
         _decorate_patient(self.imms, {})
-        self.assertDictEqual(self.imms, {"resourceType": "Immunization", "contained": [], "status": "completed"})
+        self.assertDictEqual(self.imms, copy.deepcopy(raw_imms))
 
     def test_one_patient_header(self):
         """Test that patient fields are added when one patient field contains non-empty data"""
@@ -79,6 +83,7 @@ class TestPatientDecorator(unittest.TestCase):
         expected_imms = {
             "resourceType": "Immunization",
             "status": "completed",
+            "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
             "contained": [{"resourceType": "Patient", "id": "Patient1", "birthDate": "1993-08-21"}],
             "patient": {"reference": "#Patient1"},
         }
@@ -117,6 +122,7 @@ class TestVaccineDecorator(unittest.TestCase):
                 "resourceType": "Immunization",
                 "contained": [],
                 "status": "completed",
+                "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
                 "vaccineCode": {
                     "coding": [
                         {
@@ -158,7 +164,13 @@ class TestVaccinationDecorator(unittest.TestCase):
     def test_no_vaccination_headers(self):
         """Test that no fields are added when no vaccination fields contain non-empty data"""
         _decorate_vaccination(self.imms, {})
-        self.assertDictEqual(self.imms, {"resourceType": "Immunization", "status": "completed", "contained": []})
+        expected_output = {
+            "resourceType": "Immunization",
+            "contained": [],
+            "status": "completed",
+            "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberString": "Not recorded"}],
+        }
+        self.assertDictEqual(self.imms, expected_output)
 
     def test_vaccination_procedure(self):
         """Test that only non-empty vaccination_procedure values are added"""
@@ -252,7 +264,7 @@ class TestPerformerDecorator(unittest.TestCase):
     def test_no_performer_headers(self):
         """Test that no fields are added when no performer fields contain non-empty data"""
         _decorate_performer(self.imms, {})
-        self.assertDictEqual(self.imms, {"resourceType": "Immunization", "contained": [], "status": "completed"})
+        self.assertDictEqual(self.imms, copy.deepcopy(raw_imms))
 
     def test_one_performer_header(self):
         """Test that the relevant fields are added when one performer field contains non-empty data"""
@@ -260,6 +272,7 @@ class TestPerformerDecorator(unittest.TestCase):
         expected_output = {
             "resourceType": "Immunization",
             "status": "completed",
+            "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
             "contained": [],
             "performer": [{"actor": {"type": "Organization", "identifier": {"value": "a_site_code"}}}],
         }
@@ -271,6 +284,7 @@ class TestPerformerDecorator(unittest.TestCase):
         expected_output = {
             "resourceType": "Immunization",
             "status": "completed",
+            "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
             "contained": [
                 {
                     "resourceType": "Practitioner",
@@ -339,20 +353,3 @@ class TestProtocolAppliedDecorator(unittest.TestCase):
         for vaccine_type, expected_output in test_cases:
             with self.subTest():
                 self.assertEqual(map_target_disease(vaccine_type), expected_output)
-
-    def test_protocol_applied_decorator(self):
-        """Tests that _decorate_protocol_applied gives the correct output based on the input values"""
-        valid_dose_sequence_expected_output = {
-            **copy.deepcopy(raw_imms),
-            "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberPositiveInt": 4}],
-        }
-
-        # TODO: Add other test cases once string, empty and more than 9 scenarios are confirmed
-        # Test case tuples are structured as (test_name, row_data, expected_output)
-        test_cases = [("DOSE_SEQUENCE integer 1 to 9", {"DOSE_SEQUENCE": "4"}, valid_dose_sequence_expected_output)]
-
-        for test_name, row_data, expected_output in test_cases:
-            with self.subTest(test_name):
-                imms = copy.deepcopy(raw_imms)
-                _decorate_protocol_applied(imms, row_data, "covid19")
-                self.assertEqual(imms, expected_output)
