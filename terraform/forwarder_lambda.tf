@@ -116,6 +116,15 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:ListStreams"
         ]
        Resource = "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${local.short_prefix}-processingdata-stream"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = [
+          data.aws_lambda_function.existing_create_lambda.arn,           
+          data.aws_lambda_function.existing_update_lambda.arn,
+          data.aws_lambda_function.existing_delete_lambda.arn        
+        ]
       }
     ]
   })
@@ -143,9 +152,9 @@ resource "aws_lambda_function" "forwarding_lambda" {
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
-      CREATE_LAMBDA_ARN  = data.aws_lambda_function.existing_create_lambda.arn
-      UPDATE_LAMBDA_ARN  = data.aws_lambda_function.existing_update_lambda.arn
-      DELETE_LAMBDA_ARN  = data.aws_lambda_function.existing_delete_lambda.arn
+      CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
+      UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
+      DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
     }
   }
 
