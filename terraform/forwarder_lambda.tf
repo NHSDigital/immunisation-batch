@@ -4,11 +4,18 @@ locals {
   forwarding_lambda_dir_sha = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
 }
 
+resource "aws_ecr_repository" "forwarder_lambda_repository" {
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  name = "${local.prefix}-forwarding-repo"
+}
+
 module "forwarding_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
-  create_ecr_repo          = true
-  ecr_repo                 = "${local.prefix}-forwarding-repo"
+  create_ecr_repo          = false
+  ecr_repo                 = aws_ecr_repository.forwarder_lambda_repository.name
   ecr_repo_lifecycle_policy = jsonencode({
     rules = [
       {
@@ -136,6 +143,9 @@ resource "aws_lambda_function" "forwarding_lambda" {
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
+      CREATE_LAMBDA_ARN  = data.aws_lambda_function.existing_create_lambda.arn
+      UPDATE_LAMBDA_ARN  = data.aws_lambda_function.existing_update_lambda.arn
+      DELETE_LAMBDA_ARN  = data.aws_lambda_function.existing_delete_lambda.arn
     }
   }
 

@@ -17,6 +17,9 @@ locals {
 
 # Create ECR Repository for processing.
 resource "aws_ecr_repository" "processing_repository" {
+  image_scanning_configuration {
+    scan_on_push = true
+  }
   name = "${local.prefix}-processing-repo"
 }
 
@@ -31,11 +34,11 @@ module "processing_docker_image" {
     "rules" : [
       {
         "rulePriority" : 1,
-        "description" : "Keep only the last 1 images",
+        "description" : "Keep only the last 2 images",
         "selection" : {
           "tagStatus" : "any",
           "countType" : "imageCountMoreThan",
-          "countNumber" : 1
+          "countNumber" : 2
         },
         "action" : {
           "type" : "expire"
