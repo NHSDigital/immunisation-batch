@@ -31,7 +31,6 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_SUPPLIER,
     TEST_FILE_ID,
     TEST_UNIQUE_ID,
-    TEST_DATE,
     MOCK_ENVIRONMENT_DICT,
     MOCK_PERMISSIONS,
 )
