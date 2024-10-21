@@ -22,7 +22,10 @@ def _decorate_immunization(imms: dict, row: DictReader):
     """Every thing related to the immunization object itself like status and identifier"""
     indication_code = row.get("INDICATION_CODE")
     Add.custom_item(
-        imms, "reasonCode", [indication_code], [{"coding": [Generate.dictionary({"code": indication_code})]}]
+        imms,
+        "reasonCode",
+        indication_code,
+        [{"coding": [{"system": "http://snomed.info/sct", "code": indication_code}]}],
     )
 
     Add.item(imms, "recorded", row.get("RECORDED_DATE"), Convert.date)
@@ -130,7 +133,8 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]):
     dose_quantity_dict = {
         "value": Convert.integer_or_decimal(dose_amount),
         "unit": dose_unit_term,
-        "system": "http://unitsofmeasure.org",
+        # Only include system if dose unit code is  non-empty
+        **({"system": "http://snomed.info/sct"} if _is_not_empty(dose_unit_code) else {}),
         "code": dose_unit_code,
     }
     Add.custom_item(imms, "doseQuantity", dose_quantity_values, Generate.dictionary(dose_quantity_dict))

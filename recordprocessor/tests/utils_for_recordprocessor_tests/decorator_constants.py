@@ -101,7 +101,7 @@ class AllHeadersExpectedOutput:
         "contained": [],
         "status": "completed",
         "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
-        "reasonCode": [{"coding": [{"code": "INDICATION_CODE"}]}],
+        "reasonCode": [{"coding": [{"system": "http://snomed.info/sct", "code": "INDICATION_CODE"}]}],
         "recorded": "2000-01-01",
         "identifier": [{"system": "unique_id_uri", "value": "UNIQUE_ID_123"}],
     }
@@ -161,7 +161,7 @@ class AllHeadersExpectedOutput:
         "doseQuantity": {
             "value": Decimal(0.5),
             "unit": "a_dose_unit_term",
-            "system": "http://unitsofmeasure.org",
+            "system": "http://snomed.info/sct",
             "code": "a_dose_unit_code",
         },
     }

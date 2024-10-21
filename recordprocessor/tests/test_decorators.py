@@ -212,41 +212,41 @@ class TestVaccinationDecorator(unittest.TestCase):
 
     def test_dose_quantity(self):
         """Test that only non-empty dose_quantity values (dose_amount, dose_unit_term and dose_unit_code) are added"""
-        dose_quantity = {"system": "http://unitsofmeasure.org", "value": Decimal("0.5"), "unit": "t", "code": "code"}
+        dose_quantity = {"system": "http://snomed.info/sct", "value": Decimal("0.5"), "unit": "t", "code": "code"}
         # dose: _amount non-empty, _unit_term non-empty, _unit_code empty
         headers = {"DOSE_AMOUNT": "0.5", "DOSE_UNIT_TERM": "a_dose_unit_term", "DOSE_UNIT_CODE": ""}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://unitsofmeasure.org", "value": Decimal("0.5"), "unit": "a_dose_unit_term"}
+        dose_quantity = {"value": Decimal("0.5"), "unit": "a_dose_unit_term"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount non-empty, _unit_term empty, _unit_code non-empty
         headers = {"DOSE_AMOUNT": "0.5", "DOSE_UNIT_CODE": "a_dose_unit_code"}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://unitsofmeasure.org", "value": Decimal("0.5"), "code": "a_dose_unit_code"}
+        dose_quantity = {"system": "http://snomed.info/sct", "value": Decimal("0.5"), "code": "a_dose_unit_code"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount empty, _unit_term non-empty, _unit_code non-empty
         headers = {"DOSE_UNIT_TERM": "a_dose_unit_term", "DOSE_UNIT_CODE": "a_dose_unit_code"}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://unitsofmeasure.org", "code": "a_dose_unit_code", "unit": "a_dose_unit_term"}
+        dose_quantity = {"system": "http://snomed.info/sct", "code": "a_dose_unit_code", "unit": "a_dose_unit_term"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount non-empty, _unit_term empty, _unit_code empty
         headers = {"DOSE_AMOUNT": "2", "DOSE_UNIT_CODE": ""}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://unitsofmeasure.org", "value": 2}
+        dose_quantity = {"value": 2}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount empty, _unit_term non-empty, _unit_code empty
         headers = {"DOSE_UNIT_TERM": "a_dose_unit_term", "DOSE_UNIT_CODE": ""}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://unitsofmeasure.org", "unit": "a_dose_unit_term"}
+        dose_quantity = {"unit": "a_dose_unit_term"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount empty, _unit_term empty, _unit_code non-empty
         headers = {"DOSE_UNIT_CODE": "a_dose_unit_code"}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://unitsofmeasure.org", "code": "a_dose_unit_code"}
+        dose_quantity = {"system": "http://snomed.info/sct", "code": "a_dose_unit_code"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
 
