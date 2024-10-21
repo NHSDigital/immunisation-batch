@@ -111,7 +111,23 @@ class TestVaccineDecorator(unittest.TestCase):
     def test_no_vaccine_headers(self):
         """Test that no fields are added when no vaccine fields contain non-empty data"""
         _decorate_vaccine(self.imms, {})
-        self.assertDictEqual(self.imms, {"resourceType": "Immunization", "contained": [], "status": "completed"})
+        self.assertDictEqual(
+            self.imms,
+            {
+                "resourceType": "Immunization",
+                "contained": [],
+                "status": "completed",
+                "vaccineCode": {
+                    "coding": [
+                        {
+                            "system": "http://terminology.hl7.org/CodeSystem/v3-NullFlavor",
+                            "code": "NAVU",
+                            "display": "Not available",
+                        }
+                    ]
+                },
+            },
+        )
 
     def test_vaccine_product(self):
         """Test that only non-empty vaccine_product values are added"""
@@ -340,24 +356,3 @@ class TestProtocolAppliedDecorator(unittest.TestCase):
                 imms = copy.deepcopy(raw_imms)
                 _decorate_protocol_applied(imms, row_data, "covid19")
                 self.assertEqual(imms, expected_output)
-
-    # def test_all_performer_headers(self):
-    #     """Test that all performer fields are added when all performer fields contain non-empty data"""
-    #     _decorate_performer(self.imms, AllHeaders.performer)
-    #     self.assertDictEqual(self.imms, AllHeadersExpectedOutput.performer)
-
-    # def test_no_performer_headers(self):
-    #     """Test that no fields are added when no performer fields contain non-empty data"""
-    #     _decorate_performer(self.imms, {})
-    #     self.assertDictEqual(self.imms, {"resourceType": "Immunization", "contained": [], "status": "completed"})
-
-    # def test_one_performer_header(self):
-    #     """Test that the relevant fields are added when one performer field contains non-empty data"""
-    #     _decorate_performer(self.imms, {"site_code": "a_site_code"})
-    #     expected_output = {
-    #         "resourceType": "Immunization",
-    #         "status": "completed",
-    #         "contained": [],
-    #         "performer": [{"actor": {"type": "Organization", "identifier": {"value": "a_site_code"}}}],
-    #     }
-    #     self.assertDictEqual(self.imms, expected_output)

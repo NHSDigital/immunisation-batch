@@ -5,12 +5,8 @@ import json
 import csv
 import boto3
 from moto import mock_s3, mock_kinesis
-from batch_processing import (
-    main,
-    process_csv_to_fhir,
-    get_environment,
-)
-from convert_fhir_json import convert_to_fhir_json
+from batch_processing import main, process_csv_to_fhir, get_environment
+from convert_to_fhir_imms_resource import convert_to_fhir_imms_resource
 from utils_for_recordprocessor import get_csv_content_dict_reader
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
@@ -179,26 +175,10 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_invalid(self, mock_csv_dict_reader, mock_send_to_kinesis):
-        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-
-        with patch("process_row.convert_to_fhir_json", return_value=({}, False)), patch(
-            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
-        ), patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results):
-            mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
-            process_csv_to_fhir(TEST_EVENT)
-
-        self.assert_value_in_ack_file("fatal-error")
-        mock_send_to_kinesis.assert_called()
-
-    @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
     def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
-        with patch("process_row.convert_to_fhir_json", return_value=({}, True)), patch(
+        with patch("process_row.convert_to_fhir_imms_resource", return_value={}), patch(
             "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
@@ -214,7 +194,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
     def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
-        with patch("process_row.convert_to_fhir_json", return_value=({}, True)), patch(
+        with patch("process_row.convert_to_fhir_imms_resource", return_value={}), patch(
             "process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 400)
         ), patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
@@ -263,7 +243,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request["PERFORMING_PROFESSIONAL_SURNAME"] = ""
         vaccine_type = "flu"
 
-        json_result, _ = convert_to_fhir_json(request, vaccine_type)
+        json_result = convert_to_fhir_imms_resource(request, vaccine_type)
 
         self.assertNotIn("Practitioner", [res["resourceType"] for res in json_result.get("contained", [])])
         self.assertNotIn(
@@ -281,7 +261,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request["DOSE_UNIT_CODE"] = ""
         vaccine_type = "flu"
 
-        json_result, _ = convert_to_fhir_json(request, vaccine_type)
+        json_result = convert_to_fhir_imms_resource(request, vaccine_type)
         dose_quality = json_result.get("doseQuality", {})
         self.assertNotIn("system", dose_quality)
 
@@ -291,7 +271,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request["VACCINE_PRODUCT_TERM"] = ""
         vaccine_type = "flu"
 
-        json_result, _ = convert_to_fhir_json(request, vaccine_type)
+        json_result = convert_to_fhir_imms_resource(request, vaccine_type)
         vaccine_code = json_result.get("vaccineCode", {})
         self.assertIn("NAVU", vaccine_code["coding"][0]["code"])
         self.assertIn("Not available", vaccine_code["coding"][0]["display"])

@@ -70,7 +70,22 @@ def _decorate_patient(imms: dict, row: Dict[str, str]):
 
 def _decorate_vaccine(imms: dict, row: Dict[str, str]):
     """Vaccine refers to the physical vaccine product the manufacturer"""
-    Add.snomed(imms, "vaccineCode", row.get("VACCINE_PRODUCT_CODE"), row.get("VACCINE_PRODUCT_TERM"))
+
+    # vaccineCode is a mandatory FHIR field. If no values are supplied a default null flavour code of 'NAVU' is used.
+    vaccine_product_code = row.get("VACCINE_PRODUCT_CODE")
+    vaccine_product_term = row.get("VACCINE_PRODUCT_TERM")
+    vaccine_product_system = "http://snomed.info/sct"
+    if not vaccine_product_code and not vaccine_product_term:
+        vaccine_product_code = "NAVU"
+        vaccine_product_term = "Not available"
+        vaccine_product_system = "http://terminology.hl7.org/CodeSystem/v3-NullFlavor"
+    imms["vaccineCode"] = {
+        "coding": [
+            Generate.dictionary(
+                {"system": vaccine_product_system, "code": vaccine_product_code, "display": vaccine_product_term}
+            )
+        ]
+    }
 
     Add.dictionary(imms, "manufacturer", {"display": row.get("VACCINE_MANUFACTURER")})
 
@@ -203,3 +218,4 @@ def convert_to_fhir_imms_resource(row, vaccine_type):
     for decorator in all_decorators:
         decorator(imms_resource, row)
     _decorate_protocol_applied(imms_resource, row, vaccine_type)
+    return imms_resource

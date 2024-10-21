@@ -1,8 +1,8 @@
 """Function to send the message to kinesis"""
 
 import os
-import json
 import logging
+import simplejson as json
 from botocore.exceptions import ClientError
 from s3_clients import kinesis_client
 

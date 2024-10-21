@@ -215,17 +215,6 @@ class TestRecordProcessor(unittest.TestCase):
 
         self.make_assertions(test_cases)
 
-    def test_e2e_invalid_data(self):
-        """Tests that file containing CREATEis successfully processed when there is invalid data."""
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace(TEST_DATE, "NOT_A_DATE"))
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(TEST_EVENT_DUMPED)
-
-        expected_kinesis_data = {"diagnostics": "Unsupported file type received as an attachment"}
-        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
-        self.make_assertions([("CREATE invalid data", 0, expected_kinesis_data, False)])
-
     def test_e2e_imms_id_not_found(self):
         """
         Tests that file containing UPDATE and DELETE is successfully processed when the imms id is not found by the API.

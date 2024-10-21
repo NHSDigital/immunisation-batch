@@ -4,7 +4,7 @@ import logging
 from models.cache import Cache
 from models.authentication import AppRestrictedAuth, Service
 from get_imms_id import ImmunizationApi
-from convert_fhir_json import convert_to_fhir_json
+from convert_to_fhir_imms_resource import convert_to_fhir_imms_resource
 
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
@@ -47,14 +47,8 @@ def process_row(vaccine_type: str, permission_operations: set, row: dict) -> dic
         if operation_requested == "UPDATE" and not (version := resource.get("meta", {}).get("versionId")):
             return {"diagnostics": "Unable to obtain version"}
 
-    # Convert to JSON
-    fhir_json, valid = convert_to_fhir_json(row, vaccine_type)
-    # Handle invalid conversion
-    if not valid:
-        logger.error("Invalid row format: unable to complete conversion")
-        return {"diagnostics": "Unsupported file type received as an attachment"}
-
     # Handle success
+    fhir_json = convert_to_fhir_imms_resource(row, vaccine_type)
     return {
         "fhir_json": fhir_json,
         "operation_requested": operation_requested,
