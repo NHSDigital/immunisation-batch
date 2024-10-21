@@ -62,7 +62,7 @@ class TestInitialFileValidation(TestCase):
                 self.assertEqual(validate_content_headers(test_data), expected_result)
 
     @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
-    @patch('fetch_permissions.redis_client')
+    @patch("fetch_permissions.redis_client")
     def test_get_permissions_for_all_suppliers(self, mock_redis_client):
         """
         Test fetching permissions for all suppliers from Redis cache.
@@ -72,8 +72,8 @@ class TestInitialFileValidation(TestCase):
         # Setup mock Redis response
         permissions_json = {
             "all_permissions": {
-                "TEST_SUPPLIER_1": ["COVID19_FULL", "FLU_FULL"],
-                "TEST_SUPPLIER_2": ["FLU_CREATE", "FLU_DELETE"],
+                "TEST_SUPPLIER_1": ["COVID19_FULL", "FLU_FULL", "RSV_FULL"],
+                "TEST_SUPPLIER_2": ["FLU_CREATE", "FLU_DELETE", "RSV_CREATE"],
                 "TEST_SUPPLIER_3": ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"],
             }
         }
@@ -81,8 +81,8 @@ class TestInitialFileValidation(TestCase):
 
         # Test case tuples structured as (supplier, expected_result)
         test_cases = [
-            ("TEST_SUPPLIER_1", ["COVID19_FULL", "FLU_FULL"]),
-            ("TEST_SUPPLIER_2", ["FLU_CREATE", "FLU_DELETE"]),
+            ("TEST_SUPPLIER_1", ["COVID19_FULL", "FLU_FULL", "RSV_FULL"]),
+            ("TEST_SUPPLIER_2", ["FLU_CREATE", "FLU_DELETE", "RSV_CREATE"]),
             ("TEST_SUPPLIER_3", ["COVID19_CREATE", "COVID19_DELETE", "FLU_FULL"]),
         ]
 
@@ -107,6 +107,11 @@ class TestInitialFileValidation(TestCase):
             ("COVID19", ["COVID19_FULL", "FLU_FULL"], True),  # Full permissions for COVID19
             ("COVID19", ["COVID19_CREATE", "FLU_FULL"], True),  # Create permissions for COVID19
             ("COVID19", ["FLU_CREATE"], False),  # No permissions for COVID19
+            ("RSV", ["FLU_CREATE", "RSV_FULL"], True),  # Full permissions for rsv
+            ("RSV", ["RSV_CREATE"], True),  # Create permissions for rsv
+            ("RSV", ["RSV_UPDATE"], True),  # Update permissions for rsv
+            ("RSV", ["RSV_DELETE"], True),  # Delete permissions for rsv
+            ("RSV", ["COVID19_FULL"], False),  # No permissions for rsv
         ]
 
         for vaccine_type, vaccine_permissions, expected_result in test_cases:
@@ -151,6 +156,14 @@ class TestInitialFileValidation(TestCase):
             ("COVID19", ["COVID19_UPDATE"], valid_content_update_and_delete_lowercase, True),
             # COVID19, no permissions
             ("COVID19", ["FLU_CREATE", "FLU_UPDATE"], valid_content_update_and_delete_lowercase, False),
+            # RSV, full permissions
+            ("RSV", ["RSV_FULL"], valid_content_new_and_delete_lowercase, True),
+            # RSV, partial permissions
+            ("RSV", ["RSV_UPDATE"], valid_content_update_and_delete_lowercase, True),
+            # RSV, no permissions
+            ("RSV", ["FLU_CREATE", "FLU_UPDATE"], valid_content_update_and_delete_lowercase, False),
+            # RSV, full permissions, mixed case action flags
+            ("RSV", ["RSV_FULL"], valid_content_new_and_update_mixedcase, True),
         ]
 
         for vaccine_type, vaccine_permissions, file_content, expected_result in test_cases:
@@ -175,14 +188,15 @@ class TestInitialFileValidation(TestCase):
         # Test case tuples are structured as (file_key, file_content, expected_result)
         test_cases_for_full_permissions = [
             # Valid flu file key (mixed case)
-            (valid_file_key, valid_file_content, (True, ['COVID19_FULL', 'FLU_FULL'])),
+            (valid_file_key, valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
             # Valid covid19 file key (mixed case)
-            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, (True, ['COVID19_FULL', 'FLU_FULL'])),
+            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
             # Valid file key (all lowercase)
-            (valid_file_key.lower(), valid_file_content, (True, ['COVID19_FULL', 'FLU_FULL'])),
+            (valid_file_key.lower(), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
+            # Valid file key (all uppercase)
+            (valid_file_key.upper(), valid_file_content, (True, ["COVID19_FULL", "FLU_FULL"])),
             # File key with no '.'
             (valid_file_key.replace(".", ""), valid_file_content, False),
-            (valid_file_key.upper(), valid_file_content, (True, ['COVID19_FULL', 'FLU_FULL'])),
             # File key with additional '.'
             (valid_file_key[:2] + "." + valid_file_key[2:], valid_file_content, False),
             # File key with additional '_'
@@ -232,7 +246,7 @@ class TestInitialFileValidation(TestCase):
         # Test case tuples are structured as (file_key, file_content, expected_result)
         test_cases_for_partial_permissions = [
             # Has vaccine type and action flag permission
-            (valid_file_key, valid_file_content, (True, ['FLU_CREATE'])),
+            (valid_file_key, valid_file_content, (True, ["FLU_CREATE"])),
             # Does not have vaccine type permission
             (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False),
             # Has vaccine type permission, but not action flag permission

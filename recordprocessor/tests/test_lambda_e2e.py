@@ -8,6 +8,7 @@ from copy import deepcopy
 from moto import mock_s3, mock_kinesis
 from boto3 import client as boto3_client
 from src.batch_processing import main
+from src.constants import Diagnostics
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
@@ -145,10 +146,10 @@ class TestRecordProcessor(unittest.TestCase):
                     self.assertIn(key_to_ignore, kinesis_data)
                     kinesis_data.pop(key_to_ignore)
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|ok", ack_file_content)
+                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
                 else:
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|fatal-error", ack_file_content)
+                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
 
     def test_e2e_success(self):
         """
@@ -182,7 +183,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(test_event)
 
-        expected_kinesis_data = {"diagnostics": "No permissions for operation"}
+        expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
@@ -209,8 +210,8 @@ class TestRecordProcessor(unittest.TestCase):
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
             ("CREATE create permission only", 0, {"operation_requested": "CREATE"}, True),
-            ("UPDATE create permission only", 1, {"diagnostics": "No permissions for operation"}, False),
-            ("DELETE create permission only", 2, {"diagnostics": "No permissions for operation"}, False),
+            ("UPDATE create permission only", 1, {"diagnostics": Diagnostics.NO_PERMISSIONS}, False),
+            ("DELETE create permission only", 2, {"diagnostics": Diagnostics.NO_PERMISSIONS}, False),
         ]
 
         self.make_assertions(test_cases)
@@ -224,7 +225,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
             main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": "Unsupported file type received as an attachment"}
+        expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
             ("UPDATE imms id not found", 0, expected_kinesis_data, False),
@@ -243,7 +244,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITHOUT_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": "Unable to obtain imms_id"}
+        expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
             ("UPDATE imms no id in API response", 0, expected_kinesis_data, False),
@@ -265,7 +266,7 @@ class TestRecordProcessor(unittest.TestCase):
         expected_kinesis_data_for_delete = {"operation_requested": "DELETE", "imms_id": TEST_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
-            ("UPDATE imms no version in API response", 0, {"diagnostics": "Unable to obtain version"}, False),
+            ("UPDATE imms no version in API response", 0, {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_VERSION}, False),
             ("DELETE imms no version in API response", 1, expected_kinesis_data_for_delete, True),
         ]
 
@@ -278,9 +279,31 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": "Unsupported file type received as an attachment"}
+        expected_kinesis_data = {"diagnostics": Diagnostics.MISSING_UNIQUE_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE no unique id", 0, expected_kinesis_data, False)])
+
+    def test_e2e_no_action_flag(self):
+        """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace("new", ""))
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        self.make_assertions([("CREATE no action_flag", 0, expected_kinesis_data, False)])
+
+    def test_e2e_invalid_action_flag(self):
+        """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace("new", "invalid"))
+
+        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+            main(TEST_EVENT_DUMPED)
+
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
+        self.make_assertions([("CREATE invalid action_flag", 0, expected_kinesis_data, False)])
 
     def test_e2e_kinesis_failed(self):
         """
@@ -294,7 +317,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        self.assertIn("fatal-error", self.get_ack_file_content())
+        self.assertIn("Fatal", self.get_ack_file_content())
 
 
 if __name__ == "__main__":

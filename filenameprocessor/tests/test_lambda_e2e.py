@@ -15,17 +15,18 @@ from tests.utils_for_tests.values_for_tests import (
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
+    VALID_RSV_EMIS_FILE_KEY,
+    VALID_RSV_EMIS_ACK_FILE_KEY,
     CONFIGS_BUCKET_NAME,
-    PERMISSION_JSON
+    PERMISSION_JSON,
 )
 
 
 class TestLambdaHandler(TestCase):
     """
     Tests for lambda_handler.
-NOTE: All helper functions default to use valid file content with
-'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
-    as the test_file_key and'ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_response.csv' as the ack_file_key
+    NOTE: All helper functions default to use valid file content with 'Flu_Vaccinations_v5_YGM41_20240708T12130100.csv'
+    as the test_file_key and'ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv' as the ack_file_key
     """
 
     def set_up_s3_buckets_and_upload_file(self, file_key: Optional[str] = None, file_content: str = None):
@@ -77,7 +78,7 @@ NOTE: All helper functions default to use valid file content with
         }
 
     def assert_ack_file_in_destination_s3_bucket(self, s3_client, ack_file_key: Optional[str] = None):
-        """Assert that the ack file if given, else teh VALID_FLU_EMIS_ACK_FILE_KEY, is in the destination S3 bucket"""
+        """Assert that the ack file if given, else the VALID_FLU_EMIS_ACK_FILE_KEY, is in the destination S3 bucket"""
         ack_file_key = ack_file_key or VALID_FLU_EMIS_ACK_FILE_KEY
         ack_files = s3_client.list_objects_v2(Bucket=DESTINATION_BUCKET_NAME)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
@@ -86,7 +87,7 @@ NOTE: All helper functions default to use valid file content with
     @mock_s3
     @mock_sqs
     @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
-    @patch('fetch_permissions.redis_client')
+    @patch("fetch_permissions.redis_client")
     def test_lambda_handler_full_permissions(self, mock_redis_client):
         """Tests lambda function end to end"""
         # set up mock for the permission
@@ -120,19 +121,15 @@ NOTE: All helper functions default to use valid file content with
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
         self.assertEqual(received_message["filename"], "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv")
 
-    @patch('elasticcache.s3_client.get_object')
-    @patch('elasticcache.redis_client.set')
-    @patch('s3_clients.s3_client.get_object')
+    @patch("elasticcache.s3_client.get_object")
+    @patch("elasticcache.redis_client.set")
+    @patch("s3_clients.s3_client.get_object")
     def test_successful_processing_from_configs(self, mock_head_object, mock_redis_set, mock_s3_get_object):
         # Mock S3 head_object response
-        mock_head_object.return_value = {
-            "LastModified": MagicMock(strftime=lambda fmt: "20240708T12130100")
-        }
+        mock_head_object.return_value = {"LastModified": MagicMock(strftime=lambda fmt: "20240708T12130100")}
 
         # Mock S3 get_object response for retrieving file content
-        mock_s3_get_object.return_value = {
-            "Body": MagicMock(read=lambda: "mock_file_content".encode("utf-8"))
-        }
+        mock_s3_get_object.return_value = {"Body": MagicMock(read=lambda: "mock_file_content".encode("utf-8"))}
         # Invoke the Lambda function with the mocked event
         response = lambda_handler(self.make_event_configs(), None)
 
@@ -146,19 +143,15 @@ NOTE: All helper functions default to use valid file content with
         assert response["statusCode"] == 200
         assert response["body"] == '"File content upload to cache from S3 bucket completed"'
 
-    @patch('elasticcache.s3_client.get_object')
-    @patch('elasticcache.upload_to_elasticache')
-    @patch('s3_clients.s3_client.get_object')
+    @patch("elasticcache.s3_client.get_object")
+    @patch("elasticcache.upload_to_elasticache")
+    @patch("s3_clients.s3_client.get_object")
     def test_processing_from_configs_failed(self, mock_head_object, mock_upload_to_elasticache, mock_s3_get_object):
         # Mock S3 head_object response
-        mock_head_object.return_value = {
-            "LastModified": MagicMock(strftime=lambda fmt: "20240708T12130100")
-        }
+        mock_head_object.return_value = {"LastModified": MagicMock(strftime=lambda fmt: "20240708T12130100")}
 
         # Mock S3 get_object response for retrieving file content
-        mock_s3_get_object.return_value = {
-            "Body": MagicMock(read=lambda: "mock_file_content".encode("utf-8"))
-        }
+        mock_s3_get_object.return_value = {"Body": MagicMock(read=lambda: "mock_file_content".encode("utf-8"))}
         # Simulate an exception being raised when upload_to_elasticache is called
         mock_upload_to_elasticache.side_effect = Exception("Simulated ElastiCache upload failure")
         # Invoke the Lambda function with the mocked event
@@ -213,7 +206,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_vaccine_type(self):
         """tests SQS queue is not called when file key includes invalid vaccine type"""
         test_file_key = "InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_response.csv"
+        ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -229,7 +222,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_vaccination(self):
         """tests SQS queue is not called when file key does not include 'Vaccinations'"""
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -245,7 +238,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_version(self):
         """tests SQS queue is not called when file key includes invalid version"""
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -261,7 +254,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_odscode(self):
         """tests SQS queue is not called when file key includes invalid ods code"""
         test_file_key = "Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -277,7 +270,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_invalid_datetime(self):
         """tests SQS queue is not called when file key includes invalid dateTime"""
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240732T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_response.csv"
+        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -294,11 +287,7 @@ NOTE: All helper functions default to use valid file content with
     def test_lambda_valid_action_flag_permissions(self, mock_get_permissions):
         """tests SQS queue is called when has action flag permissions"""
         # set up mock for the permission when the validation passed
-        mock_get_permissions.return_value = {
-            "all_permissions": {
-                "EMIS": ["FLU_FULL"]
-            }
-        }
+        mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
 
         s3_client = self.set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
         # Mock the get_supplier_permissions (with return value which includes the requested Flu permissions)
@@ -326,3 +315,41 @@ NOTE: All helper functions default to use valid file content with
 
         mock_send_to_supplier_queue.assert_not_called()
         self.assert_ack_file_in_destination_s3_bucket(s3_client)
+
+    @mock_s3
+    @mock_sqs
+    @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
+    @patch("fetch_permissions.redis_client")
+    def test_lambda_handler_full_permissions_rsv(self, mock_redis_client):
+        """Tests lambda function end to end for RSV"""
+        # set up mock for the permission
+        mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
+
+        # Set up S3
+        s3_client = self.set_up_s3_buckets_and_upload_file(file_key=VALID_RSV_EMIS_FILE_KEY)
+
+        # Set up SQS
+        sqs_client = boto3_client("sqs", region_name="eu-west-2")
+        queue_name = "imms-batch-internal-dev-metadata-queue.fifo"
+        attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
+        queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
+        ack_file_key = VALID_RSV_EMIS_ACK_FILE_KEY
+
+        # Mock get_supplier_permissions with full RSV permissions
+
+        response = lambda_handler(self.make_event(VALID_RSV_EMIS_FILE_KEY), None)
+
+        # Assertions
+        self.assertEqual(response["statusCode"], 200)
+        self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
+
+        # Check if the message was sent to the SQS queue
+        messages = sqs_client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1)
+        self.assertIn("Messages", messages)
+        received_message = json_loads(messages["Messages"][0]["Body"])
+
+        # Validate message content
+        self.assertEqual(received_message["vaccine_type"], "RSV")
+        self.assertEqual(received_message["supplier"], "EMIS")
+        self.assertEqual(received_message["timestamp"], "20240708T12130100")
+        self.assertEqual(received_message["filename"], "RSV_Vaccinations_v5_YGM41_20240708T12130100.csv")

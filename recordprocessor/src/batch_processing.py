@@ -44,7 +44,6 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
         row_count += 1
         row_id = f"{file_id}#{row_count}"
         logger.info("MESSAGE ID : %s", row_id)
-
         # Process the row to obtain the details needed for the message_body and ack file
         details_from_processing = process_row(vaccine_type, action_flag_permissions, row)
 
@@ -63,7 +62,13 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
         # Update the ack file
         accumulated_ack_file_content = update_ack_file(
-            file_key, bucket_name, accumulated_ack_file_content, row_id, message_delivered, diagnostics
+            file_key,
+            bucket_name,
+            accumulated_ack_file_content,
+            row_id,
+            message_delivered,
+            diagnostics,
+            outgoing_message_body.get("imms_id"),
         )
 
     logger.info("Total rows processed: %s", row_count)
