@@ -334,22 +334,3 @@ class TestPerformerDecorator(unittest.TestCase):
         headers = {"LOCATION_CODE": "", "LOCATION_CODE_TYPE_URI": "a_location_code_uri"}
         _decorate_performer(imms, headers)
         self.assertDictEqual(imms["location"], {"type": "Location", "identifier": {"system": "a_location_code_uri"}})
-
-
-class TestProtocolAppliedDecorator(unittest.TestCase):
-    """Tests for _decorate_vaccination"""
-
-    def test_map_target_disease(self):
-        """
-        Test that map_target_disease maps each vaccine type to the correct targetDisease element containing all of
-        the relevant disease codes
-        """
-        # NOTE: TEST CASES SHOULD INCLUDE ALL VACCINE TYPES WHICH ARE VALID FOR THIS PRODUCT.
-        # A NEW TEST CASE SHOULD BE ADDED EVERY TIME THERE IS A VACCINE TYPE UPLIFT.
-
-        # Test case tuples are structured (vaccine_type, expected_output)
-        test_cases = [("covid19", COVID_19_TARGET_DISEASE_ELEMENT)]
-
-        for vaccine_type, expected_output in test_cases:
-            with self.subTest():
-                self.assertEqual(map_target_disease(vaccine_type), expected_output)

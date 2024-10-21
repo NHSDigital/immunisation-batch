@@ -200,20 +200,6 @@ def _decorate_performer(imms: dict, row: Dict[str, str]):
     )
 
 
-# def _decorate_protocol_applied(imms: dict, row: Dict[str, str], vaccine_type):
-#     protocol_applied = {"targetDisease": map_target_disease(vaccine_type)}
-
-#     dose_sequence = row.get("DOSE_SEQUENCE", "").strip()
-#     if dose_sequence.isdigit():  # Check if 'DOSE_SEQUENCE' is an integer (all digits)
-#         protocol_applied["doseNumberPositiveInt"] = int(dose_sequence)
-#     elif dose_sequence:  # If it's a non-empty string but not an integer
-#         protocol_applied["doseNumberString"] = dose_sequence
-#     else:  # If it's empty or null
-#         protocol_applied["doseNumberString"] = "Not recorded"
-
-#     imms["protocolApplied"] = [protocol_applied]
-
-
 all_decorators: List[ImmunizationDecorator] = [
     _decorate_immunization,
     _decorate_patient,

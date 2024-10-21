@@ -152,7 +152,7 @@ TEST_VACCINE_TYPE = "flu"
 TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
 TEST_FILE_ID = "123456"
-TEST_PERMISSION = ['COVID19_FULL', 'FLU_FULL', 'MMR_FULL']
+TEST_PERMISSION = ["COVID19_FULL", "FLU_FULL", "MMR_FULL"]
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
@@ -163,7 +163,7 @@ TEST_EVENT_DUMPED = json.dumps(
         "vaccine_type": TEST_VACCINE_TYPE,
         "supplier": TEST_SUPPLIER,
         "filename": TEST_FILE_KEY,
-        "permission": TEST_PERMISSION
+        "permission": TEST_PERMISSION,
     }
 )
 
@@ -355,4 +355,18 @@ MOCK_VACCINE_DISEASE_MAPPING = {
     "flu": ["flu"],
     "mmr": ["measles", "mumps", "rubella"],
     "rsv": ["rsv"],
+}
+
+TARGET_DISEASE_ELEMENTS = {
+    "RSV": [
+        {
+            "coding": [
+                {
+                    "system": "http://snomed.info/sct",
+                    "code": "55735004",
+                    "display": "Respiratory syncytial virus infection (disorder)",
+                }
+            ]
+        }
+    ],
 }
