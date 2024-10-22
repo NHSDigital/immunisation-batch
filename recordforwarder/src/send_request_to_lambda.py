@@ -26,8 +26,7 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
                       'BatchSupplierSystem': supplier
                    },
         'body': fhir_json
-    }
-    
+    }   
     logging.info(f"Payload for create:{payload}")
 
     # Invoke the target Lambda function
@@ -39,7 +38,6 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
     logging.info(f"Response from create:{response}")
     response_payload = json.loads(response['Payload'].read())
     logging.info(f"Response_payload from create:{response_payload}")
-    
     if response_payload.get("statusCode") != 201:
         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
 
@@ -53,25 +51,25 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
     return imms_id
 
 
-def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: str) -> str:
-    """Sends the update request and handles the response. Returns the imms_id."""
-    fhir_json["id"] = imms_id
-    response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
+# def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: str) -> str:
+#     """Sends the update request and handles the response. Returns the imms_id."""
+#     fhir_json["id"] = imms_id
+#     response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
 
-    if response.status_code != 200:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+#     if response.status_code != 200:
+#         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
 
-    return imms_id
+#     return imms_id
 
 
-def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
-    """Sends the delete request and handles the response. Returns the imms_id."""
-    response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
+# def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
+#     """Sends the delete request and handles the response. Returns the imms_id."""
+#     response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
 
-    if response.status_code != 204:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
+#     if response.status_code != 204:
+#         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
 
-    return imms_id
+#     return imms_id
 
 
 def get_operation_outcome_diagnostics(response: requests.Response) -> str:
