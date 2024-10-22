@@ -162,7 +162,9 @@ class TestVaccinationDecorator(unittest.TestCase):
             "resourceType": "Immunization",
             "contained": [],
             "status": "completed",
-            "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberString": "Not recorded"}],
+            "protocolApplied": [
+                {"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberString": "Dose sequence not recorded"}
+            ],
         }
         self.assertDictEqual(self.imms, expected_output)
 

@@ -2,7 +2,42 @@
 
 import json
 from copy import deepcopy
+from decimal import Decimal
 from src.constants import Urls
+from src.mappings import Vaccine
+
+
+# TARGET_DISEASE_ELEMENTS values are intentionally hard-coded for testing purposes.
+TARGET_DISEASE_ELEMENTS = {
+    "RSV": [
+        {
+            "coding": [
+                {
+                    "system": Urls.SNOMED,
+                    "code": "55735004",
+                    "display": "Respiratory syncytial virus infection (disorder)",
+                }
+            ]
+        }
+    ],
+    "COVID19": [
+        {
+            "coding": [
+                {
+                    "system": Urls.SNOMED,
+                    "code": "840539006",
+                    "display": "Disease caused by severe acute respiratory syndrome coronavirus 2",
+                }
+            ]
+        }
+    ],
+    "FLU": [{"coding": [{"system": Urls.SNOMED, "code": "6142004", "display": "Influenza"}]}],
+    "MMR": [
+        {"coding": [{"system": Urls.SNOMED, "code": "14189004", "display": "Measles"}]},
+        {"coding": [{"system": Urls.SNOMED, "code": "36989005", "display": "Mumps"}]},
+        {"coding": [{"system": Urls.SNOMED, "code": "36653000", "display": "Rubella"}]},
+    ],
+}
 
 TEST_UNIQUE_ID = "0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"
 TEST_DATE = "20240609"
@@ -238,7 +273,7 @@ mandatory_fields = {
     "PERSON_FORENAME": "PHYLIS",
     "PERSON_SURNAME": "PEEL",
     "PERSON_DOB": "20080217",
-    "PERSON_GENDER_CODE": "0",
+    "PERSON_GENDER_CODE": "1",
     "PERSON_POSTCODE": "WD25 0DZ",
     "DATE_AND_TIME": "20240904T183325",
     "SITE_CODE": "RVVKC",
@@ -276,6 +311,7 @@ non_mandatory_fields = {
 
 all_fields = {**mandatory_fields, **non_mandatory_fields}
 mandatory_fields_only = {**mandatory_fields, **{k: "" for k in non_mandatory_fields}}
+critical_fields_only = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": "a_unique_id_uri"}
 
 # Requests (format is dictionary)
 update_request = deepcopy(all_fields)
@@ -333,34 +369,150 @@ class TestValues:
     mock_request_params_missing = mock_request_params_missing
 
 
-# TARGET_DISEASE_ELEMENTS values are intentionally hard-coded for testing purposes.
-TARGET_DISEASE_ELEMENTS = {
-    "RSV": [
+# -----------------------------------------------------
+# FHIR IMMS RESOURCES MAPPED FROM FIELDS DICTIONARIES
+all_fields_fhir_imms_resource = {
+    "resourceType": "Immunization",
+    "contained": [
         {
-            "coding": [
-                {
-                    "system": Urls.SNOMED,
-                    "code": "55735004",
-                    "display": "Respiratory syncytial virus infection (disorder)",
-                }
-            ]
+            "resourceType": "Patient",
+            "id": "Patient1",
+            "identifier": [{"system": Urls.NHS_NUMBER, "value": "9732928395"}],
+            "name": [{"family": "PEEL", "given": ["PHYLIS"]}],
+            "gender": "male",
+            "birthDate": "2008-02-17",
+            "address": [{"postalCode": "WD25 0DZ"}],
+        },
+        {"resourceType": "Practitioner", "id": "Practitioner1", "name": [{"family": "O'Reilly", "given": ["Ellena"]}]},
+    ],
+    "extension": [
+        {
+            "url": "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
+            "valueCodeableConcept": {
+                "coding": [
+                    {
+                        "system": Urls.SNOMED,
+                        "code": "956951000000104",
+                        "display": "RSV vaccination in pregnancy (procedure)",
+                    }
+                ]
+            },
         }
     ],
-    "COVID19": [
+    "identifier": [
         {
-            "coding": [
-                {
-                    "system": Urls.SNOMED,
-                    "code": "840539006",
-                    "display": "Disease caused by severe acute respiratory syndrome coronavirus 2",
-                }
-            ]
+            "system": "https://www.ravs.england.nhs.uk/",
+            "value": "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057",
         }
     ],
-    "FLU": [{"coding": [{"system": Urls.SNOMED, "code": "6142004", "display": "Influenza"}]}],
-    "MMR": [
-        {"coding": [{"system": Urls.SNOMED, "code": "14189004", "display": "Measles"}]},
-        {"coding": [{"system": Urls.SNOMED, "code": "36989005", "display": "Mumps"}]},
-        {"coding": [{"system": Urls.SNOMED, "code": "36653000", "display": "Rubella"}]},
+    "status": "completed",
+    "vaccineCode": {
+        "coding": [
+            {
+                "system": Urls.SNOMED,
+                "code": "42223111000001107",
+                "display": "Quadrivalent influenza vaccine (split virion, inactivated)",
+            }
+        ]
+    },
+    "patient": {"reference": "#Patient1"},
+    "occurrenceDateTime": "2024-09-04T18:33:25+00:00",
+    "recorded": "2024-09-04",
+    "primarySource": True,
+    "manufacturer": {"display": "Sanofi Pasteur"},
+    "location": {"identifier": {"value": "RJC02", "system": "https://fhir.nhs.uk/Id/ods-organization-code"}},
+    "lotNumber": "BN92478105653",
+    "expirationDate": "2024-09-15",
+    "site": {"coding": [{"system": Urls.SNOMED, "code": "368209003", "display": "Right arm"}]},
+    "route": {"coding": [{"system": Urls.SNOMED, "code": "1210999013", "display": "Intradermal use"}]},
+    "doseQuantity": {
+        "value": Decimal("0.3"),
+        "unit": "Inhalation - unit of product usage",
+        "system": Urls.SNOMED,
+        "code": "2622896019",
+    },
+    "performer": [
+        {
+            "actor": {
+                "type": "Organization",
+                "identifier": {"system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": "RVVKC"},
+            }
+        },
+        {"actor": {"reference": "#Practitioner1"}},
+    ],
+    "reasonCode": [{"coding": [{"code": "1037351000000105", "system": Urls.SNOMED}]}],
+    "protocolApplied": [
+        {
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value],
+            "doseNumberPositiveInt": 1,
+        }
+    ],
+}
+
+mandatory_fields_only_fhir_imms_resource = {
+    "resourceType": "Immunization",
+    "contained": [
+        {
+            "resourceType": "Patient",
+            "id": "Patient1",
+            "name": [{"family": "PEEL", "given": ["PHYLIS"]}],
+            "gender": "male",
+            "birthDate": "2008-02-17",
+            "address": [{"postalCode": "WD25 0DZ"}],
+        },
+    ],
+    "extension": [
+        {
+            "url": "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
+            "valueCodeableConcept": {
+                "coding": [
+                    {
+                        "system": Urls.SNOMED,
+                        "code": "956951000000104",
+                    }
+                ]
+            },
+        }
+    ],
+    "identifier": [
+        {
+            "system": "https://www.ravs.england.nhs.uk/",
+            "value": "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057",
+        }
+    ],
+    "status": "completed",
+    "vaccineCode": {"coding": [{"system": Urls.NULL_FLAVOUR_CODES, "code": "NAVU", "display": "Not available"}]},
+    "patient": {"reference": "#Patient1"},
+    "occurrenceDateTime": "2024-09-04T18:33:25+00:00",
+    "recorded": "2024-09-04",
+    "primarySource": True,
+    "location": {"identifier": {"value": "RJC02", "system": "https://fhir.nhs.uk/Id/ods-organization-code"}},
+    "performer": [
+        {
+            "actor": {
+                "type": "Organization",
+                "identifier": {"system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": "RVVKC"},
+            }
+        },
+    ],
+    "protocolApplied": [
+        {
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value],
+            "doseNumberString": "Dose sequence not recorded",
+        }
+    ],
+}
+
+critical_fields_only_fhir_imms_resource = {
+    "resourceType": "Immunization",
+    "contained": [],
+    "status": "completed",
+    "vaccineCode": {"coding": [{"system": Urls.NULL_FLAVOUR_CODES, "code": "NAVU", "display": "Not available"}]},
+    "identifier": [{"system": "a_unique_id_uri", "value": "a_unique_id"}],
+    "protocolApplied": [
+        {
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value],
+            "doseNumberString": "Dose sequence not recorded",
+        }
     ],
 }

@@ -134,12 +134,12 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]) -> None:
     }
     Add.custom_item(imms, "doseQuantity", dose_quantity_values, Generate.dictionary(dose_quantity_dict))
 
-    # If DOSE_SEQUENCE is empty, default FHIR "doseNumberString" to "Not recorded",
+    # If DOSE_SEQUENCE is empty, default FHIR "doseNumberString" to "Dose sequence not recorded",
     # otherwise assume the sender's intentiion is to supply a positive integer
     if _is_not_empty(dose_sequence := row.get("DOSE_SEQUENCE")):
         Add.item(imms["protocolApplied"][0], "doseNumberPositiveInt", dose_sequence, Convert.integer)
     else:
-        Add.item(imms["protocolApplied"][0], "doseNumberString", "Not recorded")
+        Add.item(imms["protocolApplied"][0], "doseNumberString", "Dose sequence not recorded")
 
 
 def _decorate_performer(imms: dict, row: Dict[str, str]) -> None:

@@ -19,8 +19,6 @@ class TestMapTargetDisease(unittest.TestCase):
         vaccines = [Vaccine.RSV, Vaccine.COVID_19, Vaccine.FLU, Vaccine.MMR]
         for vaccine in vaccines:
             with self.subTest(vaccine=vaccine):
-                print(map_target_disease(vaccine))
-                print(TARGET_DISEASE_ELEMENTS[vaccine.value])
                 self.assertEqual(map_target_disease(vaccine), TARGET_DISEASE_ELEMENTS[vaccine.value])
 
     def test_map_target_disease_invalid(self):
