@@ -26,7 +26,7 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
                       'BatchSupplierSystem': supplier
                    },
         'body': fhir_json
-    }   
+    }
     logging.info(f"Payload for create:{payload}")
 
     # Invoke the target Lambda function
@@ -100,8 +100,8 @@ def send_request_to_lambda(message_body):
     if operation_requested == "CREATE":
         return send_create_request(fhir_json, supplier)
 
-    if operation_requested == "UPDATE":
-        return send_update_request(fhir_json, supplier, imms_id, version)
+    # if operation_requested == "UPDATE":
+    #     return send_update_request(fhir_json, supplier, imms_id, version)
 
-    if operation_requested == "DELETE":
-        return send_delete_request(fhir_json, supplier, imms_id)
+    # if operation_requested == "DELETE":
+    #     return send_delete_request(fhir_json, supplier, imms_id)
