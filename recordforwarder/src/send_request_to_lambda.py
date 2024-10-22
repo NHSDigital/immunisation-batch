@@ -51,7 +51,7 @@ def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: s
                       'E-Tag': version
                    },
         'body': fhir_json,
-        'pathParameters': { 
+        'pathParameters': {
                             'id': imms_id
                           }
     }
@@ -76,7 +76,7 @@ def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
                       'BatchSupplierSystem': supplier
                    },
         'body': fhir_json,
-        'pathParameters': { 
+        'pathParameters': {
                             'id': imms_id
                           }
     }

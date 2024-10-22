@@ -17,7 +17,7 @@ def get_imms_id(identifier_system: str, identifier_value: str):
                 },
                 'body': None,
                 'queryStringParameters': {
-                                '_element': 'id,meta', 
+                                '_element': 'id,meta',
                                 'immunization.identifier': f'{identifier_system}|{identifier_value}'
                 }
     }
