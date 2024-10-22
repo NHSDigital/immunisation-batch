@@ -1,5 +1,7 @@
 """Mappings for converting vaccine type into target disease FHIR element"""
 
+from constants import Urls
+
 
 class DiseaseCodes:
     """Disease Codes"""
@@ -38,7 +40,7 @@ def map_target_disease(vaccine_type: str) -> list:
         {
             "coding": [
                 {
-                    "system": "http://snomed.info/sct",
+                    "system": Urls.SNOMED,
                     "code": getattr(DiseaseCodes, disease),
                     "display": getattr(DiseaseDisplayTerms, disease),
                 }

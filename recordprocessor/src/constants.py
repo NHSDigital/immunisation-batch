@@ -24,9 +24,19 @@ class Constants:
 
 class Diagnostics:
     """Diagnostics messages"""
+
     INVALID_ACTION_FLAG = "Invalid ACTION_FLAG - ACTION_FLAG must be 'NEW', 'UPDATE' or 'DELETE'"
     NO_PERMISSIONS = "No permissions for requested operation"
     MISSING_UNIQUE_ID = "UNIQUE_ID or UNIQUE_ID_URI is missing"
     UNABLE_TO_OBTAIN_IMMS_ID = "Unable to obtain imms event id"
     UNABLE_TO_OBTAIN_VERSION = "Unable to obtain current imms event version"
     INVALID_CONVERSION = "Unable to convert row to FHIR Immunization Resource JSON format"
+
+
+class Urls:
+    """Urls"""
+
+    SNOMED = "http://snomed.info/sct"
+    NHS_NUMBER = "https://fhir.nhs.uk/Id/nhs-number"
+    NULL_FLAVOUR_CODES = "http://terminology.hl7.org/CodeSystem/v3-NullFlavor"
+    VACCINATION_PROCEDURE = "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure"

@@ -3,6 +3,7 @@
 from typing import List, Callable, Dict
 from utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert
 from mappings import map_target_disease
+from constants import Urls
 
 
 ImmunizationDecorator = Callable[[Dict, Dict[str, str]], None]
@@ -21,7 +22,7 @@ def _decorate_immunization(imms: dict, row: Dict[str, str]) -> None:
         imms,
         "reasonCode",
         indication_code,
-        [{"coding": [{"system": "http://snomed.info/sct", "code": indication_code}]}],
+        [{"coding": [{"system": Urls.SNOMED, "code": indication_code}]}],
     )
 
     Add.item(imms, "recorded", row.get("RECORDED_DATE"), Convert.date)
@@ -54,9 +55,7 @@ def _decorate_patient(imms: dict, row: Dict[str, str]) -> None:
 
         Add.list_of_dict(patient, "address", {"postalCode": person_postcode})
 
-        Add.custom_item(
-            patient, "identifier", nhs_number, [{"system": "https://fhir.nhs.uk/Id/nhs-number", "value": nhs_number}]
-        )
+        Add.custom_item(patient, "identifier", nhs_number, [{"system": Urls.NHS_NUMBER, "value": nhs_number}])
 
         # Add patient name if there is at least one non-empty patient name value
         if any(_is_not_empty(value) for value in [person_surname, person_forename]):
@@ -73,11 +72,11 @@ def _decorate_vaccine(imms: dict, row: Dict[str, str]) -> None:
     # vaccineCode is a mandatory FHIR field. If no values are supplied a default null flavour code of 'NAVU' is used.
     vaccine_product_code = row.get("VACCINE_PRODUCT_CODE")
     vaccine_product_term = row.get("VACCINE_PRODUCT_TERM")
-    vaccine_product_system = "http://snomed.info/sct"
+    vaccine_product_system = Urls.SNOMED
     if not vaccine_product_code and not vaccine_product_term:
         vaccine_product_code = "NAVU"
         vaccine_product_term = "Not available"
-        vaccine_product_system = "http://terminology.hl7.org/CodeSystem/v3-NullFlavor"
+        vaccine_product_system = Urls.NULL_FLAVOUR_CODES
     imms["vaccineCode"] = {
         "coding": [
             Generate.dictionary(
@@ -106,8 +105,8 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]) -> None:
 
         imms["extension"].append(
             Generate.extension_item(
-                url="https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
-                system="http://snomed.info/sct",
+                url=Urls.VACCINATION_PROCEDURE,
+                system=Urls.SNOMED,
                 code=vaccination_procedure_code,
                 display=vaccination_procedure_term,
             )
@@ -130,7 +129,7 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]) -> None:
         "value": Convert.integer_or_decimal(dose_amount),
         "unit": dose_unit_term,
         # Only include system if dose unit code is  non-empty
-        **({"system": "http://snomed.info/sct"} if _is_not_empty(dose_unit_code) else {}),
+        **({"system": Urls.SNOMED} if _is_not_empty(dose_unit_code) else {}),
         "code": dose_unit_code,
     }
     Add.custom_item(imms, "doseQuantity", dose_quantity_values, Generate.dictionary(dose_quantity_dict))
@@ -189,10 +188,7 @@ def _decorate_performer(imms: dict, row: Dict[str, str]) -> None:
         imms,
         "location",
         [location_code := row.get("LOCATION_CODE"), location_code_type_uri := row.get("LOCATION_CODE_TYPE_URI")],
-        {
-            "type": "Location",
-            "identifier": Generate.dictionary({"value": location_code, "system": location_code_type_uri}),
-        },
+        {"identifier": Generate.dictionary({"value": location_code, "system": location_code_type_uri})},
     )
 
 

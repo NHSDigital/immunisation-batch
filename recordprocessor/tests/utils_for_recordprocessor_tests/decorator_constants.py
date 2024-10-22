@@ -1,28 +1,20 @@
 """Constants for use when testing decorators"""
 
 from decimal import Decimal
+from src.constants import Urls
+from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import TARGET_DISEASE_ELEMENTS
 
 VALID_NHS_NUMBER = "1345678940"
 ADDRESS_UNKNOWN_POSTCODE = "ZZ99 3WZ"
 
-COVID_19_TARGET_DISEASE_ELEMENT = [
-    {
-        "coding": [
-            {
-                "system": "http://snomed.info/sct",
-                "code": "840539006",
-                "display": "Disease caused by severe acute respiratory syndrome coronavirus 2",
-            }
-        ]
-    }
-]
+COVID_19_TARGET_DISEASE_ELEMENT = TARGET_DISEASE_ELEMENTS["COVID19"]
 
 
 class ExtensionItems:
     """Class containing standard extension items"""
 
-    vaccination_procedure_url = "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure"
-    snomed_url = "http://snomed.info/sct"
+    vaccination_procedure_url = Urls.VACCINATION_PROCEDURE
+    snomed_url = Urls.SNOMED
 
     vaccination_procedure = {
         "url": vaccination_procedure_url,
@@ -101,7 +93,7 @@ class AllHeadersExpectedOutput:
         "contained": [],
         "status": "completed",
         "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
-        "reasonCode": [{"coding": [{"system": "http://snomed.info/sct", "code": "INDICATION_CODE"}]}],
+        "reasonCode": [{"coding": [{"system": Urls.SNOMED, "code": "INDICATION_CODE"}]}],
         "recorded": "2000-01-01",
         "identifier": [{"system": "unique_id_uri", "value": "UNIQUE_ID_123"}],
     }
@@ -114,12 +106,7 @@ class AllHeadersExpectedOutput:
             {
                 "resourceType": "Patient",
                 "id": "Patient1",
-                "identifier": [
-                    {
-                        "system": "https://fhir.nhs.uk/Id/nhs-number",
-                        "value": VALID_NHS_NUMBER,
-                    }
-                ],
+                "identifier": [{"system": Urls.NHS_NUMBER, "value": VALID_NHS_NUMBER}],
                 "name": [{"family": "surname", "given": ["forename"]}],
                 "gender": "male",
                 "birthDate": "2000-01-01",
@@ -134,9 +121,7 @@ class AllHeadersExpectedOutput:
         "status": "completed",
         "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
         "contained": [],
-        "vaccineCode": {
-            "coding": [{"system": "http://snomed.info/sct", "code": "a_vacc_code", "display": "a_vacc_term"}]
-        },
+        "vaccineCode": {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_code", "display": "a_vacc_term"}]},
         "manufacturer": {"display": "a_manufacturer"},
         "lotNumber": "a_batch_number",
         "expirationDate": "2000-01-01",
@@ -150,18 +135,12 @@ class AllHeadersExpectedOutput:
         "extension": [ExtensionItems.vaccination_procedure],
         "occurrenceDateTime": "2000-01-01T11:11:11+01:00",
         "primarySource": True,
-        "site": {
-            "coding": [{"system": "http://snomed.info/sct", "code": "a_vacc_site_code", "display": "a_vacc_site_term"}]
-        },
-        "route": {
-            "coding": [
-                {"system": "http://snomed.info/sct", "code": "a_vacc_route_code", "display": "a_vacc_route_term"}
-            ]
-        },
+        "site": {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_site_code", "display": "a_vacc_site_term"}]},
+        "route": {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_route_code", "display": "a_vacc_route_term"}]},
         "doseQuantity": {
             "value": Decimal(0.5),
             "unit": "a_dose_unit_term",
-            "system": "http://snomed.info/sct",
+            "system": Urls.SNOMED,
             "code": "a_dose_unit_code",
         },
     }
@@ -186,8 +165,5 @@ class AllHeadersExpectedOutput:
             },
             {"actor": {"reference": "#Practitioner1"}},
         ],
-        "location": {
-            "type": "Location",
-            "identifier": {"value": "a_location_code", "system": "a_location_code_uri"},
-        },
+        "location": {"identifier": {"value": "a_location_code", "system": "a_location_code_uri"}},
     }

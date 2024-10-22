@@ -16,6 +16,7 @@ from src.convert_to_fhir_imms_resource import (
     _decorate_performer,
     _decorate_immunization,
 )
+from src.constants import Urls
 from tests.utils_for_recordprocessor_tests.decorator_constants import (
     AllHeaders,
     AllHeadersExpectedOutput,
@@ -123,13 +124,7 @@ class TestVaccineDecorator(unittest.TestCase):
                 "status": "completed",
                 "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
                 "vaccineCode": {
-                    "coding": [
-                        {
-                            "system": "http://terminology.hl7.org/CodeSystem/v3-NullFlavor",
-                            "code": "NAVU",
-                            "display": "Not available",
-                        }
-                    ]
+                    "coding": [{"system": Urls.NULL_FLAVOUR_CODES, "code": "NAVU", "display": "Not available"}]
                 },
             },
         )
@@ -139,13 +134,13 @@ class TestVaccineDecorator(unittest.TestCase):
         # vaccine_product: _code non-empty, term empty
         headers = {"VACCINE_PRODUCT_CODE": "a_vacc_code", "VACCINE_PRODUCT_TERM": ""}
         _decorate_vaccine(self.imms, headers)
-        expected = {"coding": [{"system": "http://snomed.info/sct", "code": "a_vacc_code"}]}
+        expected = {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_code"}]}
         self.assertDictEqual(self.imms["vaccineCode"], expected)
 
         # vaccine_product: _code empty, term non-empty
         headers = {"VACCINE_PRODUCT_CODE": "", "VACCINE_PRODUCT_TERM": "a_vacc_term"}
         _decorate_vaccine(self.imms, headers)
-        expected = {"coding": [{"system": "http://snomed.info/sct", "display": "a_vacc_term"}]}
+        expected = {"coding": [{"system": Urls.SNOMED, "display": "a_vacc_term"}]}
         self.assertDictEqual(self.imms["vaccineCode"], expected)
 
 
@@ -189,29 +184,29 @@ class TestVaccinationDecorator(unittest.TestCase):
         """Test that only non-empty site_of_vaccination values are added"""
         # site_of_vaccination: _code non-empty, _display empty
         _decorate_vaccination(self.imms, {"SITE_OF_VACCINATION_CODE": "a_vacc_site_code"})
-        expected = {"coding": [{"system": "http://snomed.info/sct", "code": "a_vacc_site_code"}]}
+        expected = {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_site_code"}]}
         self.assertDictEqual(self.imms["site"], expected)
 
         # site_of_vaccination: _code empty, _display non-empty
         _decorate_vaccination(self.imms, {"SITE_OF_VACCINATION_TERM": "a_vacc_site_term"})
-        expected = {"coding": [{"system": "http://snomed.info/sct", "display": "a_vacc_site_term"}]}
+        expected = {"coding": [{"system": Urls.SNOMED, "display": "a_vacc_site_term"}]}
         self.assertDictEqual(self.imms["site"], expected)
 
     def test_route_of_vaccination(self):
         """Test that only non-empty route_of_vaccination values are added"""
         # route_of_vaccination: _code non-empty, _display empty
         _decorate_vaccination(self.imms, {"ROUTE_OF_VACCINATION_CODE": "a_vacc_route_code"})
-        expected = {"coding": [{"system": "http://snomed.info/sct", "code": "a_vacc_route_code"}]}
+        expected = {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_route_code"}]}
         self.assertDictEqual(self.imms["route"], expected)
 
         # route_of_vaccination: _code empty, _display non-empty
         _decorate_vaccination(self.imms, {"ROUTE_OF_VACCINATION_TERM": "a_vacc_route_term"})
-        expected = {"coding": [{"system": "http://snomed.info/sct", "display": "a_vacc_route_term"}]}
+        expected = {"coding": [{"system": Urls.SNOMED, "display": "a_vacc_route_term"}]}
         self.assertDictEqual(self.imms["route"], expected)
 
     def test_dose_quantity(self):
         """Test that only non-empty dose_quantity values (dose_amount, dose_unit_term and dose_unit_code) are added"""
-        dose_quantity = {"system": "http://snomed.info/sct", "value": Decimal("0.5"), "unit": "t", "code": "code"}
+        dose_quantity = {"system": Urls.SNOMED, "value": Decimal("0.5"), "unit": "t", "code": "code"}
         # dose: _amount non-empty, _unit_term non-empty, _unit_code empty
         headers = {"DOSE_AMOUNT": "0.5", "DOSE_UNIT_TERM": "a_dose_unit_term", "DOSE_UNIT_CODE": ""}
         _decorate_vaccination(self.imms, headers)
@@ -221,13 +216,13 @@ class TestVaccinationDecorator(unittest.TestCase):
         # dose: _amount non-empty, _unit_term empty, _unit_code non-empty
         headers = {"DOSE_AMOUNT": "0.5", "DOSE_UNIT_CODE": "a_dose_unit_code"}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://snomed.info/sct", "value": Decimal("0.5"), "code": "a_dose_unit_code"}
+        dose_quantity = {"system": Urls.SNOMED, "value": Decimal("0.5"), "code": "a_dose_unit_code"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount empty, _unit_term non-empty, _unit_code non-empty
         headers = {"DOSE_UNIT_TERM": "a_dose_unit_term", "DOSE_UNIT_CODE": "a_dose_unit_code"}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://snomed.info/sct", "code": "a_dose_unit_code", "unit": "a_dose_unit_term"}
+        dose_quantity = {"system": Urls.SNOMED, "code": "a_dose_unit_code", "unit": "a_dose_unit_term"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
         # dose: _amount non-empty, _unit_term empty, _unit_code empty
@@ -245,7 +240,7 @@ class TestVaccinationDecorator(unittest.TestCase):
         # dose: _amount empty, _unit_term empty, _unit_code non-empty
         headers = {"DOSE_UNIT_CODE": "a_dose_unit_code"}
         _decorate_vaccination(self.imms, headers)
-        dose_quantity = {"system": "http://snomed.info/sct", "code": "a_dose_unit_code"}
+        dose_quantity = {"system": Urls.SNOMED, "code": "a_dose_unit_code"}
         self.assertDictEqual(self.imms["doseQuantity"], dose_quantity)
 
 
@@ -326,10 +321,10 @@ class TestPerformerDecorator(unittest.TestCase):
         imms = copy.deepcopy(self.imms)
         headers = {"LOCATION_CODE": "a_location_code", "LOCATION_CODE_TYPE_URI": ""}
         _decorate_performer(imms, headers)
-        self.assertDictEqual(imms["location"], {"type": "Location", "identifier": {"value": "a_location_code"}})
+        self.assertDictEqual(imms["location"], {"identifier": {"value": "a_location_code"}})
 
         # location_code empty, location_code_type_uri non-empty
         imms = copy.deepcopy(self.imms)
         headers = {"LOCATION_CODE": "", "LOCATION_CODE_TYPE_URI": "a_location_code_uri"}
         _decorate_performer(imms, headers)
-        self.assertDictEqual(imms["location"], {"type": "Location", "identifier": {"system": "a_location_code_uri"}})
+        self.assertDictEqual(imms["location"], {"identifier": {"system": "a_location_code_uri"}})

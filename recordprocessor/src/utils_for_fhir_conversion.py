@@ -4,6 +4,7 @@ import re
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from constants import Urls
 
 
 def _is_not_empty(value: any) -> bool:
@@ -189,5 +190,5 @@ class Add:
         """
         if any(_is_not_empty(value) for value in [code, display]):
             dictionary[key] = {
-                "coding": [Generate.dictionary({"system": "http://snomed.info/sct", "code": code, "display": display})]
+                "coding": [Generate.dictionary({"system": Urls.SNOMED, "code": code, "display": display})]
             }

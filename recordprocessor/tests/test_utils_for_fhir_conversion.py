@@ -4,7 +4,7 @@ import unittest
 from decimal import Decimal
 
 from src.utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert
-
+from src.constants import Urls
 
 class TestBatchUtils(unittest.TestCase):
     """Tests for the generic batch utils"""
@@ -256,20 +256,20 @@ class TestBatchUtilsAdd(unittest.TestCase):
         test_dict = {}
         Add.snomed(test_dict, "test1", "ABC", "testDisplay")
         expected = {
-            "test1": {"coding": [{"system": "http://snomed.info/sct", "code": "ABC", "display": "testDisplay"}]}
+            "test1": {"coding": [{"system": Urls.SNOMED, "code": "ABC", "display": "testDisplay"}]}
         }
         self.assertEqual(test_dict, expected)
 
         # Code empty and display non-empty
         test_dict = {}
         Add.snomed(test_dict, "test2", "", "testDisplay")
-        expected = {"test2": {"coding": [{"system": "http://snomed.info/sct", "display": "testDisplay"}]}}
+        expected = {"test2": {"coding": [{"system": Urls.SNOMED, "display": "testDisplay"}]}}
         self.assertEqual(test_dict, expected)
 
         # Code non-empty and display empty
         test_dict = {}
         Add.snomed(test_dict, "test3", "ABC", "")
-        expected = {"test3": {"coding": [{"system": "http://snomed.info/sct", "code": "ABC"}]}}
+        expected = {"test3": {"coding": [{"system": Urls.SNOMED, "code": "ABC"}]}}
         self.assertEqual(test_dict, expected)
 
         # Code and display empty

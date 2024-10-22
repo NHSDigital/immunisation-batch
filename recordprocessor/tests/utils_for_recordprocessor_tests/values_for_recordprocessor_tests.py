@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+from src.constants import Urls
 
 TEST_UNIQUE_ID = "0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"
 TEST_DATE = "20240609"
@@ -332,16 +333,34 @@ class TestValues:
     mock_request_params_missing = mock_request_params_missing
 
 
+# TARGET_DISEASE_ELEMENTS values are intentionally hard-coded for testing purposes.
 TARGET_DISEASE_ELEMENTS = {
     "RSV": [
         {
             "coding": [
                 {
-                    "system": "http://snomed.info/sct",
+                    "system": Urls.SNOMED,
                     "code": "55735004",
                     "display": "Respiratory syncytial virus infection (disorder)",
                 }
             ]
         }
+    ],
+    "COVID19": [
+        {
+            "coding": [
+                {
+                    "system": Urls.SNOMED,
+                    "code": "840539006",
+                    "display": "Disease caused by severe acute respiratory syndrome coronavirus 2",
+                }
+            ]
+        }
+    ],
+    "FLU": [{"coding": [{"system": Urls.SNOMED, "code": "6142004", "display": "Influenza"}]}],
+    "MMR": [
+        {"coding": [{"system": Urls.SNOMED, "code": "14189004", "display": "Measles"}]},
+        {"coding": [{"system": Urls.SNOMED, "code": "36989005", "display": "Mumps"}]},
+        {"coding": [{"system": Urls.SNOMED, "code": "36653000", "display": "Rubella"}]},
     ],
 }

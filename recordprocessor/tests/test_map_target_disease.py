@@ -11,11 +11,12 @@ class TestMapTargetDisease(unittest.TestCase):
 
     def test_map_target_disease_valid(self):
         """Tests map_target_disease returns the disease coding information when using valid vaccine types"""
-        # TODO: Confirm which vaccine types should be tested for
         # NOTE: TEST CASES SHOULD INCLUDE ALL VACCINE TYPES WHICH ARE VALID FOR THIS PRODUCT.
-        # A NEW VACCINE TYPE SHOULD BE ADDED EVERY TIME THERE IS A VACCINE TYPE UPLIFT
-        # (note that this will require adding the vaccine type to the TARGET_DISEASE_ELEMENTS)
-        vaccine_types = ["RSV"]
+        # A NEW VACCINE TYPE SHOULD BE ADDED TO THIS TEST EVERY TIME THERE IS A VACCINE TYPE UPLIFT
+        # (note that this will require adding the vaccine type to TARGET_DISEASE_ELEMENTS).
+        # targetDisease elements are intentionally hardcoded as a way of ensuring that the correct code and display
+        # values are being used, and that the element is being built up correctly.
+        vaccine_types = ["RSV", "COVID19", "FLU", "MMR"]
         for vaccine_type in vaccine_types:
             with self.subTest(vaccine=vaccine_type):
                 self.assertEqual(map_target_disease(vaccine_type), TARGET_DISEASE_ELEMENTS[vaccine_type])
