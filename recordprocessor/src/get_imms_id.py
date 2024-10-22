@@ -5,7 +5,7 @@ import json
 import boto3
 
 
-client = boto3.client('lambda')
+client = boto3.client('lambda', region_name='eu-west-2')
 search_lambda_name = os.getenv('SEARCH_IMMS_LAMBDA')
 
 

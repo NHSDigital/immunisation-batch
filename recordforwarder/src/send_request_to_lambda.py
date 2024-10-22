@@ -7,7 +7,7 @@ from errors import MessageNotSuccessfulError
 import boto3
 
 
-client = boto3.client('lambda')
+client = boto3.client('lambda', region_name='eu-west-2')
 create_lambda_name = os.getenv('CREATE_LAMBDA_NAME')
 update_lambda_name = os.getenv('UPDATE_LAMBDA_NAME')
 delete_lambda_name = os.getenv('DELETE_LAMBDA_NAME')
