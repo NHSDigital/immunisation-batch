@@ -6,6 +6,7 @@ from models.authentication import AppRestrictedAuth, Service
 from get_imms_id import ImmunizationApi
 from convert_to_fhir_imms_resource import convert_to_fhir_imms_resource
 from constants import Diagnostics
+from mappings import Vaccine
 
 cache = Cache("/tmp")
 authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
@@ -13,7 +14,7 @@ immunization_api_instance = ImmunizationApi(authenticator)
 logger = logging.getLogger()
 
 
-def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
+def process_row(vaccine: Vaccine, allowed_operations: set, row: dict) -> dict:
     """
     Processes a row of the file and returns a dictionary containing the fhir_json, action_flag, imms_id
     (where applicable), version(where applicable) and any diagnostics.
@@ -58,7 +59,7 @@ def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
 
     # Handle success
     return {
-        "fhir_json": convert_to_fhir_imms_resource(row, vaccine_type),
+        "fhir_json": convert_to_fhir_imms_resource(row, vaccine),
         "operation_requested": operation_requested,
         **({"imms_id": imms_id} if imms_id is not None else {}),
         **({"version": version} if version is not None else {}),

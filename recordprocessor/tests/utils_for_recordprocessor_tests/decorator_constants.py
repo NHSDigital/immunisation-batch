@@ -2,12 +2,13 @@
 
 from decimal import Decimal
 from src.constants import Urls
+from src.mappings import Vaccine
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import TARGET_DISEASE_ELEMENTS
 
 VALID_NHS_NUMBER = "1345678940"
 ADDRESS_UNKNOWN_POSTCODE = "ZZ99 3WZ"
 
-COVID_19_TARGET_DISEASE_ELEMENT = TARGET_DISEASE_ELEMENTS["COVID19"]
+COVID_19_TARGET_DISEASE_ELEMENT = TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value]
 
 
 class ExtensionItems:

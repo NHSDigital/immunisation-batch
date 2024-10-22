@@ -1,5 +1,5 @@
 import unittest
-from mappings import map_target_disease
+from mappings import map_target_disease, Vaccine
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import TARGET_DISEASE_ELEMENTS
 
 
@@ -16,10 +16,12 @@ class TestMapTargetDisease(unittest.TestCase):
         # (note that this will require adding the vaccine type to TARGET_DISEASE_ELEMENTS).
         # targetDisease elements are intentionally hardcoded as a way of ensuring that the correct code and display
         # values are being used, and that the element is being built up correctly.
-        vaccine_types = ["RSV", "COVID19", "FLU", "MMR"]
-        for vaccine_type in vaccine_types:
-            with self.subTest(vaccine=vaccine_type):
-                self.assertEqual(map_target_disease(vaccine_type), TARGET_DISEASE_ELEMENTS[vaccine_type])
+        vaccines = [Vaccine.RSV, Vaccine.COVID_19, Vaccine.FLU, Vaccine.MMR]
+        for vaccine in vaccines:
+            with self.subTest(vaccine=vaccine):
+                print(map_target_disease(vaccine))
+                print(TARGET_DISEASE_ELEMENTS[vaccine.value])
+                self.assertEqual(map_target_disease(vaccine), TARGET_DISEASE_ELEMENTS[vaccine.value])
 
     def test_map_target_disease_invalid(self):
         """Tests map_target_disease does not return the disease coding information when using invalid vaccine types."""

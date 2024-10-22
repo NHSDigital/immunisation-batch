@@ -6,6 +6,7 @@ import csv
 import boto3
 from moto import mock_s3, mock_kinesis
 from batch_processing import main, process_csv_to_fhir, get_environment
+from mappings import Vaccine
 from convert_to_fhir_imms_resource import convert_to_fhir_imms_resource
 from utils_for_recordprocessor import get_csv_content_dict_reader
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
@@ -241,9 +242,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request = TestValues.update_request
         request["PERFORMING_PROFESSIONAL_FORENAME"] = ""
         request["PERFORMING_PROFESSIONAL_SURNAME"] = ""
-        vaccine_type = "flu"
+        vaccine = Vaccine.FLU
 
-        json_result = convert_to_fhir_imms_resource(request, vaccine_type)
+        json_result = convert_to_fhir_imms_resource(request, vaccine)
 
         self.assertNotIn("Practitioner", [res["resourceType"] for res in json_result.get("contained", [])])
         self.assertNotIn(
@@ -259,9 +260,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
     def test_process_csv_to_fhir_successful_qualitycode(self):
         request = TestValues.update_request
         request["DOSE_UNIT_CODE"] = ""
-        vaccine_type = "flu"
+        vaccine = Vaccine.FLU
 
-        json_result = convert_to_fhir_imms_resource(request, vaccine_type)
+        json_result = convert_to_fhir_imms_resource(request, vaccine)
         dose_quality = json_result.get("doseQuality", {})
         self.assertNotIn("system", dose_quality)
 
@@ -269,9 +270,9 @@ class TestProcessLambdaFunction(unittest.TestCase):
         request = TestValues.update_request
         request["VACCINE_PRODUCT_CODE"] = ""
         request["VACCINE_PRODUCT_TERM"] = ""
-        vaccine_type = "flu"
+        vaccine = Vaccine.FLU
 
-        json_result = convert_to_fhir_imms_resource(request, vaccine_type)
+        json_result = convert_to_fhir_imms_resource(request, vaccine)
         vaccine_code = json_result.get("vaccineCode", {})
         self.assertIn("NAVU", vaccine_code["coding"][0]["code"])
         self.assertIn("Not available", vaccine_code["coding"][0]["display"])
