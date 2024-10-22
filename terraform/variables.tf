@@ -70,5 +70,5 @@ data "aws_lambda_function" "existing_update_lambda" {
 }
 
 data "aws_lambda_function" "existing_get_lambda" {
-  function_name = "imms-${local.config_env}_get_imms"
+  function_name = "imms-${local.config_env}_search_imms"
 }
