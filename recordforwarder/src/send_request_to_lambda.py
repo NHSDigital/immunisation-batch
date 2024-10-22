@@ -94,8 +94,8 @@ def send_request_to_lambda(message_body):
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     operation_requested = message_body.get("operation_requested")
-    #imms_id = message_body.get("imms_id")
-    #version = message_body.get("version")
+    # imms_id = message_body.get("imms_id")
+    # version = message_body.get("version")
 
     if operation_requested == "CREATE":
         return send_create_request(fhir_json, supplier)
