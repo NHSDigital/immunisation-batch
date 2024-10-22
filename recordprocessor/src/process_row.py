@@ -1,15 +1,11 @@
 """Function to process a single row of a csv file"""
 
+import json
 import logging
-from models.cache import Cache
-from models.authentication import AppRestrictedAuth, Service
-from get_imms_id import ImmunizationApi
+from get_imms_id import get_imms_id
 from convert_fhir_json import convert_to_fhir_json
 from constants import Diagnostics
 
-cache = Cache("/tmp")
-authenticator = AppRestrictedAuth(service=Service.IMMUNIZATION, cache=cache)
-immunization_api_instance = ImmunizationApi(authenticator)
 logger = logging.getLogger()
 
 
@@ -42,12 +38,13 @@ def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
     imms_id = None
     version = None
     if operation_requested in ("DELETE", "UPDATE"):
-        response, status_code = immunization_api_instance.get_imms_id(identifier_system, identifier_value)
+        response, status_code = get_imms_id(identifier_system, identifier_value)
+        getresponse = json.loads(response)
         # Handle non-200 response from Immunisation API
-        if not (response.get("total") == 1 and status_code == 200):
-            logger.error("imms_id not found:%s and status_code: %s", response, status_code)
+        if not (getresponse.get("total") == 1 and status_code == 200):
+            logger.error("imms_id not found:%s and status_code: %s", getresponse, status_code)
             return {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
-        resource = response.get("entry", [])[0]["resource"]
+        resource = getresponse.get("entry", [])[0]["resource"]
         # Handle unable to obtain imms id
         if not (imms_id := resource.get("id")):
             return {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}

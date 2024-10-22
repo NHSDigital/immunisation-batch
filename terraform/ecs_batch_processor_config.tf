@@ -116,13 +116,6 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
       },
       {
         Effect   = "Allow",
-        Action   = "secretsmanager:GetSecretValue",
-        Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
-        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
-        ]
-      },
-      {
-        Effect   = "Allow",
         Action   = [
           "kinesis:PutRecord",
           "kinesis:PutRecords"
@@ -135,6 +128,11 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "ecr:GetAuthorizationToken"
         ],
         Resource = "arn:aws:ecr:${var.aws_region}:${local.local_account_id}:repository/${local.short_prefix}-processing-repo"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.aws_lambda_function.existing_search_lambda.arn       
       }
     ]
   })
@@ -191,6 +189,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
       {
         name  = "KINESIS_STREAM_ARN"
         value = "${local.new_kinesis_arn}"
+      },
+      {
+        name  = "SEARCH_IMMS_LAMBDA"
+        value = data.aws_lambda_function.existing_search_lambda.function_name
       },
     ]
     logConfiguration = {

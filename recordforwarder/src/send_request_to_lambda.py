@@ -2,14 +2,10 @@
 
 import json
 import os
-import logging
 import requests
 from errors import MessageNotSuccessfulError
 import boto3
 
-logging.basicConfig(level="INFO")
-logger = logging.getLogger()
-logger.setLevel("INFO")
 
 client = boto3.client('lambda')
 create_lambda_name = os.getenv('CREATE_LAMBDA_NAME')
@@ -27,49 +23,74 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
                    },
         'body': fhir_json
     }
-    logging.info(f"Payload for create:{payload}")
-
     # Invoke the target Lambda function
     response = client.invoke(
         FunctionName=create_lambda_name,
-        InvocationType='RequestResponse',  # Change to 'Event' for asynchronous invocation
+        InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )
-    logging.info(f"Response from create:{response}")
     response_payload = json.loads(response['Payload'].read())
-    logging.info(f"Response_payload from create:{response_payload}")
     if response_payload.get("statusCode") != 201:
         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
 
     try:
         imms_headers = response_payload.get("headers")
-        logging.info(f"Imms headers:{imms_headers}")
         imms_id = imms_headers['Location'].split('/')[-1]
-        logging.info(f"Imms id:{imms_id}")
     except (AttributeError, IndexError):
         imms_id = None
     return imms_id
 
 
-# def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: str) -> str:
-#     """Sends the update request and handles the response. Returns the imms_id."""
-#     fhir_json["id"] = imms_id
-#     response = immunization_api_instance.update_immunization(imms_id, version, fhir_json, supplier)
+def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: str) -> str:
+    """sends the update request and handles the response. returns the imms_id."""
+    fhir_json["id"] = imms_id
+    payload = {
+        'headers': {
+                      'SupplierSystem': 'Imms-Batch-App',
+                      'BatchSupplierSystem': supplier,
+                      'E-Tag': version
+                   },
+        'body': fhir_json,
+        'pathParameters': { 
+                            'id': imms_id
+                          }
+    }
+    # Invoke the target Lambda function
+    response = client.invoke(
+        FunctionName=update_lambda_name,
+        InvocationType='RequestResponse',  # Change to 'Event' for asynchronous invocation
+        Payload=json.dumps(payload)
+    )
+    response_payload = json.loads(response['Payload'].read())
+    if response_payload.get("statusCode") != 200:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
 
-#     if response.status_code != 200:
-#         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
-
-#     return imms_id
+    return imms_id
 
 
-# def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
-#     """Sends the delete request and handles the response. Returns the imms_id."""
-#     response = immunization_api_instance.delete_immunization(imms_id, fhir_json, supplier)
+def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
+    """Sends the delete request and handles the response. Returns the imms_id."""
+    payload = {
+        'headers': {
+                      'SupplierSystem': 'Imms-Batch-App',
+                      'BatchSupplierSystem': supplier
+                   },
+        'body': fhir_json,
+        'pathParameters': { 
+                            'id': imms_id
+                          }
+    }
+    # Invoke the target Lambda function
+    response = client.invoke(
+        FunctionName=delete_lambda_name,
+        InvocationType='RequestResponse',  # Change to 'Event' for asynchronous invocation
+        Payload=json.dumps(payload)
+    )
+    response_payload = json.loads(response['Payload'].read())
+    if response_payload.get("statusCode") != 204:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
 
-#     if response.status_code != 204:
-#         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response))
-
-#     return imms_id
+    return imms_id
 
 
 def get_operation_outcome_diagnostics(response: requests.Response) -> str:
@@ -94,14 +115,14 @@ def send_request_to_lambda(message_body):
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     operation_requested = message_body.get("operation_requested")
-    # imms_id = message_body.get("imms_id")
-    # version = message_body.get("version")
+    imms_id = message_body.get("imms_id")
+    version = message_body.get("version")
 
     if operation_requested == "CREATE":
         return send_create_request(fhir_json, supplier)
 
-    # if operation_requested == "UPDATE":
-    #     return send_update_request(fhir_json, supplier, imms_id, version)
+    if operation_requested == "UPDATE":
+        return send_update_request(fhir_json, supplier, imms_id, version)
 
-    # if operation_requested == "DELETE":
-    #     return send_delete_request(fhir_json, supplier, imms_id)
+    if operation_requested == "DELETE":
+        return send_delete_request(fhir_json, supplier, imms_id)
