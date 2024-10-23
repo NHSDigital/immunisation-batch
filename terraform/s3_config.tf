@@ -64,9 +64,6 @@ data "aws_iam_policy_document" "batch_data_source_bucket_policy" {
         } ):  templatefile("${local.policy_path}/s3_batch_policy.json", {
             "bucket-name" : aws_s3_bucket.batch_data_source_bucket.bucket
         } ),
-        templatefile("${local.policy_path}/log_kinesis.json", {
-            "kinesis_stream_name" : module.splunk.firehose_stream_name
-        } ),
         
     ]
 }
