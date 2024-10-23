@@ -189,6 +189,8 @@ resource "aws_ecs_task_definition" "ecs_task" {
         name  = "KINESIS_STREAM_ARN"
         value = "${local.new_kinesis_arn}"
       },
+      { name  = SPLUNK_FIREHOSE_NAME
+        value = module.splunk.firehose_stream_name }
     ]
     logConfiguration = {
       logDriver = "awslogs"
