@@ -268,7 +268,7 @@ class TestRecordProcessor(unittest.TestCase):
             ("DELETE imms id not found", 1, expected_kinesis_data, False),
         ]
 
-        self.make_assertions(test_cases)    
+        self.make_assertions(test_cases)
 
     def test_e2e_no_unique_id(self):
         """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
