@@ -39,12 +39,12 @@ def process_row(vaccine_type: str, allowed_operations: set, row: dict) -> dict:
     version = None
     if operation_requested in ("DELETE", "UPDATE"):
         response, status_code = get_imms_id(identifier_system, identifier_value)
-        getresponse = json.loads(response)
+        response = json.loads(response)
         # Handle non-200 response from Immunisation API
-        if not (getresponse.get("total") == 1 and status_code == 200):
-            logger.error("imms_id not found:%s and status_code: %s", getresponse, status_code)
+        if not (response.get("total") == 1 and status_code == 200):
+            logger.error("imms_id not found:%s and status_code: %s", response, status_code)
             return {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
-        resource = getresponse.get("entry", [])[0]["resource"]
+        resource = response.get("entry", [])[0]["resource"]
         # Handle unable to obtain imms id
         if not (imms_id := resource.get("id")):
             return {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}

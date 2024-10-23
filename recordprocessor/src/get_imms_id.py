@@ -29,6 +29,6 @@ def get_imms_id(identifier_system: str, identifier_value: str):
     )
     response_payload = json.loads(response['Payload'].read())
     if response_payload.get("statusCode") != 200:
-        return response_payload, 500
+        return response_payload.get("body"), 500
     else:
         return response_payload.get("body"), 200

@@ -31,7 +31,7 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
     )
     response_payload = json.loads(response['Payload'].read())
     if response_payload.get("statusCode") != 201:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload["body"]))
 
     try:
         imms_headers = response_payload.get("headers")
@@ -63,7 +63,7 @@ def send_update_request(fhir_json: dict, supplier: str, imms_id: str, version: s
     )
     response_payload = json.loads(response['Payload'].read())
     if response_payload.get("statusCode") != 200:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload["body"]))
 
     return imms_id
 
@@ -88,7 +88,7 @@ def send_delete_request(fhir_json: dict, supplier: str, imms_id: str) -> str:
     )
     response_payload = json.loads(response['Payload'].read())
     if response_payload.get("statusCode") != 204:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload))
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload["body"]))
 
     return imms_id
 
@@ -99,7 +99,8 @@ def get_operation_outcome_diagnostics(response: requests.Response) -> str:
     returns a default diagnostics string
     """
     try:
-        return response.json().get("issue")[0].get("diagnostics")
+        response = json.loads(response)
+        return response.get("issue")[0].get("diagnostics")
     except (requests.exceptions.JSONDecodeError, AttributeError, IndexError):
         return "Unable to obtain diagnostics from API response"
 

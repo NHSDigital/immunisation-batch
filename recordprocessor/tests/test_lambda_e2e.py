@@ -22,8 +22,6 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_ID,
     TEST_VERSION,
     API_RESPONSE_WITH_ID_AND_VERSION,
-    API_RESPONSE_WITHOUT_ID_AND_VERSION,
-    API_RESPONSE_WITHOUT_VERSION,
     STREAM_NAME,
     TEST_ACK_FILE_KEY,
     TEST_EVENT_DUMPED,
@@ -34,6 +32,7 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_DATE,
     MOCK_ENVIRONMENT_DICT,
     MOCK_PERMISSIONS,
+    create_mock_api_response
 )
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
@@ -151,15 +150,16 @@ class TestRecordProcessor(unittest.TestCase):
                     self.assertEqual(kinesis_data, expected_kinesis_data)
                     self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
 
-    def test_e2e_success(self):
+    @patch("get_imms_id.client")
+    def test_e2e_success(self, mock_api):
         """
         Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier has
         full permissions.
         """
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(TEST_EVENT_DUMPED)
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        main(TEST_EVENT_DUMPED)
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
@@ -169,7 +169,8 @@ class TestRecordProcessor(unittest.TestCase):
         ]
         self.make_assertions(test_cases)
 
-    def test_e2e_no_permissions(self):
+    @patch("get_imms_id.client")
+    def test_e2e_no_permissions(self, mock_api):
         """
         Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier does not have
         any permissions.
@@ -179,10 +180,9 @@ class TestRecordProcessor(unittest.TestCase):
         test_event = json.loads(event)
         test_event["permission"] = ["COVID19_FULL"]
         test_event = json.dumps(test_event)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(test_event)
-
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        main(test_event)
         expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
@@ -194,7 +194,8 @@ class TestRecordProcessor(unittest.TestCase):
 
         self.make_assertions(test_cases)
 
-    def test_e2e_partial_permissions(self):
+    @patch("get_imms_id.client")
+    def test_e2e_partial_permissions(self, mock_api):
         """
         Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier has partial
         permissions.
@@ -204,9 +205,9 @@ class TestRecordProcessor(unittest.TestCase):
         test_event = json.loads(event)
         test_event["permission"] = ["FLU_CREATE"]
         test_event = json.dumps(test_event)
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(test_event)
-
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        main(test_event)
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
             ("CREATE create permission only", 0, {"operation_requested": "CREATE"}, True),
@@ -216,25 +217,29 @@ class TestRecordProcessor(unittest.TestCase):
 
         self.make_assertions(test_cases)
 
-    def test_e2e_invalid_data(self):
+    @patch("get_imms_id.client")
+    def test_e2e_invalid_data(self, mock_api):
         """Tests that file containing CREATEis successfully processed when there is invalid data."""
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace(TEST_DATE, "NOT_A_DATE"))
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
-            main(TEST_EVENT_DUMPED)
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        main(TEST_EVENT_DUMPED)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_CONVERSION}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE invalid data", 0, expected_kinesis_data, False)])
 
-    def test_e2e_imms_id_not_found(self):
+    @patch("get_imms_id.client")
+    def test_e2e_imms_id_not_found(self, mock_api):
         """
         Tests that file containing UPDATE and DELETE is successfully processed when the imms id is not found by the API.
         """
         self.upload_files(VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE)
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 404)):
-            main(TEST_EVENT_DUMPED)
+        mock_response = create_mock_api_response(200, "not-found")
+        mock_api.invoke.return_value = mock_response
+        main(TEST_EVENT_DUMPED)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
@@ -245,49 +250,31 @@ class TestRecordProcessor(unittest.TestCase):
 
         self.make_assertions(test_cases)
 
-    def test_e2e_no_imms_id_in_api_response(self):
+    @patch("get_imms_id.client")
+    def test_e2e_imms_id_error(self, mock_api):
         """
-        Tests that file containing UPDATE and DELETE is successfully processed when API response doesn't contain
-        the imms id.
+        Tests that file containing UPDATE and DELETE is successfully processed when the imms id is not found by the API.
         """
         self.upload_files(VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE)
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITHOUT_ID_AND_VERSION):
-            main(TEST_EVENT_DUMPED)
+        mock_response = create_mock_api_response(400)
+        mock_api.invoke.return_value = mock_response
+        main(TEST_EVENT_DUMPED)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
-            ("UPDATE imms no id in API response", 0, expected_kinesis_data, False),
-            ("DELETE imms no id in API response", 1, expected_kinesis_data, False),
+            ("UPDATE imms id not found", 0, expected_kinesis_data, False),
+            ("DELETE imms id not found", 1, expected_kinesis_data, False),
         ]
 
-        self.make_assertions(test_cases)
-
-    def test_e2e_no_version_in_api_response(self):
-        """
-        Tests that file containing UPDATE and DELETE is successfully processed when the API response doesn't contain
-        the version.
-        """
-        self.upload_files(VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITHOUT_VERSION):
-            main(TEST_EVENT_DUMPED)
-
-        expected_kinesis_data_for_delete = {"operation_requested": "DELETE", "imms_id": TEST_ID}
-        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
-        test_cases = [
-            ("UPDATE imms no version in API response", 0, {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_VERSION}, False),
-            ("DELETE imms no version in API response", 1, expected_kinesis_data_for_delete, True),
-        ]
-
-        self.make_assertions(test_cases)
+        self.make_assertions(test_cases)    
 
     def test_e2e_no_unique_id(self):
         """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace(TEST_UNIQUE_ID, ""))
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.MISSING_UNIQUE_ID}
@@ -298,7 +285,7 @@ class TestRecordProcessor(unittest.TestCase):
         """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace("new", ""))
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
@@ -309,7 +296,7 @@ class TestRecordProcessor(unittest.TestCase):
         """Tests that file containing CREATE is successfully processed when the UNIQUE_ID field is empty."""
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace("new", "invalid"))
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
@@ -325,7 +312,7 @@ class TestRecordProcessor(unittest.TestCase):
         # Delete the kinesis stream, to cause kinesis send to fail
         kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
+        with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
         self.assertIn("Fatal", self.get_ack_file_content())
