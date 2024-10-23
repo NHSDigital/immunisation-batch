@@ -175,7 +175,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
       CONFIG_BUCKET_NAME   = data.aws_s3_bucket.existing_bucket.bucket
       REDIS_HOST           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].address
       REDIS_PORT           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].port
-      SPLUNK_FIREHOSE_NAME = module.splunk.firehose_stream_name
+      SPLUNK_FIREHOSE_NAME = data.aws_kinesis_firehose_delivery_stream.splunk_stream.name
     }
   }
 }
