@@ -91,7 +91,6 @@ class AllHeadersExpectedOutput:
 
     immunization = {
         "resourceType": "Immunization",
-        "contained": [],
         "status": "completed",
         "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
         "reasonCode": [{"coding": [{"system": Urls.SNOMED, "code": "INDICATION_CODE"}]}],
@@ -121,7 +120,6 @@ class AllHeadersExpectedOutput:
         "resourceType": "Immunization",
         "status": "completed",
         "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
-        "contained": [],
         "vaccineCode": {"coding": [{"system": Urls.SNOMED, "code": "a_vacc_code", "display": "a_vacc_term"}]},
         "manufacturer": {"display": "a_manufacturer"},
         "lotNumber": "a_batch_number",
@@ -132,7 +130,6 @@ class AllHeadersExpectedOutput:
         "resourceType": "Immunization",
         "status": "completed",
         "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberPositiveInt": 1}],
-        "contained": [],
         "extension": [ExtensionItems.vaccination_procedure],
         "occurrenceDateTime": "2000-01-01T11:11:11+01:00",
         "primarySource": True,

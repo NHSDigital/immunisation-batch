@@ -32,4 +32,4 @@ class TestConvertToFhirImmsResource(unittest.TestCase):
 
         for test_name, input_values, expected_output in cases:
             with self.subTest(test_name):
-                self.assertEqual(convert_to_fhir_imms_resource(input_values, Vaccine.COVID_19), expected_output)
+                self.assertEqual(convert_to_fhir_imms_resource(input_values, Vaccine.RSV), expected_output)

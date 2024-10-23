@@ -309,9 +309,11 @@ non_mandatory_fields = {
     "INDICATION_CODE": "1037351000000105",
 }
 
+critical_fields = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": "a_unique_id_uri"}
+
 all_fields = {**mandatory_fields, **non_mandatory_fields}
-mandatory_fields_only = {**mandatory_fields, **{k: "" for k in non_mandatory_fields}}
-critical_fields_only = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": "a_unique_id_uri"}
+mandatory_fields_only = {**mandatory_fields, **{key: "" for key in non_mandatory_fields}}
+critical_fields_only = {key: critical_fields.get(key, "") for key in all_fields}
 
 # Requests (format is dictionary)
 update_request = deepcopy(all_fields)
@@ -443,7 +445,7 @@ all_fields_fhir_imms_resource = {
     "reasonCode": [{"coding": [{"code": "1037351000000105", "system": Urls.SNOMED}]}],
     "protocolApplied": [
         {
-            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value],
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.RSV.value],
             "doseNumberPositiveInt": 1,
         }
     ],
@@ -497,7 +499,7 @@ mandatory_fields_only_fhir_imms_resource = {
     ],
     "protocolApplied": [
         {
-            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value],
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.RSV.value],
             "doseNumberString": "Dose sequence not recorded",
         }
     ],
@@ -505,13 +507,12 @@ mandatory_fields_only_fhir_imms_resource = {
 
 critical_fields_only_fhir_imms_resource = {
     "resourceType": "Immunization",
-    "contained": [],
     "status": "completed",
     "vaccineCode": {"coding": [{"system": Urls.NULL_FLAVOUR_CODES, "code": "NAVU", "display": "Not available"}]},
     "identifier": [{"system": "a_unique_id_uri", "value": "a_unique_id"}],
     "protocolApplied": [
         {
-            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.COVID_19.value],
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.RSV.value],
             "doseNumberString": "Dose sequence not recorded",
         }
     ],

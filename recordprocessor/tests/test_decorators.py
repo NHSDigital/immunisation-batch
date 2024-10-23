@@ -26,7 +26,6 @@ from tests.utils_for_recordprocessor_tests.decorator_constants import (
 
 raw_imms: dict = {
     "resourceType": "Immunization",
-    "contained": [],
     "status": "completed",
     "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
 }
@@ -120,7 +119,6 @@ class TestVaccineDecorator(unittest.TestCase):
             self.imms,
             {
                 "resourceType": "Immunization",
-                "contained": [],
                 "status": "completed",
                 "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
                 "vaccineCode": {
@@ -160,7 +158,6 @@ class TestVaccinationDecorator(unittest.TestCase):
         _decorate_vaccination(self.imms, {})
         expected_output = {
             "resourceType": "Immunization",
-            "contained": [],
             "status": "completed",
             "protocolApplied": [
                 {"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT, "doseNumberString": "Dose sequence not recorded"}
@@ -269,7 +266,6 @@ class TestPerformerDecorator(unittest.TestCase):
             "resourceType": "Immunization",
             "status": "completed",
             "protocolApplied": [{"targetDisease": COVID_19_TARGET_DISEASE_ELEMENT}],
-            "contained": [],
             "performer": [{"actor": {"type": "Organization", "identifier": {"value": "a_site_code"}}}],
         }
         self.assertDictEqual(self.imms, expected_output)

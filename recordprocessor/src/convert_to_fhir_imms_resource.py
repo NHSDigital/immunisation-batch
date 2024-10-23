@@ -16,14 +16,10 @@ resource. Therefore before adding an element it is necessary to check that at le
 
 
 def _decorate_immunization(imms: dict, row: Dict[str, str]) -> None:
-    """Every thing related to the immunization object itself like status and identifier"""
+    """Adds the reasonCode, recorded and identifier elements (where non-empty data is provided)"""
     indication_code = row.get("INDICATION_CODE")
-    Add.custom_item(
-        imms,
-        "reasonCode",
-        indication_code,
-        [{"coding": [{"system": Urls.SNOMED, "code": indication_code}]}],
-    )
+    reason_code_value = [{"coding": [{"system": Urls.SNOMED, "code": indication_code}]}]
+    Add.custom_item(imms, "reasonCode", [indication_code], reason_code_value)
 
     Add.item(imms, "recorded", row.get("RECORDED_DATE"), Convert.date)
 
@@ -31,7 +27,7 @@ def _decorate_immunization(imms: dict, row: Dict[str, str]) -> None:
 
 
 def _decorate_patient(imms: dict, row: Dict[str, str]) -> None:
-    """Create the 'patient' object and append to 'contained' list"""
+    """Creates the patient resource and appends it the to 'contained' list"""
     patient_values = [
         person_surname := row.get("PERSON_SURNAME"),
         person_forename := row.get("PERSON_FORENAME"),
@@ -63,26 +59,21 @@ def _decorate_patient(imms: dict, row: Dict[str, str]) -> None:
             Add.item(patient["name"][0], "family", person_surname)
             Add.custom_item(patient["name"][0], "given", [person_forename], [person_forename])
 
-        imms["contained"].append(patient)
+        # Add practitioner to contained list if it exists, else create a contained list and add it to imms
+        imms.setdefault("contained", []).append(patient)
 
 
 def _decorate_vaccine(imms: dict, row: Dict[str, str]) -> None:
-    """Vaccine refers to the physical vaccine product the manufacturer"""
+    """Adds fields relating to the physical product"""
 
+    vax_prod_code = row.get("VACCINE_PRODUCT_CODE")
+    vax_prod_term = row.get("VACCINE_PRODUCT_TERM")
+    vax_prod_system = Urls.SNOMED
     # vaccineCode is a mandatory FHIR field. If no values are supplied a default null flavour code of 'NAVU' is used.
-    vaccine_product_code = row.get("VACCINE_PRODUCT_CODE")
-    vaccine_product_term = row.get("VACCINE_PRODUCT_TERM")
-    vaccine_product_system = Urls.SNOMED
-    if not vaccine_product_code and not vaccine_product_term:
-        vaccine_product_code = "NAVU"
-        vaccine_product_term = "Not available"
-        vaccine_product_system = Urls.NULL_FLAVOUR_CODES
+    if not (vax_prod_code or vax_prod_term):
+        vax_prod_code, vax_prod_term, vax_prod_system = "NAVU", "Not available", Urls.NULL_FLAVOUR_CODES
     imms["vaccineCode"] = {
-        "coding": [
-            Generate.dictionary(
-                {"system": vaccine_product_system, "code": vaccine_product_code, "display": vaccine_product_term}
-            )
-        ]
+        "coding": [Generate.dictionary({"system": vax_prod_system, "code": vax_prod_code, "display": vax_prod_term})]
     }
 
     Add.dictionary(imms, "manufacturer", {"display": row.get("VACCINE_MANUFACTURER")})
@@ -93,7 +84,7 @@ def _decorate_vaccine(imms: dict, row: Dict[str, str]) -> None:
 
 
 def _decorate_vaccination(imms: dict, row: Dict[str, str]) -> None:
-    """Vaccination refers to the actual administration of a vaccine to a patient"""
+    """Adds fields relating to the administration of the vaccine"""
     vaccination_extension_values = [
         vaccination_procedure_code := row.get("VACCINATION_PROCEDURE_CODE"),
         vaccination_procedure_term := row.get("VACCINATION_PROCEDURE_TERM"),
@@ -143,7 +134,10 @@ def _decorate_vaccination(imms: dict, row: Dict[str, str]) -> None:
 
 
 def _decorate_performer(imms: dict, row: Dict[str, str]) -> None:
-    """Create the 'practitioner' object and 'organization' and append them to the 'contained' list"""
+    """
+    Adds the performer field, including organization, and where relevant creates the practitioner resource
+    and adds it to the 'contained' list
+    """
     organization_values = [
         site_code_type_uri := row.get("SITE_CODE_TYPE_URI"),
         site_code := row.get("SITE_CODE"),
@@ -182,7 +176,8 @@ def _decorate_performer(imms: dict, row: Dict[str, str]) -> None:
                     practitioner["name"][0], "given", [performing_prof_forename], [performing_prof_forename]
                 )
 
-            imms["contained"].append(practitioner)
+            # Add practitioner to contained list if it exists, else create a contained list and add it to imms
+            imms.setdefault("contained", []).append(practitioner)
 
     Add.custom_item(
         imms,
@@ -202,9 +197,9 @@ all_decorators: List[ImmunizationDecorator] = [
 
 
 def convert_to_fhir_imms_resource(row: dict, vaccine: Vaccine) -> dict:
-    """Converts a row to a FHIR Immunization Resource"""
-    # Prepare the imms_resource with the basic fields
-    imms_resource = {"resourceType": "Immunization", "contained": [], "status": "completed"}
+    """Converts a row of data to a FHIR Immunization Resource"""
+    # Prepare the imms_resource. Note that all data sent via this service is assumed to be for completed vaccinations.
+    imms_resource = {"resourceType": "Immunization", "status": "completed"}
 
     # Add the targetDisease element based on the vaccine type
     imms_resource["protocolApplied"] = [{"targetDisease": map_target_disease(vaccine)}]
