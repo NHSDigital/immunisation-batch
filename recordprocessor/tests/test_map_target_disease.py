@@ -1,3 +1,5 @@
+"""Tests for map_target_disease"""
+
 import unittest
 from mappings import map_target_disease, Vaccine
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import TARGET_DISEASE_ELEMENTS

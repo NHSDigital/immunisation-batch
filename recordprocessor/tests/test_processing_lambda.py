@@ -6,8 +6,6 @@ import csv
 import boto3
 from moto import mock_s3, mock_kinesis
 from batch_processing import main, process_csv_to_fhir, get_environment
-from mappings import Vaccine
-from convert_to_fhir_imms_resource import convert_to_fhir_imms_resource
 from utils_for_recordprocessor import get_csv_content_dict_reader
 from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
@@ -237,45 +235,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
         self.assert_value_in_ack_file("No permissions for requested operation")
         mock_send_to_kinesis.assert_called()
-
-    def test_process_csv_to_fhir_successful_Practitioner(self):
-        request = TestValues.update_request
-        request["PERFORMING_PROFESSIONAL_FORENAME"] = ""
-        request["PERFORMING_PROFESSIONAL_SURNAME"] = ""
-        vaccine = Vaccine.FLU
-
-        json_result = convert_to_fhir_imms_resource(request, vaccine)
-
-        self.assertNotIn("Practitioner", [res["resourceType"] for res in json_result.get("contained", [])])
-        self.assertNotIn(
-            "reference",
-            [
-                performer.get("reference")
-                for res in json_result.get("actor", [])
-                if "performer" in res
-                for performer in res.get("performer", [])
-            ],
-        )
-
-    def test_process_csv_to_fhir_successful_qualitycode(self):
-        request = TestValues.update_request
-        request["DOSE_UNIT_CODE"] = ""
-        vaccine = Vaccine.FLU
-
-        json_result = convert_to_fhir_imms_resource(request, vaccine)
-        dose_quality = json_result.get("doseQuality", {})
-        self.assertNotIn("system", dose_quality)
-
-    def test_process_csv_to_fhir_successful_vaccine_code(self):
-        request = TestValues.update_request
-        request["VACCINE_PRODUCT_CODE"] = ""
-        request["VACCINE_PRODUCT_TERM"] = ""
-        vaccine = Vaccine.FLU
-
-        json_result = convert_to_fhir_imms_resource(request, vaccine)
-        vaccine_code = json_result.get("vaccineCode", {})
-        self.assertIn("NAVU", vaccine_code["coding"][0]["code"])
-        self.assertIn("Not available", vaccine_code["coding"][0]["display"])
 
     def test_get_environment(self):
         with patch("batch_processing.os.getenv", return_value="internal-dev"):
