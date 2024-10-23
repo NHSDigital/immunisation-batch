@@ -171,7 +171,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
     @patch("get_imms_id.client")
-    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_api, mock_csv_dict_reader, 
+    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_api, mock_csv_dict_reader,
                                                               mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
         mock_response = create_mock_api_response(200, None)
