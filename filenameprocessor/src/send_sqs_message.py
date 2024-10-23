@@ -5,10 +5,12 @@ import os
 from json import dumps as json_dumps
 from utils_for_filenameprocessor import extract_file_key_elements
 from s3_clients import sqs_client
+from log_structure import function_info
 
 logger = logging.getLogger()
 
 
+@function_info
 def send_to_supplier_queue(message_body: dict) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Check the supplier has been identified (this should already have been validated by initial file validation)
