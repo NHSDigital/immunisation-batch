@@ -14,7 +14,7 @@ srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from batch_processing import main  # noqa: E402
 from constants import Diagnostics  # noqa: E402
-from utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (  # noqa: E402
+from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (  # noqa: E402
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
     CONFIG_BUCKET_NAME,

@@ -10,7 +10,7 @@ maindir = os.path.dirname(__file__)
 srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from forwarding_lambda import forward_lambda_handler  # noqa: E402
-from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # noqa: E402
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # noqa: E402
     test_fhir_json,
     AWS_REGION,
     SOURCE_BUCKET_NAME,
@@ -20,7 +20,7 @@ from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  #
     TEST_SUPPLIER,
     TEST_ROW_ID,
 )
-from utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response  # noqa: E402
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response  # noqa: E402
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)

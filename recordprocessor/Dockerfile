@@ -12,6 +12,9 @@ RUN poetry install --no-interaction --no-ansi --no-root
 COPY src src
 COPY tests tests
 RUN python -m unittest
+RUN coverage run -m unittest discover
+RUN coverage report -m 
+RUN coverage html 
 
 # -----------------------------
 FROM base as build

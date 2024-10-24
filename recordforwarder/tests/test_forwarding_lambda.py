@@ -15,11 +15,11 @@ srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 
 # Import other modules after adjusting the path
-from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION  # noqa: E402
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION  # noqa: E402
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda  # noqa: E402
 from utils_for_record_forwarder import get_environment  # noqa: E402
 from update_ack_file import create_ack_data  # noqa: E402
-from utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (  # noqa: E402
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (  # noqa: E402
     create_mock_operation_outcome
 )
 

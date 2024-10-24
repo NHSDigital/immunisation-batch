@@ -17,7 +17,7 @@ from batch_processing import (  # noqa: E402
 )
 from convert_fhir_json import convert_to_fhir_json  # noqa: E402
 from utils_for_recordprocessor import get_csv_content_dict_reader  # noqa: E402
-from utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (  # noqa: E402
+from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (  # noqa: E402
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
     AWS_REGION,
