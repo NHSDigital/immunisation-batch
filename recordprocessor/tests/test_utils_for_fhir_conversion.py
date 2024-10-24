@@ -2,9 +2,14 @@
 
 import unittest
 from decimal import Decimal
+import os
+import sys
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 
-from src.utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert
-from src.constants import Urls
+from utils_for_fhir_conversion import _is_not_empty, Generate, Add, Convert  # noqa: E402
+from constants import Urls  # noqa: E402
 
 
 class TestBatchUtils(unittest.TestCase):
