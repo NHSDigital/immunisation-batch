@@ -8,13 +8,13 @@ import sys
 maindir = os.path.dirname(__file__)
 srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from utils_for_filenameprocessor import (
+from utils_for_filenameprocessor import (  # noqa: E402
     get_environment,
     get_csv_content_dict_reader,
     identify_supplier,
     extract_file_key_elements,
 )
-from utils_for_tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file
+from utils_for_tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file  # noqa: E402
 
 
 class TestUtilsForFilenameprocessor(TestCase):

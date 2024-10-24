@@ -10,14 +10,14 @@ import sys
 maindir = os.path.dirname(__file__)
 srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from batch_processing import (
+from batch_processing import (  # noqa: E402
     main,
     process_csv_to_fhir,
     get_environment,
 )
-from convert_fhir_json import convert_to_fhir_json
-from utils_for_recordprocessor import get_csv_content_dict_reader
-from utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
+from convert_fhir_json import convert_to_fhir_json  # noqa: E402
+from utils_for_recordprocessor import get_csv_content_dict_reader  # noqa: E402
+from utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (  # noqa: E402
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
     AWS_REGION,
