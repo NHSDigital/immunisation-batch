@@ -32,7 +32,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
     permission = incoming_message_body.get("permission")
-    action_flag_permissions = get_operation_permissions(vaccine, permission)
+    allowed_operations = get_operation_permissions(vaccine, permission)
 
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
@@ -48,7 +48,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
         row_id = f"{file_id}#{row_count}"
         logger.info("MESSAGE ID : %s", row_id)
         # Process the row to obtain the details needed for the message_body and ack file
-        details_from_processing = process_row(vaccine, action_flag_permissions, row)
+        details_from_processing = process_row(vaccine, allowed_operations, row)
 
         # Create the message body for sending
         outgoing_message_body = {

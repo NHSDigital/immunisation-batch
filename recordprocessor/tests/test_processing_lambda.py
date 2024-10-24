@@ -18,6 +18,7 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_EVENT,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
     TestValues,
+    create_mock_api_response,
 )
 
 s3_client = boto3.client("s3", region_name=AWS_REGION)
@@ -113,12 +114,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
         self.assertEqual(list(result), list(expected_output))
 
     @patch("batch_processing.send_to_kinesis")
-    def test_process_csv_to_fhir(self, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir(self, mock_api, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
-        ):
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("Success")
@@ -126,12 +127,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_positive_string_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir_positive_string_provided(self, mock_api, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
-        ):
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_string)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -142,12 +143,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_only_mandatory(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir_only_mandatory(self, mock_api, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
-        ):
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -158,12 +159,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir_positive_string_not_provided(
+        self, mock_api, mock_csv_dict_reader, mock_send_to_kinesis
+    ):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
-        ):
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_missing)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -174,10 +177,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir_paramter_missing(self, mock_api, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
-
-        with patch("process_row.convert_to_fhir_imms_resource", return_value={}), patch(
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        with patch("process_row.convert_to_fhir_imms_resource", return_value=({}, True)), patch(
             "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()
@@ -190,12 +195,14 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_failed(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir_failed(self, mock_api, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
-
-        with patch("process_row.convert_to_fhir_imms_resource", return_value={}), patch(
-            "process_row.ImmunizationApi.get_imms_id", return_value=({"total": 0}, 400)
-        ), patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
+        mock_response = create_mock_api_response(400)
+        mock_api.invoke.return_value = mock_response
+        with patch("process_row.convert_to_fhir_imms_resource", return_value=({}, True)), patch(
+            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
+        ):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -206,12 +213,12 @@ class TestProcessLambdaFunction(unittest.TestCase):
 
     @patch("batch_processing.send_to_kinesis")
     @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_successful(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    @patch("get_imms_id.client")
+    def test_process_csv_to_fhir_successful(self, mock_api, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
-
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
-            "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
-        ):
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
             mock_csv_dict_reader.return_value = mock_csv_reader_instance
@@ -225,7 +232,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
     def test_process_csv_to_fhir_incorrect_permissions(self, mock_csv_dict_reader, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
 
-        with patch("process_row.ImmunizationApi.get_imms_id", return_value=self.results), patch(
+        with patch("process_row.get_imms_id", return_value=self.results), patch(
             "batch_processing.get_operation_permissions", return_value={"DELETE"}
         ):
             mock_csv_reader_instance = MagicMock()

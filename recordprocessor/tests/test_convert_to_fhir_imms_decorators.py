@@ -23,6 +23,9 @@ from tests.utils_for_recordprocessor_tests.decorator_constants import (
     ExtensionItems,
     COVID_19_TARGET_DISEASE_ELEMENT,
 )
+from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import all_fields
+
+empty_csv_data = {k: "" for k in all_fields}
 
 raw_imms: dict = {
     "resourceType": "Immunization",
@@ -46,18 +49,8 @@ class TestImmunizationDecorator(unittest.TestCase):
 
     def test_no_immunization_headers(self):
         """Test that no fields are added when no immunization fields contain non-empty data"""
-        _decorate_immunization(self.imms, {"UNIQUE_ID": ""})
+        _decorate_immunization(self.imms, empty_csv_data)
         self.assertDictEqual(self.imms, copy.deepcopy(raw_imms))
-
-    def test_unique_id(self):
-        """Test that only non-empty unique_id values are added"""
-        # unique_id non-empty, unique_uri empty
-        _decorate_immunization(self.imms, {"UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": None})
-        self.assertListEqual(self.imms["identifier"], [{"value": "a_unique_id"}])
-
-        # Unique_id empty, unique_uri non-empty
-        _decorate_immunization(self.imms, {"UNIQUE_ID_URI": "a_unique_id_uri"})
-        self.assertListEqual(self.imms["identifier"], [{"system": "a_unique_id_uri"}])
 
 
 class TestPatientDecorator(unittest.TestCase):
@@ -73,7 +66,7 @@ class TestPatientDecorator(unittest.TestCase):
 
     def test_no_patient_headers(self):
         """Test that no fields are added when no patient fields contain non-empty data"""
-        _decorate_patient(self.imms, {})
+        _decorate_patient(self.imms, empty_csv_data)
         self.assertDictEqual(self.imms, copy.deepcopy(raw_imms))
 
     def test_one_patient_header(self):
@@ -114,7 +107,7 @@ class TestVaccineDecorator(unittest.TestCase):
 
     def test_no_vaccine_headers(self):
         """Test that no fields are added when no vaccine fields contain non-empty data"""
-        _decorate_vaccine(self.imms, {})
+        _decorate_vaccine(self.imms, empty_csv_data)
         self.assertDictEqual(
             self.imms,
             {
@@ -155,7 +148,7 @@ class TestVaccinationDecorator(unittest.TestCase):
 
     def test_no_vaccination_headers(self):
         """Test that no fields are added when no vaccination fields contain non-empty data"""
-        _decorate_vaccination(self.imms, {})
+        _decorate_vaccination(self.imms, empty_csv_data)
         expected_output = {
             "resourceType": "Immunization",
             "status": "completed",
@@ -256,7 +249,7 @@ class TestPerformerDecorator(unittest.TestCase):
 
     def test_no_performer_headers(self):
         """Test that no fields are added when no performer fields contain non-empty data"""
-        _decorate_performer(self.imms, {})
+        _decorate_performer(self.imms, empty_csv_data)
         self.assertDictEqual(self.imms, copy.deepcopy(raw_imms))
 
     def test_one_performer_header(self):

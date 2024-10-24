@@ -4,11 +4,18 @@ locals {
   forwarding_lambda_dir_sha = sha1(join("", [for f in local.forwarder_lambda_files : filesha1("${local.forwarder_lambda_dir}/${f}")]))
 }
 
+resource "aws_ecr_repository" "forwarder_lambda_repository" {
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  name = "${local.prefix}-forwarding-repo"
+}
+
 module "forwarding_docker_image" {
   source = "terraform-aws-modules/lambda/aws//modules/docker-build"
 
-  create_ecr_repo          = true
-  ecr_repo                 = "${local.prefix}-forwarding-repo"
+  create_ecr_repo          = false
+  ecr_repo                 = aws_ecr_repository.forwarder_lambda_repository.name
   ecr_repo_lifecycle_policy = jsonencode({
     rules = [
       {
@@ -109,6 +116,15 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "kinesis:ListStreams"
         ]
        Resource = "arn:aws:kinesis:${var.aws_region}:${local.local_account_id}:stream/${local.short_prefix}-processingdata-stream"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = [
+          data.aws_lambda_function.existing_create_lambda.arn,           
+          data.aws_lambda_function.existing_update_lambda.arn,
+          data.aws_lambda_function.existing_delete_lambda.arn        
+        ]
       }
     ]
   })
@@ -136,6 +152,9 @@ resource "aws_lambda_function" "forwarding_lambda" {
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
+      CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
+      UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
+      DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
     }
   }
 

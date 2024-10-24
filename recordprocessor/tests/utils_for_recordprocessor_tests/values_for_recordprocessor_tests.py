@@ -2,7 +2,9 @@
 
 import json
 from copy import deepcopy
+from unittest.mock import MagicMock
 from decimal import Decimal
+import requests
 from src.constants import Urls
 from src.mappings import Vaccine
 
@@ -38,6 +40,7 @@ TARGET_DISEASE_ELEMENTS = {
         {"coding": [{"system": Urls.SNOMED, "code": "36653000", "display": "Rubella"}]},
     ],
 }
+
 
 TEST_UNIQUE_ID = "0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"
 TEST_DATE = "20240609"
@@ -517,3 +520,34 @@ critical_fields_only_fhir_imms_resource = {
         }
     ],
 }
+
+
+def create_mock_api_response(status_code: int, diagnostics: str = None) -> requests.Response:
+    mock_response = MagicMock()
+    if status_code != 200:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "OperationOutcome", "id": "45b552ca-755a-473f-84df-c7e7767bd2ac",'
+                '"issue": [{"severity": "error","code": "error",'
+                '"details": {"coding": [{"system": "test", "code": "unknown-error"}]},'
+                '"diagnostics": "unknown-error"}]}',
+            }
+        )
+    if diagnostics is None and status_code == 200:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "Bundle", "type": "searchset",'
+                '"entry": [{"resource": {"id": "277befd9-574e-47fe-a6ee-189858af3bb0",'
+                '"meta": {"versionId": 2}}}], "total": 1}',
+            }
+        )
+    if diagnostics and status_code == 200:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "Bundle", "type": "searchset",' '"entry": [], "total": 0}',
+            }
+        )
+    return mock_response
