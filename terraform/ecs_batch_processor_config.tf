@@ -17,6 +17,9 @@ locals {
 
 # Create ECR Repository for processing.
 resource "aws_ecr_repository" "processing_repository" {
+  image_scanning_configuration {
+    scan_on_push = true
+  }
   name = "${local.prefix}-processing-repo"
 }
 
@@ -31,11 +34,11 @@ module "processing_docker_image" {
     "rules" : [
       {
         "rulePriority" : 1,
-        "description" : "Keep only the last 1 images",
+        "description" : "Keep only the last 2 images",
         "selection" : {
           "tagStatus" : "any",
           "countType" : "imageCountMoreThan",
-          "countNumber" : 1
+          "countNumber" : 2
         },
         "action" : {
           "type" : "expire"
@@ -113,13 +116,6 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
       },
       {
         Effect   = "Allow",
-        Action   = "secretsmanager:GetSecretValue",
-        Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
-        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
-        ]
-      },
-      {
-        Effect   = "Allow",
         Action   = [
           "kinesis:PutRecord",
           "kinesis:PutRecords"
@@ -132,6 +128,11 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "ecr:GetAuthorizationToken"
         ],
         Resource = "arn:aws:ecr:${var.aws_region}:${local.local_account_id}:repository/${local.short_prefix}-processing-repo"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = data.aws_lambda_function.existing_search_lambda.arn       
       }
     ]
   })
@@ -191,6 +192,11 @@ resource "aws_ecs_task_definition" "ecs_task" {
       },
       { name  = "SPLUNK_FIREHOSE_NAME"
         value = data.aws_kinesis_firehose_delivery_stream.splunk_stream.name}
+      {
+        name  = "SEARCH_IMMS_LAMBDA"
+        value = data.aws_lambda_function.existing_search_lambda.function_name
+      },
+
     ]
     logConfiguration = {
       logDriver = "awslogs"

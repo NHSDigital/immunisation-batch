@@ -2,6 +2,45 @@
 
 import json
 from copy import deepcopy
+from unittest.mock import MagicMock
+from decimal import Decimal
+import requests
+from src.constants import Urls
+from src.mappings import Vaccine
+
+
+# TARGET_DISEASE_ELEMENTS values are intentionally hard-coded for testing purposes.
+TARGET_DISEASE_ELEMENTS = {
+    "RSV": [
+        {
+            "coding": [
+                {
+                    "system": Urls.SNOMED,
+                    "code": "55735004",
+                    "display": "Respiratory syncytial virus infection (disorder)",
+                }
+            ]
+        }
+    ],
+    "COVID19": [
+        {
+            "coding": [
+                {
+                    "system": Urls.SNOMED,
+                    "code": "840539006",
+                    "display": "Disease caused by severe acute respiratory syndrome coronavirus 2",
+                }
+            ]
+        }
+    ],
+    "FLU": [{"coding": [{"system": Urls.SNOMED, "code": "6142004", "display": "Influenza"}]}],
+    "MMR": [
+        {"coding": [{"system": Urls.SNOMED, "code": "14189004", "display": "Measles"}]},
+        {"coding": [{"system": Urls.SNOMED, "code": "36989005", "display": "Mumps"}]},
+        {"coding": [{"system": Urls.SNOMED, "code": "36653000", "display": "Rubella"}]},
+    ],
+}
+
 
 TEST_UNIQUE_ID = "0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"
 TEST_DATE = "20240609"
@@ -148,11 +187,11 @@ STREAM_NAME = "imms-batch-internal-dev-processingdata-stream"
 
 AWS_REGION = "eu-west-2"
 
-TEST_VACCINE_TYPE = "flu"
+TEST_VACCINE_TYPE = "rsv"
 TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
 TEST_FILE_ID = "123456"
-TEST_PERMISSION = ['COVID19_FULL', 'FLU_FULL', 'MMR_FULL']
+TEST_PERMISSION = ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"]
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
@@ -163,7 +202,7 @@ TEST_EVENT_DUMPED = json.dumps(
         "vaccine_type": TEST_VACCINE_TYPE,
         "supplier": TEST_SUPPLIER,
         "filename": TEST_FILE_KEY,
-        "permission": TEST_PERMISSION
+        "permission": TEST_PERMISSION,
     }
 )
 
@@ -237,7 +276,7 @@ mandatory_fields = {
     "PERSON_FORENAME": "PHYLIS",
     "PERSON_SURNAME": "PEEL",
     "PERSON_DOB": "20080217",
-    "PERSON_GENDER_CODE": "0",
+    "PERSON_GENDER_CODE": "1",
     "PERSON_POSTCODE": "WD25 0DZ",
     "DATE_AND_TIME": "20240904T183325",
     "SITE_CODE": "RVVKC",
@@ -273,8 +312,11 @@ non_mandatory_fields = {
     "INDICATION_CODE": "1037351000000105",
 }
 
+critical_fields = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": "a_unique_id_uri"}
+
 all_fields = {**mandatory_fields, **non_mandatory_fields}
-mandatory_fields_only = {**mandatory_fields, **{k: "" for k in non_mandatory_fields}}
+mandatory_fields_only = {**mandatory_fields, **{key: "" for key in non_mandatory_fields}}
+critical_fields_only = {key: critical_fields.get(key, "") for key in all_fields}
 
 # Requests (format is dictionary)
 update_request = deepcopy(all_fields)
@@ -332,27 +374,180 @@ class TestValues:
     mock_request_params_missing = mock_request_params_missing
 
 
-mock_disease_codes = {
-    "covid_19": "840539006",
-    "flu": "6142004",
-    "measles": "14189004",
-    "mumps": "36989005",
-    "rubella": "36653000",
-    "rsv": "55735004",
+# -----------------------------------------------------
+# FHIR IMMS RESOURCES MAPPED FROM FIELDS DICTIONARIES
+all_fields_fhir_imms_resource = {
+    "resourceType": "Immunization",
+    "contained": [
+        {
+            "resourceType": "Patient",
+            "id": "Patient1",
+            "identifier": [{"system": Urls.NHS_NUMBER, "value": "9732928395"}],
+            "name": [{"family": "PEEL", "given": ["PHYLIS"]}],
+            "gender": "male",
+            "birthDate": "2008-02-17",
+            "address": [{"postalCode": "WD25 0DZ"}],
+        },
+        {"resourceType": "Practitioner", "id": "Practitioner1", "name": [{"family": "O'Reilly", "given": ["Ellena"]}]},
+    ],
+    "extension": [
+        {
+            "url": "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
+            "valueCodeableConcept": {
+                "coding": [
+                    {
+                        "system": Urls.SNOMED,
+                        "code": "956951000000104",
+                        "display": "RSV vaccination in pregnancy (procedure)",
+                    }
+                ]
+            },
+        }
+    ],
+    "identifier": [
+        {
+            "system": "https://www.ravs.england.nhs.uk/",
+            "value": "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057",
+        }
+    ],
+    "status": "completed",
+    "vaccineCode": {
+        "coding": [
+            {
+                "system": Urls.SNOMED,
+                "code": "42223111000001107",
+                "display": "Quadrivalent influenza vaccine (split virion, inactivated)",
+            }
+        ]
+    },
+    "patient": {"reference": "#Patient1"},
+    "occurrenceDateTime": "2024-09-04T18:33:25+00:00",
+    "recorded": "2024-09-04",
+    "primarySource": True,
+    "manufacturer": {"display": "Sanofi Pasteur"},
+    "location": {"identifier": {"value": "RJC02", "system": "https://fhir.nhs.uk/Id/ods-organization-code"}},
+    "lotNumber": "BN92478105653",
+    "expirationDate": "2024-09-15",
+    "site": {"coding": [{"system": Urls.SNOMED, "code": "368209003", "display": "Right arm"}]},
+    "route": {"coding": [{"system": Urls.SNOMED, "code": "1210999013", "display": "Intradermal use"}]},
+    "doseQuantity": {
+        "value": Decimal("0.3"),
+        "unit": "Inhalation - unit of product usage",
+        "system": Urls.SNOMED,
+        "code": "2622896019",
+    },
+    "performer": [
+        {
+            "actor": {
+                "type": "Organization",
+                "identifier": {"system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": "RVVKC"},
+            }
+        },
+        {"actor": {"reference": "#Practitioner1"}},
+    ],
+    "reasonCode": [{"coding": [{"code": "1037351000000105", "system": Urls.SNOMED}]}],
+    "protocolApplied": [
+        {
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.RSV.value],
+            "doseNumberPositiveInt": 1,
+        }
+    ],
 }
 
-mock_disease_display_terms = {
-    "covid_19": "Disease caused by severe acute respiratory syndrome coronavirus 2",
-    "flu": "Influenza",
-    "measles": "Measles",
-    "mumps": "Mumps",
-    "rubella": "Rubella",
-    "rsv": "Respiratory syncytial virus infection (disorder)",
+mandatory_fields_only_fhir_imms_resource = {
+    "resourceType": "Immunization",
+    "contained": [
+        {
+            "resourceType": "Patient",
+            "id": "Patient1",
+            "name": [{"family": "PEEL", "given": ["PHYLIS"]}],
+            "gender": "male",
+            "birthDate": "2008-02-17",
+            "address": [{"postalCode": "WD25 0DZ"}],
+        },
+    ],
+    "extension": [
+        {
+            "url": "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-VaccinationProcedure",
+            "valueCodeableConcept": {
+                "coding": [
+                    {
+                        "system": Urls.SNOMED,
+                        "code": "956951000000104",
+                    }
+                ]
+            },
+        }
+    ],
+    "identifier": [
+        {
+            "system": "https://www.ravs.england.nhs.uk/",
+            "value": "0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057",
+        }
+    ],
+    "status": "completed",
+    "vaccineCode": {"coding": [{"system": Urls.NULL_FLAVOUR_CODES, "code": "NAVU", "display": "Not available"}]},
+    "patient": {"reference": "#Patient1"},
+    "occurrenceDateTime": "2024-09-04T18:33:25+00:00",
+    "recorded": "2024-09-04",
+    "primarySource": True,
+    "location": {"identifier": {"value": "RJC02", "system": "https://fhir.nhs.uk/Id/ods-organization-code"}},
+    "performer": [
+        {
+            "actor": {
+                "type": "Organization",
+                "identifier": {"system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": "RVVKC"},
+            }
+        },
+    ],
+    "protocolApplied": [
+        {
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.RSV.value],
+            "doseNumberString": "Dose sequence not recorded",
+        }
+    ],
 }
 
-MOCK_VACCINE_DISEASE_MAPPING = {
-    "covid19": ["covid_19"],
-    "flu": ["flu"],
-    "mmr": ["measles", "mumps", "rubella"],
-    "rsv": ["rsv"],
+critical_fields_only_fhir_imms_resource = {
+    "resourceType": "Immunization",
+    "status": "completed",
+    "vaccineCode": {"coding": [{"system": Urls.NULL_FLAVOUR_CODES, "code": "NAVU", "display": "Not available"}]},
+    "identifier": [{"system": "a_unique_id_uri", "value": "a_unique_id"}],
+    "protocolApplied": [
+        {
+            "targetDisease": TARGET_DISEASE_ELEMENTS[Vaccine.RSV.value],
+            "doseNumberString": "Dose sequence not recorded",
+        }
+    ],
 }
+
+
+def create_mock_api_response(status_code: int, diagnostics: str = None) -> requests.Response:
+    mock_response = MagicMock()
+    if status_code != 200:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "OperationOutcome", "id": "45b552ca-755a-473f-84df-c7e7767bd2ac",'
+                '"issue": [{"severity": "error","code": "error",'
+                '"details": {"coding": [{"system": "test", "code": "unknown-error"}]},'
+                '"diagnostics": "unknown-error"}]}',
+            }
+        )
+    if diagnostics is None and status_code == 200:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "Bundle", "type": "searchset",'
+                '"entry": [{"resource": {"id": "277befd9-574e-47fe-a6ee-189858af3bb0",'
+                '"meta": {"versionId": 2}}}], "total": 1}',
+            }
+        )
+    if diagnostics and status_code == 200:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "Bundle", "type": "searchset",' '"entry": [], "total": 0}',
+            }
+        )
+    return mock_response

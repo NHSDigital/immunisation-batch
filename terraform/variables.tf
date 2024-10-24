@@ -31,6 +31,8 @@ locals {
     local_account_id = local.environment == "prod" ? 664418956997 : 345594581768
     config_bucket = local.environment == "prod" ? "prod" : "internal-dev"
     splunk_env = local.environment == "prod" ? "prod" : local.environment == "internal-dev" ? "internal-dev" : "int"
+    config_env = local.environment == "prod" ? "prod" : "internal-dev"
+    api_env = local.environment == "prod" ? "prod" : local.environment == "internal-dev" ? "internal-dev" : local.environment == "int" ? "int" : "ref"
     
     tags = {
         Project     = var.project_name
@@ -55,9 +57,24 @@ data "aws_security_group" "existing_sg" {
 }
 
 data "aws_s3_bucket" "existing_bucket" {
-  bucket = "imms-${local.config_bucket}-supplier-config"
+  bucket = "imms-${local.config_env}-supplier-config"
 }
-
 data "aws_kinesis_firehose_delivery_stream" "splunk_stream" {
   name = "immunisation-fhir-api-${local.splunk_env}-splunk-firehose"
+}
+
+data "aws_lambda_function" "existing_create_lambda" {
+  function_name = "imms-${local.api_env}_create_imms"
+}
+
+data "aws_lambda_function" "existing_delete_lambda" {
+  function_name = "imms-${local.api_env}_delete_imms"
+}
+
+data "aws_lambda_function" "existing_update_lambda" {
+  function_name = "imms-${local.api_env}_update_imms"
+}
+
+data "aws_lambda_function" "existing_search_lambda" {
+  function_name = "imms-${local.api_env}_search_imms"
 }
