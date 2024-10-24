@@ -19,9 +19,9 @@ from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda  # noqa: E402
 from utils_for_record_forwarder import get_environment  # noqa: E402
 from update_ack_file import create_ack_data  # noqa: E402
-from utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_operation_outcome  # noqa: E402
-
-# Your code continues here...
+from utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (  # noqa: E402
+    create_mock_operation_outcome
+)
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)

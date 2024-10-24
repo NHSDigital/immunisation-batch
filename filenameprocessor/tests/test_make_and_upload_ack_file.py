@@ -14,7 +14,7 @@ maindir = os.path.dirname(__file__)
 srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from make_and_upload_ack_file import make_ack_data, upload_ack_file, make_and_upload_ack_file  # noqa: E402
-from utils_for_tests.values_for_tests import (  # noqa: E402
+from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     MOCK_ENVIRONMENT_DICT,
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,

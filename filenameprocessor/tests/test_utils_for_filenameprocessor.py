@@ -14,7 +14,7 @@ from utils_for_filenameprocessor import (  # noqa: E402
     identify_supplier,
     extract_file_key_elements,
 )
-from utils_for_tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file  # noqa: E402
+from tests.utils_for_tests.utils_for_filenameprocessor_tests import setup_s3_bucket_and_file  # noqa: E402
 
 
 class TestUtilsForFilenameprocessor(TestCase):
