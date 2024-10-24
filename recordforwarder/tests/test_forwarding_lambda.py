@@ -6,11 +6,16 @@ import json
 from botocore.exceptions import ClientError
 from datetime import datetime
 import base64
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION
+import os
+import sys
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
+from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
 from utils_for_record_forwarder import get_environment
 from update_ack_file import create_ack_data
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_operation_outcome
+from utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_operation_outcome
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 

@@ -3,8 +3,13 @@ from unittest.mock import patch
 from boto3 import client as boto3_client
 import json
 from moto import mock_s3
+import os
+import sys
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from forwarding_lambda import forward_lambda_handler
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
+from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
     test_fhir_json,
     AWS_REGION,
     SOURCE_BUCKET_NAME,
@@ -14,7 +19,7 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     TEST_SUPPLIER,
     TEST_ROW_ID,
 )
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response
+from utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response
 import base64
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)

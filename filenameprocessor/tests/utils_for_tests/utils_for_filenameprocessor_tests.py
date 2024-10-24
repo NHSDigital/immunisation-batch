@@ -4,7 +4,7 @@ from os import path
 from io import StringIO
 from csv import reader, DictReader
 from boto3 import client as boto3_client
-from tests.utils_for_tests.values_for_tests import VALID_FILE_CONTENT
+from utils_for_tests.values_for_tests import VALID_FILE_CONTENT
 
 
 def setup_s3_bucket_and_file(

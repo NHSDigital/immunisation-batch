@@ -4,8 +4,12 @@ from unittest import TestCase
 from unittest.mock import patch
 import os
 import json
+import sys
 from boto3 import client as boto3_client
 from moto import mock_s3
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from initial_file_validation import (
     is_valid_datetime,
     validate_content_headers,
@@ -14,10 +18,10 @@ from initial_file_validation import (
     validate_action_flag_permissions,
     initial_file_validation,
 )
-from tests.utils_for_tests.utils_for_filenameprocessor_tests import (
+from utils_for_tests.utils_for_filenameprocessor_tests import (
     convert_string_to_dict_reader,
 )
-from tests.utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_FILE_CONTENT
+from utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_FILE_CONTENT
 
 
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)

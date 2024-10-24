@@ -7,9 +7,14 @@ from datetime import datetime, timedelta, timezone
 from copy import deepcopy
 from moto import mock_s3, mock_kinesis
 from boto3 import client as boto3_client
-from src.batch_processing import main
-from src.constants import Diagnostics
-from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
+import os
+import sys
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
+from batch_processing import main
+from constants import Diagnostics
+from utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,
     CONFIG_BUCKET_NAME,

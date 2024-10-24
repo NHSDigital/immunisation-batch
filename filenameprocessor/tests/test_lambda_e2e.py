@@ -8,8 +8,12 @@ from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
 import json
 import os
-from src.file_name_processor import lambda_handler
-from tests.utils_for_tests.values_for_tests import (
+import sys
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
+from file_name_processor import lambda_handler
+from utils_for_tests.values_for_tests import (
     VALID_FILE_CONTENT,
     SOURCE_BUCKET_NAME,
     DESTINATION_BUCKET_NAME,

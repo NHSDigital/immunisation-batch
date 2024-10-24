@@ -1,6 +1,6 @@
 import unittest
 from mappings import map_target_disease
-from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
+from utils_for_recordprocessor_tests.values_for_recordprocessor_tests import (
     mock_disease_codes,
     mock_disease_display_terms,
     MOCK_VACCINE_DISEASE_MAPPING,
