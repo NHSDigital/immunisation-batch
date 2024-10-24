@@ -12,7 +12,7 @@ import sys
 # Move the sys.path insertion to the top along with other imports
 maindir = os.path.dirname(__file__)
 srcdir = '../src'
-sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir))) 
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 
 # Import other modules after adjusting the path
 from utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION  # noqa: E402
