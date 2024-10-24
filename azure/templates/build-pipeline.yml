@@ -43,8 +43,7 @@ jobs:
             echo "workspace directory is not empty!"
             exit 1
           fi
-        displayName: "Check workspace is clean"
-        
+        displayName: "check workspace is clean"
       - bash: |
           instance_id="$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
           echo instance-id: "${instance_id}"
@@ -53,8 +52,7 @@ jobs:
           or
           echo ssh ubuntu@${instance_id}
           echo working directory: $(System.DefaultWorkingDirectory)
-        displayName: Print AWS info
-        
+        displayName: print aws info
       - template: azure/components/aws-clean-config.yml@common
 
       - ${{ if parameters.notify }}:
@@ -105,7 +103,6 @@ jobs:
             fi
           displayName: Set NOTIFY_COMMIT_SHA
           condition: always()
-          
         - template: azure/components/update-github-status.yml@common
           parameters:
             state: pending
@@ -120,7 +117,7 @@ jobs:
             echo "##vso[task.setvariable variable=PR_NUMBER]$(System.PullRequest.PullRequestNumber)"
           fi
         displayName: Set PR_NUMBER
-
+        
       - checkout: self
         path: "s/${{ parameters.service_name }}"
         submodules: true
@@ -148,25 +145,6 @@ jobs:
 
       - ${{ each post_lint in parameters.post_lint }}:
           - ${{ post_lint }}
-
-      # Add Unit Tests and Coverage Generation
-      - bash: |
-          coverage run -m unittest discover
-          coverage html
-        displayName: Run Unit Tests with Coverage
-
-      - bash: |
-          mkdir -p coverage_reports
-          cp -r htmlcov/* coverage_reports/
-        displayName: Copy Coverage Report to coverage_reports
-
-      - bash: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add coverage_reports/*
-          git commit -m "Upload coverage report"
-          git push
-        displayName: Commit and Push Coverage Report to Repo
 
       - ${{ if parameters.notify }}:
         - template: azure/components/update-github-status.yml@common

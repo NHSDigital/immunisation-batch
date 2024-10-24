@@ -18,7 +18,10 @@ COPY tests tests
 RUN python -m unittest
 RUN coverage run -m unittest discover
 RUN coverage report -m 
-RUN coverage html 
+RUN coverage html
+
+# Copy coverage report to a directory in the repo
+RUN mkdir -p /output/coverage-report && cp -r htmlcov/* /output/coverage-report/
 
 # -----------------------------
 FROM base as build
