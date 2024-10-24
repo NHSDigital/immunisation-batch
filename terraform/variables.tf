@@ -30,6 +30,7 @@ locals {
     account_id = local.environment == "prod" ? 232116723729 : 603871901111
     local_account_id = local.environment == "prod" ? 664418956997 : 345594581768
     config_env = local.environment == "prod" ? "prod" : "internal-dev"
+    api_env = local.environment == "prod" ? "prod" : local.environment == "internal-dev" ? "internal-dev" : local.environment == "int" ? "int" : "ref"
     
     tags = {
         Project     = var.project_name
@@ -58,17 +59,17 @@ data "aws_s3_bucket" "existing_bucket" {
 }
 
 data "aws_lambda_function" "existing_create_lambda" {
-  function_name = "imms-${local.config_env}_create_imms"
+  function_name = "imms-${local.api_env}_create_imms"
 }
 
 data "aws_lambda_function" "existing_delete_lambda" {
-  function_name = "imms-${local.config_env}_delete_imms"
+  function_name = "imms-${local.api_env}_delete_imms"
 }
 
 data "aws_lambda_function" "existing_update_lambda" {
-  function_name = "imms-${local.config_env}_update_imms"
+  function_name = "imms-${local.api_env}_update_imms"
 }
 
 data "aws_lambda_function" "existing_search_lambda" {
-  function_name = "imms-${local.config_env}_search_imms"
+  function_name = "imms-${local.api_env}_search_imms"
 }
