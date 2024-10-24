@@ -29,7 +29,7 @@ locals {
     is_temp = length(regexall("[a-z]{2,4}-?[0-9]+", local.environment)) > 0
     account_id = local.environment == "prod" ? 232116723729 : 603871901111
     local_account_id = local.environment == "prod" ? 664418956997 : 345594581768
-    config_bucket = local.environment == "prod" ? "prod" : "internal-dev"
+    config_env = local.environment == "prod" ? "prod" : "internal-dev"
     
     tags = {
         Project     = var.project_name
@@ -54,5 +54,21 @@ data "aws_security_group" "existing_sg" {
 }
 
 data "aws_s3_bucket" "existing_bucket" {
-  bucket = "imms-${local.config_bucket}-supplier-config"
+  bucket = "imms-${local.config_env}-supplier-config"
+}
+
+data "aws_lambda_function" "existing_create_lambda" {
+  function_name = "imms-${local.config_env}_create_imms"
+}
+
+data "aws_lambda_function" "existing_delete_lambda" {
+  function_name = "imms-${local.config_env}_delete_imms"
+}
+
+data "aws_lambda_function" "existing_update_lambda" {
+  function_name = "imms-${local.config_env}_update_imms"
+}
+
+data "aws_lambda_function" "existing_search_lambda" {
+  function_name = "imms-${local.config_env}_search_imms"
 }
