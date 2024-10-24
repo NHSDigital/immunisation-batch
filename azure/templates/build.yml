@@ -3,16 +3,16 @@ steps:
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f batch.Dockerfile .
 
     displayName: Test lambda code for filenameprocessor
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/filenameprocessor/tests"
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/filenameprocessor"
 
   - bash: |
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f Dockerfile .
 
     displayName: Test ecs code for recordprocessor
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordprocessor/tests"
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordprocessor"
 
   - bash: |
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f Dockerfile .
 
     displayName: Test lambda code for recordforwarder
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder/tests"
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder"
