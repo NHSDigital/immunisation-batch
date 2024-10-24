@@ -1,32 +1,18 @@
 steps:
-  # Test and generate coverage for filenameprocessor
   - bash: |
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f batch.Dockerfile .
-      docker create --name filenameprocessor imms-batch-build
-      docker cp filenameprocessor:/output/coverage-report $(Pipeline.Workspace)/filenameprocessor-coverage
-    displayName: "Test lambda code and generate coverage for filenameprocessor"
+
+    displayName: Test lambda code for filenameprocessor
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/filenameprocessor"
 
-  # Test and generate coverage for recordprocessor
   - bash: |
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f Dockerfile .
-      docker create --name recordprocessor imms-batch-build
-      docker cp recordprocessor:/output/coverage-report $(Pipeline.Workspace)/recordprocessor-coverage
-    displayName: "Test ecs code and generate coverage for recordprocessor"
+
+    displayName: Test ecs code for recordprocessor
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordprocessor"
 
-  # Test and generate coverage for recordforwarder
   - bash: |
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f Dockerfile .
-      docker create --name recordforwarder imms-batch-build
-      docker cp recordforwarder:/output/coverage-report $(Pipeline.Workspace)/recordforwarder-coverage
-    displayName: "Test lambda code and generate coverage for recordforwarder"
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder"
 
-  # Upload the coverage reports to the repo
-  - task: PublishBuildArtifacts@1
-    inputs:
-      pathtoPublish: "$(Pipeline.Workspace)/**/coverage-report"
-      artifactName: "coverage-reports"
-      publishLocation: "Container"
-    displayName: "Upload coverage reports"
+    displayName: Test lambda code for recordforwarder
+    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder"
