@@ -73,3 +73,6 @@ data "aws_lambda_function" "existing_update_lambda" {
 data "aws_lambda_function" "existing_search_lambda" {
   function_name = "imms-${local.api_env}_search_imms"
 }
+data "aws_kms_key" "existing_s3_encryption_key" {
+  key_id = "alias/imms-batch-s3-shared-key"
+}
