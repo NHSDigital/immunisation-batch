@@ -8,6 +8,7 @@ from constants import Constants
 from utils_for_recordprocessor import get_environment, get_csv_content_dict_reader
 from get_operation_permissions import get_operation_permissions
 from process_row import process_row
+from mappings import Vaccine
 from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
 
@@ -25,11 +26,13 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
     # Get details needed to process file
     file_id = incoming_message_body.get("message_id")
-    vaccine_type = incoming_message_body.get("vaccine_type").upper()
+    vaccine: Vaccine = next(  # Convert vaccine_type to Vaccine enum
+        vaccine for vaccine in Vaccine if vaccine.value == incoming_message_body.get("vaccine_type").upper()
+    )
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
     permission = incoming_message_body.get("permission")
-    action_flag_permissions = get_operation_permissions(vaccine_type, permission)
+    allowed_operations = get_operation_permissions(vaccine, permission)
 
     # Fetch the data
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
@@ -45,7 +48,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
         row_id = f"{file_id}#{row_count}"
         logger.info("MESSAGE ID : %s", row_id)
         # Process the row to obtain the details needed for the message_body and ack file
-        details_from_processing = process_row(vaccine_type, action_flag_permissions, row)
+        details_from_processing = process_row(vaccine, allowed_operations, row)
 
         # Create the message body for sending
         outgoing_message_body = {
