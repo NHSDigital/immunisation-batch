@@ -9,6 +9,9 @@ FROM base as test
 
 RUN poetry install --no-interaction --no-ansi --no-root
 
+# Install coverage
+RUN pip install coverage
+
 COPY src src
 COPY tests tests
 RUN python -m unittest
