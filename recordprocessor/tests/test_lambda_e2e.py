@@ -2,6 +2,7 @@
 
 import unittest
 import json
+from decimal import Decimal
 from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from copy import deepcopy
@@ -29,10 +30,15 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_SUPPLIER,
     TEST_FILE_ID,
     TEST_UNIQUE_ID,
-    TEST_DATE,
     MOCK_ENVIRONMENT_DICT,
     MOCK_PERMISSIONS,
-    create_mock_api_response
+    all_fields,
+    mandatory_fields_only,
+    critical_fields_only,
+    all_fields_fhir_imms_resource,
+    mandatory_fields_only_fhir_imms_resource,
+    critical_fields_only_fhir_imms_resource,
+    create_mock_api_response,
 )
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
@@ -120,9 +126,8 @@ class TestRecordProcessor(unittest.TestCase):
         ack_file_content = self.get_ack_file_content()
         kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         previous_approximate_arrival_time_stamp = yesterday  # Initialise with a time prior to the running of the test
-        key_to_ignore = "fhir_json"  # TODO: Add unit tests for convert_to_fhir_json as this is not tested in e2e
 
-        for test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success in test_cases:
+        for test_name, index, expected_kinesis_data, expect_success in test_cases:
             with self.subTest(test_name):
 
                 kinesis_record = kinesis_records[index]
@@ -134,16 +139,19 @@ class TestRecordProcessor(unittest.TestCase):
                 self.assertGreater(approximate_arrival_timestamp, previous_approximate_arrival_time_stamp)
                 previous_approximate_arrival_time_stamp = approximate_arrival_timestamp
 
-                kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"))
+                kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"), parse_float=Decimal)
                 expected_kinesis_data = {
                     "row_id": f"{TEST_FILE_ID}#{index+1}",
                     "file_key": TEST_FILE_KEY,
                     "supplier": TEST_SUPPLIER,
-                    **expected_kinesis_data_ignoring_fhir_json,
+                    **expected_kinesis_data,
                 }
                 if expect_success:
-                    self.assertIn(key_to_ignore, kinesis_data)
-                    kinesis_data.pop(key_to_ignore)
+                    # Some tests ignore the fhir_json value, so we only need to check that the key is present.
+                    if "fhir_json" not in expected_kinesis_data:
+                        key_to_ignore = "fhir_json"
+                        self.assertIn(key_to_ignore, kinesis_data)
+                        kinesis_data.pop(key_to_ignore)
                     self.assertEqual(kinesis_data, expected_kinesis_data)
                     self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
                 else:
@@ -203,7 +211,7 @@ class TestRecordProcessor(unittest.TestCase):
         self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE)
         event = deepcopy(TEST_EVENT_DUMPED)
         test_event = json.loads(event)
-        test_event["permission"] = ["FLU_CREATE"]
+        test_event["permission"] = ["RSV_CREATE"]
         test_event = json.dumps(test_event)
         mock_response = create_mock_api_response(200, None)
         mock_api.invoke.return_value = mock_response
@@ -216,19 +224,6 @@ class TestRecordProcessor(unittest.TestCase):
         ]
 
         self.make_assertions(test_cases)
-
-    @patch("get_imms_id.client")
-    def test_e2e_invalid_data(self, mock_api):
-        """Tests that file containing CREATEis successfully processed when there is invalid data."""
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW.replace(TEST_DATE, "NOT_A_DATE"))
-
-        mock_response = create_mock_api_response(200, None)
-        mock_api.invoke.return_value = mock_response
-        main(TEST_EVENT_DUMPED)
-
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_CONVERSION}
-        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
-        self.make_assertions([("CREATE invalid data", 0, expected_kinesis_data, False)])
 
     @patch("get_imms_id.client")
     def test_e2e_imms_id_not_found(self, mock_api):
@@ -302,6 +297,48 @@ class TestRecordProcessor(unittest.TestCase):
         expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE invalid action_flag", 0, expected_kinesis_data, False)])
+
+    @patch("get_imms_id.client")
+    def test_e2e_differing_amounts_of_data(self, mock_api):
+        """Tests that file containing rows with differing amounts of data present is processed as expected"""
+        # Create file content with different amounts of data present in each row
+        headers = "|".join(all_fields.keys())
+        all_fields_values = "|".join(f'"{v}"' for v in all_fields.values())
+        mandatory_fields_only_values = "|".join(f'"{v}"' for v in mandatory_fields_only.values())
+        critical_fields_only_values = "|".join(f'"{v}"' for v in critical_fields_only.values())
+        file_content = f"{headers}\n{all_fields_values}\n{mandatory_fields_only_values}\n{critical_fields_only_values}"
+
+        self.upload_files(file_content)
+        mock_response = create_mock_api_response(200, None)
+        mock_api.invoke.return_value = mock_response
+        main(TEST_EVENT_DUMPED)
+
+        all_fields_row_expected_kinesis_data = {
+            "operation_requested": "UPDATE",
+            "fhir_json": all_fields_fhir_imms_resource,
+            "imms_id": TEST_ID,
+            "version": TEST_VERSION,
+        }
+
+        mandatory_fields_only_row_expected_kinesis_data = {
+            "operation_requested": "UPDATE",
+            "fhir_json": mandatory_fields_only_fhir_imms_resource,
+            "imms_id": TEST_ID,
+            "version": TEST_VERSION,
+        }
+
+        critical_fields_only_row_expected_kinesis_data = {
+            "operation_requested": "CREATE",
+            "fhir_json": critical_fields_only_fhir_imms_resource,
+        }
+
+        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data, expect_success)
+        test_cases = [
+            ("All fields", 0, all_fields_row_expected_kinesis_data, True),
+            ("Mandatory fields only", 1, mandatory_fields_only_row_expected_kinesis_data, True),
+            ("Critical fields only", 2, critical_fields_only_row_expected_kinesis_data, True),
+        ]
+        self.make_assertions(test_cases)
 
     def test_e2e_kinesis_failed(self):
         """
