@@ -10,7 +10,7 @@ from moto import mock_s3
 maindir = os.path.dirname(__file__)
 srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from initial_file_validation import (  # noqa: E402
+from initial_file_validation import (   # noqa: E402
     is_valid_datetime,
     validate_content_headers,
     get_supplier_permissions,
