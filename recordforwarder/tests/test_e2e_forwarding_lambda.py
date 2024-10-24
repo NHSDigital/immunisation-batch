@@ -126,6 +126,23 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.assertIn(expected_single_line_diagnostics, ack_file_content)
 
     @patch("send_request_to_lambda.client")
+    def test_forward_lambda_e2e_none_request(self, mock_api):
+        self.setup_s3()
+
+        message = {
+            "row_id": TEST_ROW_ID,
+            "file_key": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
+            "diagnostics": "Unsupported file type received as an attachment",
+        }
+
+        kinesis_message = self.create_kinesis_message(message)
+        forward_lambda_handler(kinesis_message, None)
+
+        self.check_ack_file(s3_client, "Fatal Error")
+        mock_api.create_immunization.assert_not_called()
+
+    @patch("send_request_to_lambda.client")
     def test_forward_lambda_e2e_update_success(self, mock_api):
         message = {
             "row_id": TEST_ROW_ID,
