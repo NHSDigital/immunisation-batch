@@ -152,6 +152,7 @@ resource "aws_lambda_function" "forwarding_lambda" {
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
+      SPLUNK_FIREHOSE_NAME = data.aws_kinesis_firehose_delivery_stream.splunk_stream.name
       CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
       UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
       DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
