@@ -20,7 +20,7 @@ from initial_file_validation import (  # noqa: E402
 )  # noqa: E402
 from utils_for_tests.utils_for_filenameprocessor_tests import (  # noqa: E402
     convert_string_to_dict_reader,
-)  
+)
 from utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_FILE_CONTENT  # noqa: E402
 
 
