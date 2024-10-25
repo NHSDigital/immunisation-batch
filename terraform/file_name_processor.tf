@@ -123,6 +123,14 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "arn:aws:s3:::${data.aws_s3_bucket.existing_bucket.bucket}",           
           "arn:aws:s3:::${data.aws_s3_bucket.existing_bucket.bucket}/*"        
         ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "firehose:PutRecord",
+          "firehose:PutRecordBatch"
+        ],
+        "Resource": data.aws_kinesis_firehose_delivery_stream.splunk_stream.arn
       }
     ]
   })
@@ -292,14 +300,6 @@ resource "aws_iam_policy" "elasticache_permissions" {
             "aws:RequestedRegion": "${var.aws_region}"
           }
         }
-      },
-      {
-        "Effect": "Allow",
-        "Action": [
-          "firehose:PutRecord",
-          "firehose:PutRecordBatch"
-        ],
-        "Resource": data.aws_kinesis_firehose_delivery_stream.splunk_stream.arn
       }
     ]
   })
