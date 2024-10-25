@@ -90,12 +90,9 @@ class TestForwardingLambda(unittest.TestCase):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         mock_response = MagicMock()
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 201,
-                "headers": {
-                    "Location": "https://example.com/immunization/test_id"
-                }
-            })
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 201, "headers": {"Location": "https://example.com/immunization/test_id"}}
+        )
         mock_lambda_client.invoke.return_value = mock_response
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
@@ -121,13 +118,10 @@ class TestForwardingLambda(unittest.TestCase):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         mock_response = MagicMock()
-        diagnostics = (
-            "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
+        diagnostics = "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 422, "body": create_mock_operation_outcome(diagnostics)}
         )
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 422,
-                "body": create_mock_operation_outcome(diagnostics)
-            })
         mock_lambda_client.invoke.return_value = mock_response
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
@@ -138,7 +132,7 @@ class TestForwardingLambda(unittest.TestCase):
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "CREATE",
-                "fhir_json": "{}",
+                "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
             }
             forward_request_to_lambda(message_body)
             # Check that the data_rows function was called with success status and formatted datetime
@@ -152,25 +146,24 @@ class TestForwardingLambda(unittest.TestCase):
         diagnostics = (
             "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
         )
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 422,
-                "body": create_mock_operation_outcome(diagnostics)
-            })
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 422, "body": create_mock_operation_outcome(diagnostics)}
+        )
         mock_lambda_client.invoke.return_value = mock_response
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data:
+        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
+            "send_request_to_lambda.get_imms_id_and_version", return_value=("an_imms_id", 1)
+        ):
             message_body = {
                 "row_id": "test_3",
                 "file_key": "file.csv",
                 "supplier": "Test_supplier",
                 "operation_requested": "UPDATE",
-                "fhir_json": {"resourceType": "immunization"},
-                "imms_id": "imms_id",
-                "version": "v1",
+                "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
             }
             forward_request_to_lambda(message_body)
-            mock_create_ack_data.assert_called_with("20240821T10153000", "test_3", False, diagnostics, "imms_id")
+            mock_create_ack_data.assert_called_with("20240821T10153000", "test_3", False, diagnostics, None)
 
     @patch("send_request_to_lambda.client")
     @patch("update_ack_file.s3_client")
@@ -198,23 +191,21 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
         mock_response = MagicMock()
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 204,
-                "headers": {
-                    "Location": "https://example.com/immunization/test_id"
-                }
-            })
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 204, "headers": {"Location": "https://example.com/immunization/test_id"}}
+        )
         mock_lambda_client.invoke.return_value = mock_response
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data:
+        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
+            "send_request_to_lambda.get_imms_id_and_version", return_value=("an_imms_id", 1)
+        ):
             message_body = {
                 "row_id": "test_6",
                 "file_key": "file.csv",
                 "operation_requested": "DELETE",
-                "fhir_json": "{}",
-                "imms_id": "imms_id",
+                "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
             }
             forward_request_to_lambda(message_body)
-            mock_create_ack_data.assert_called_with("20240821T10153000", "test_6", True, None, "imms_id")
+            mock_create_ack_data.assert_called_with("20240821T10153000", "test_6", True, None, "an_imms_id")
 
     @patch("forwarding_lambda.forward_request_to_lambda")
     @patch("utils_for_record_forwarder.get_environment")

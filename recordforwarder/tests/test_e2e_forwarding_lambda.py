@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 from boto3 import client as boto3_client
+from uuid import uuid4
 import json
 from moto import mock_s3
 from forwarding_lambda import forward_lambda_handler
@@ -43,12 +44,25 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
         self.assertIn(expected_content, ack_file_content)
 
-    def execute_test(self, mock_api, message, response_code, expected_content, mock_diagnostics=None):
+    def execute_test(
+        self,
+        mock_api,
+        message,
+        response_code,
+        expected_content,
+        mock_diagnostics=None,
+        mock_get_imms_id_and_version=None,
+    ):
         self.setup_s3()
         mock_response = create_mock_api_response(response_code, mock_diagnostics)
         mock_api.invoke.return_value = mock_response
         kinesis_message = self.create_kinesis_message(message)
-        forward_lambda_handler(kinesis_message, None)
+
+        if mock_get_imms_id_and_version:
+            with patch("send_request_to_lambda.get_imms_id_and_version", return_value=mock_get_imms_id_and_version):
+                forward_lambda_handler(kinesis_message, None)
+        else:
+            forward_lambda_handler(kinesis_message, None)
 
         self.check_ack_file(s3_client, expected_content)
 
@@ -150,10 +164,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "operation_requested": "UPDATE",
             "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
         }
-        self.execute_test(mock_api, message, 200, "OK")
+        self.execute_test(mock_api, message, 200, "OK", mock_get_imms_id_and_version=(str(uuid4()), 1))
 
     @patch("send_request_to_lambda.client")
     def test_forward_lambda_e2e_update_failed(self, mock_api):
@@ -163,11 +175,16 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "operation_requested": "UPDATE",
             "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
         }
         mock_diagnstics = "the provided event ID is either missing or not in the expected format."
-        self.execute_test(mock_api, message, 400, "Fatal Error", mock_diagnostics=mock_diagnstics)
+        self.execute_test(
+            mock_api,
+            message,
+            400,
+            "Fatal Error",
+            mock_diagnostics=mock_diagnstics,
+            mock_get_imms_id_and_version=("test", 1),
+        )
 
     @patch("send_request_to_lambda.client")
     def test_forward_lambda_e2e_delete_success(self, mock_api):
@@ -186,7 +203,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         }
 
         kinesis_message = self.create_kinesis_message(message)
-        forward_lambda_handler(kinesis_message, None)
+        with patch("send_request_to_lambda.get_imms_id_and_version", return_value=("test", 1)):
+            forward_lambda_handler(kinesis_message, None)
 
         self.check_ack_file(s3_client, "OK")
 
@@ -206,7 +224,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         }
 
         kinesis_message = self.create_kinesis_message(message)
-        forward_lambda_handler(kinesis_message, None)
+        with patch("send_request_to_lambda.get_imms_id_and_version", return_value=("test", 1)):
+            forward_lambda_handler(kinesis_message, None)
 
         self.check_ack_file(s3_client, "Fatal Error")
 

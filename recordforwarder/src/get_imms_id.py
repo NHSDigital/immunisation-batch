@@ -2,14 +2,17 @@
 
 import os
 import json
+import logging
 import boto3
+
+logger = logging.getLogger()
 
 
 client = boto3.client("lambda", region_name="eu-west-2")
 search_lambda_name = os.getenv("SEARCH_IMMS_LAMBDA")
 
 
-def get_imms_id(identifier_system: str, identifier_value: str):
+def get_imms_id_and_version(identifier_system: str, identifier_value: str):
     """Send a GET request to Imms API requesting the id and version"""
     payload = {
         "headers": {"SupplierSystem": "Imms-Batch-App"},
@@ -26,7 +29,14 @@ def get_imms_id(identifier_system: str, identifier_value: str):
         Payload=json.dumps(payload),
     )
     response_payload = json.loads(response["Payload"].read())
-    if response_payload.get("statusCode") != 200:
-        return response_payload.get("body"), 500
-    else:
-        return response_payload.get("body"), 200
+    status_code = response_payload.get("statusCode")
+
+    response = json.loads(response_payload.get("body"))
+
+    if not (response.get("total") == 1 and status_code == 200):
+        logger.error("imms_id not found:%s and status_code: %s", response, status_code)
+        raise ValueError
+
+    resource = response.get("entry", [])[0]["resource"]
+
+    return resource.get("id"), resource.get("meta", {}).get("versionId")
