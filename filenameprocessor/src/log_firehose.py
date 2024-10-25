@@ -21,14 +21,11 @@ class FirehoseLogger:
     def send_log(self, log_message):
         log_to_splunk = log_message
         encoded_log_data = json.dumps(log_to_splunk).encode("utf-8")
-        print(f"SPLUNKFIREHOSENAME: {self.delivery_stream_name}")
         try:
-            print("Trying to send to firehose")
             response = self.firehose_client.put_record(
                 DeliveryStreamName=self.delivery_stream_name,
                 Record={"Data": encoded_log_data},
             )
-            print(f"RESPONSEFIREHOSE {response}")
             logger.info(f"Log sent to Firehose: {response}")
         except Exception as e:
             logger.exception(f"Error sending log to Firehose: {e}")

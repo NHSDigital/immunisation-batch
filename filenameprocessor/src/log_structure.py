@@ -53,12 +53,8 @@ def function_info(func):
 
             print(f"LOGGGYG: {log_data}")
             logger.info(json.dumps(log_data))
-            firehose_logger.send_log(log_data)
-            success = firehose_logger.send_log(log_data)
-            if success:
-                print("log sent successfully")
-            else:
-                print("log_failure")
+            firehose_log["event"] = log_data
+            firehose_logger.send_log(firehose_log)
             return result
 
         except Exception as e:
