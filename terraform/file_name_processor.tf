@@ -292,6 +292,14 @@ resource "aws_iam_policy" "elasticache_permissions" {
             "aws:RequestedRegion": "${var.aws_region}"
           }
         }
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "firehose:PutRecord",
+          "firehose:PutRecordBatch"
+        ],
+        "Resource": data.aws_kinesis_firehose_delivery_stream.splunk_stream.arn
       }
     ]
   })
