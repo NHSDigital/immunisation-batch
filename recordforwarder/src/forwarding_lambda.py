@@ -21,6 +21,8 @@ def forward_request_to_lambda(message_body):
         update_ack_file(file_key, row_id, successful_api_response=True, diagnostics=None, imms_id=imms_id)
     except MessageNotSuccessfulError as error:
         update_ack_file(file_key, row_id, successful_api_response=False, diagnostics=error.message, imms_id=None)
+    except Exception as error:
+        update_ack_file(file_key, row_id, successful_api_response=False, diagnostics=str(error), imms_id=None)
     logger.info("FINISHED FORWARDING MESSAGE: ID %s", row_id)
 
 
