@@ -18,7 +18,6 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_EVENT,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
     TestValues,
-    create_mock_api_response,
 )
 
 s3_client = boto3.client("s3", region_name=AWS_REGION)

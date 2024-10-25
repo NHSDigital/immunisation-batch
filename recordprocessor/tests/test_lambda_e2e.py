@@ -18,18 +18,13 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     AWS_REGION,
     VALID_FILE_CONTENT_WITH_NEW,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
-    VALID_FILE_CONTENT_WITH_UPDATE_AND_DELETE,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE,
-    TEST_ID,
-    TEST_VERSION,
-    API_RESPONSE_WITH_ID_AND_VERSION,
     STREAM_NAME,
     TEST_ACK_FILE_KEY,
     TEST_EVENT_DUMPED,
     TEST_FILE_KEY,
     TEST_SUPPLIER,
     TEST_FILE_ID,
-    TEST_UNIQUE_ID,
     MOCK_ENVIRONMENT_DICT,
     MOCK_PERMISSIONS,
     all_fields,
@@ -38,7 +33,6 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     all_fields_fhir_imms_resource,
     mandatory_fields_only_fhir_imms_resource,
     critical_fields_only_fhir_imms_resource,
-    create_mock_api_response,
 )
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
