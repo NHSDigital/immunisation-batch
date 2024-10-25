@@ -4,82 +4,63 @@ import time
 from datetime import datetime
 from functools import wraps
 from log_firehose import FirehoseLogger
+from utils_for_filenameprocessor import extract_file_key_elements
 
 logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
-
 firehose_logger = FirehoseLogger()
 
 
 def function_info(func):
-    """This decorator prints the execution information for the decorated function."""
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         event = args[0] if args else {}
         print(f"Event: {event}")
-        headers = event.get("headers", {})
-        correlation_id = headers.get("X-Correlation-ID", "X-Correlation-ID not passed")
-        request_id = headers.get("X-Request-ID", "X-Request-ID not passed")
-        actual_path = event.get("path", "Unknown")
-        resource_path = event.get("requestContext", {}).get("resourcePath", "Unknown")
-        logger.info(f"Starting {func.__name__} with X-Correlation-ID: {correlation_id} and X-Request-ID: {request_id}")
+
         log_data = {
             "function_name": func.__name__,
             "date_time": str(datetime.now()),
-            "X-Correlation-ID": correlation_id,
-            "X-Request-ID": request_id,
-            "actual_path": actual_path,
-            "resource_path": resource_path,
+            "status": "success",
+            "supplier": "supplier",
+            "file_key": "file_key",
+            "vaccine_type": "vaccine_type",
+            "message_id": "message_id",
+            "time_taken": None,
         }
-        operation_outcome = dict()
+        print(f"{log_data}")
+        start_time = time.time()
         firehose_log = dict()
-        start = time.time()
+        diagnostics = str()
         try:
             result = func(*args, **kwargs)
-            print(f"Result:{result}")
-            end = time.time()
-            log_data["time_taken"] = f"{round(end - start, 5)}s"
-            status = "500"
-            status_code = "Exception"
-            diagnostics = str()
-            record = str()
-            if isinstance(result, dict):
-                status = str(result["statusCode"])
-                status_code = "Completed successfully"
-                if result.get("headers"):
-                    result_headers = result["headers"]
-                    if result_headers.get("Location"):
-                        record = result_headers["Location"]
-                if result.get("body"):
-                    ops_outcome = json.loads(result["body"])
-                    print(f"ops_outcome: {ops_outcome}")
-                    if isinstance(ops_outcome, dict):
-                        if ops_outcome.get("issue"):
-                            outcome_body = ops_outcome["issue"][0]
-                            status_code = outcome_body["code"]
-                            diagnostics = outcome_body["diagnostics"]
-                    elif isinstance(ops_outcome, str):
-                        diagnostics = ops_outcome
-            operation_outcome["status"] = status
-            operation_outcome["status_code"] = status_code
-            if len(diagnostics) > 1:
-                operation_outcome["diagnostics"] = diagnostics
-            if len(record) > 1:
-                operation_outcome["record"] = record
-            log_data["operation_outcome"] = operation_outcome
-            logger.info(json.dumps(log_data))
-            firehose_log["event"] = log_data
-            firehose_logger.send_log(firehose_log)
+            end_time = time.time()  # End the timer
+            log_data["time_taken"] = round(end_time - start_time, 5)
 
+            log_data["status"] = result.get("statusCode")
+            log_data["message"] = json.loads(result["body"])
+            if isinstance(result, dict):
+                file_info = result.get("file_info")
+                print(f"FILEINFO: {file_info}")
+                if isinstance(file_info, list) and file_info:
+                    first_file_info = file_info[0]
+                    file_key = first_file_info.get("filename")
+                    log_data["file_key"] = file_key
+                    log_data["message_id"] = first_file_info.get("message_id")
+                    file_key_elements = extract_file_key_elements(file_key)
+                    log_data["supplier"] = file_key_elements["supplier"]
+                    log_data["vaccine_type"] = file_key_elements["vaccine_type"]
+
+            print(f"LOGGGYG: {log_data}")
+            logger.info(json.dumps(log_data))
+            firehose_logger.send_log(log_data)
             return result
 
         except Exception as e:
             log_data["error"] = str(e)
             end = time.time()
-            log_data["time_taken"] = f"{round(end - start, 5)}s"
+            log_data["time_taken"] = f"{round(end - start_time, 5)}s"
             logger.exception(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.send_log(firehose_log)

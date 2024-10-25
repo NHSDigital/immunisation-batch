@@ -24,6 +24,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     """Lambda handler for filenameprocessor lambda"""
 
     error_files = []
+    file_info = []
 
     # For each file
     for record in event["Records"]:
@@ -36,6 +37,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             file_key = record["s3"]["object"]["key"]
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
             created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
+            file_info.append({"filename": file_key, "message_id": message_id})
 
             # Process the file
             if "data-sources" in bucket_name:
@@ -47,6 +49,11 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 make_and_upload_ack_file(
                     message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
                 )
+                return {
+                    "statusCode": 200,
+                    "body": json_dumps("successfully sent to SQS queue"),
+                    "file_info": file_info,
+                }
             elif "config" in bucket_name:
                 # For files in batch_config_bucket, upload to ElastiCache
                 logger.info("cache upload initiated started")
@@ -56,6 +63,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                     # Handle ElastiCache-specific errors
                     logging.error(f"Error uploading to ElastiCache for file '{file_key}': {cache_error}")
                     raise ConnectionError
+
         except Exception as error:  # pylint: disable=broad-except
             # If an unexpected error occured, add the file to the error_files list, and upload an ack file
             message_id = message_id or "Message id was not created"
@@ -69,15 +77,30 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 make_and_upload_ack_file(
                     message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
                 )
+                return {
+                    "statusCode": 500,
+                    "body": json_dumps("initial file validation failed"),
+                    "file_info": file_info,
+                }
 
     if error_files:
         logger.error("Processing errors occurred for the following files: %s", ", ".join(error_files))
     if "config" in bucket_name and not error_files:
         logger.info("The upload of file content from the S3 bucket to the cache has been successfully completed")
-        return {"statusCode": 200, "body": json_dumps("File content upload to cache from S3 bucket completed")}
+        return {
+            "statusCode": 200,
+            "body": json_dumps("File content upload to cache from S3 bucket completed"),
+        }
     elif "config" in bucket_name:
         logger.info("The upload of file content from the S3 bucket to the cache has not been successfully completed")
-        return {"statusCode": 400, "body": json_dumps("Failed to upload file content to cache from S3 bucket")}
+        return {
+            "statusCode": 400,
+            "body": json_dumps("Failed to upload file content to cache from S3 bucket"),
+        }
     else:
         logger.info("Completed processing all file metadata in current batch")
-        return {"statusCode": 200, "body": json_dumps("File processing for S3 bucket completed")}
+        return {
+            "statusCode": 200,
+            "body": json_dumps("File processing for S3 bucket completed"),
+            "file_info": file_info,
+        }

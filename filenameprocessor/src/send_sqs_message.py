@@ -10,7 +10,6 @@ from log_structure import function_info
 logger = logging.getLogger()
 
 
-@function_info
 def send_to_supplier_queue(message_body: dict) -> bool:
     """Sends a message to the supplier queue and returns a bool indicating if the message has been successfully sent"""
     # Check the supplier has been identified (this should already have been validated by initial file validation)
