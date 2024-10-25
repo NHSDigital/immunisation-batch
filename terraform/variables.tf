@@ -30,9 +30,9 @@ locals {
     account_id = local.environment == "prod" ? 232116723729 : 603871901111
     local_account_id = local.environment == "prod" ? 664418956997 : 345594581768
     config_bucket = local.environment == "prod" ? "prod" : "internal-dev"
-    splunk_env = local.environment == "prod" ? "prod" : local.environment == "internal-dev" ? "internal-dev" : local.environment == "int" ? "int" : "ref"
+    splunk_env = local.environment == "prod" ? "prod" : local.environment == "int" ? "int" : local.environment == "ref" ? "ref" : "internal-dev"
     config_env = local.environment == "prod" ? "prod" : "internal-dev"
-    api_env = local.environment == "prod" ? "prod" : local.environment == "internal-dev" ? "internal-dev" : local.environment == "int" ? "int" : "ref"
+    api_env = local.environment == "prod" ? "prod" : local.environment == "int" ? "int" : local.environment == "ref" ? "ref" : "internal-dev"
     
     tags = {
         Project     = var.project_name
