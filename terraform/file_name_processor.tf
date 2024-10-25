@@ -199,14 +199,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   environment {
     variables = {
-      SOURCE_BUCKET_NAME   = "${local.prefix}-data-sources"
-      ACK_BUCKET_NAME      = "${local.prefix}-data-destinations"
-      ENVIRONMENT          = local.environment
-      LOCAL_ACCOUNT_ID     = local.local_account_id
-      SHORT_QUEUE_PREFIX   = local.short_queue_prefix
-      CONFIG_BUCKET_NAME   = data.aws_s3_bucket.existing_bucket.bucket
-      REDIS_HOST           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].address
-      REDIS_PORT           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].port
+      SENSITIVE_VAR = "value"
     }
   }
   kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
