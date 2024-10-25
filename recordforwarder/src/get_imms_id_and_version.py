@@ -9,7 +9,7 @@ logger = logging.getLogger()
 
 
 client = boto3.client("lambda", region_name="eu-west-2")
-search_lambda_name = os.getenv("SEARCH_IMMS_LAMBDA")
+search_lambda_name = os.getenv("SEARCH_LAMBDA_NAME")
 
 
 def get_imms_id_and_version(identifier_system: str, identifier_value: str):

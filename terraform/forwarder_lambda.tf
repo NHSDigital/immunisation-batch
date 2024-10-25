@@ -155,6 +155,7 @@ resource "aws_lambda_function" "forwarding_lambda" {
       CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
       UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
       DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
+      SEARCH_LAMBDA_NAME = data.aws_lambda_function.existing_search_lambda.function_name
     }
   }
 

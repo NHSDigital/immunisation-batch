@@ -5,7 +5,7 @@ import os
 import requests
 import boto3
 from errors import MessageNotSuccessfulError
-from get_imms_id import get_imms_id_and_version
+from get_imms_id_and_version import get_imms_id_and_version
 
 
 client = boto3.client("lambda", region_name="eu-west-2")
