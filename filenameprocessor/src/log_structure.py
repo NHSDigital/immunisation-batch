@@ -32,7 +32,6 @@ def function_info(func):
         print(f"{log_data}")
         start_time = time.time()
         firehose_log = dict()
-        diagnostics = str()
         try:
             result = func(*args, **kwargs)
             end_time = time.time()  # End the timer
