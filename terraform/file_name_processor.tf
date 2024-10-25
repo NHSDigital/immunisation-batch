@@ -147,24 +147,6 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
   })
 }
 
-resource "aws_iam_policy" "lambda_kms_access_policy" {
-  name        = "${local.prefix}-lambda-kms-policy"
-  description = "Allow Lambda to decrypt environment variables"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt"
-        ]
-        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
-      }
-    ]
-  })
-}
-
 # Attach the execution policy to the Lambda role
 resource "aws_iam_role_policy_attachment" "lambda_exec_policy_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
@@ -175,12 +157,6 @@ resource "aws_iam_role_policy_attachment" "lambda_exec_policy_attachment" {
 resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
-}
-
-# Attach the kms policy to the Lambda role
-resource "aws_iam_role_policy_attachment" "lambda_kms_policy_attachment" {
-  role       = aws_iam_role.lambda_exec_role.name
-  policy_arn = aws_iam_policy.lambda_kms_access_policy.arn
 }
 
 # Lambda Function with Security Group and VPC.
@@ -199,10 +175,16 @@ resource "aws_lambda_function" "file_processor_lambda" {
 
   environment {
     variables = {
-      SENSITIVE_VAR = "value"
+      SOURCE_BUCKET_NAME   = "${local.prefix}-data-sources"
+      ACK_BUCKET_NAME      = "${local.prefix}-data-destinations"
+      ENVIRONMENT          = local.environment
+      LOCAL_ACCOUNT_ID     = local.local_account_id
+      SHORT_QUEUE_PREFIX   = local.short_queue_prefix
+      CONFIG_BUCKET_NAME   = data.aws_s3_bucket.existing_bucket.bucket
+      REDIS_HOST           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].address
+      REDIS_PORT           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].port
     }
   }
-  kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
 }
 
 
