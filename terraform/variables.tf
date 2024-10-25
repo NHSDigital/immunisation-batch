@@ -30,7 +30,7 @@ locals {
     account_id = local.environment == "prod" ? 232116723729 : 603871901111
     local_account_id = local.environment == "prod" ? 664418956997 : 345594581768
     config_env = local.environment == "prod" ? "prod" : "internal-dev"
-    api_env = local.environment == "prod" ? "prod" : local.environment == "internal-dev" ? "internal-dev" : local.environment == "int" ? "int" : "ref"
+    api_env = local.environment == "prod" ? "prod" : local.environment == "int" ? "int" : local.environment == "ref" ? "ref" : "internal-dev"
     
     tags = {
         Project     = var.project_name
@@ -75,4 +75,7 @@ data "aws_lambda_function" "existing_search_lambda" {
 }
 data "aws_kms_key" "existing_s3_encryption_key" {
   key_id = "alias/imms-batch-s3-shared-key"
+}
+data "aws_kms_key" "existing_lambda_encryption_key" {
+  key_id = "alias/imms-batch-lambda-env-encryption"
 }
