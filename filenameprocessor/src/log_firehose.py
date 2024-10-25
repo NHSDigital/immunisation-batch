@@ -27,6 +27,7 @@ class FirehoseLogger:
                 DeliveryStreamName=self.delivery_stream_name,
                 Record={"Data": encoded_log_data},
             )
+            print(f"RESPONSEFIREHOSE {response}")
             logger.info(f"Log sent to Firehose: {response}")
         except Exception as e:
             logger.exception(f"Error sending log to Firehose: {e}")
