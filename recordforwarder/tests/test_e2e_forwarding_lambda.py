@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from boto3 import client as boto3_client
 from uuid import uuid4
 import json
@@ -65,6 +65,46 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             forward_lambda_handler(kinesis_message, None)
 
         self.check_ack_file(s3_client, expected_content)
+
+    @patch("get_imms_id_and_version.lambda_client")
+    def test_forward_lambda_e2e_update_failed_unable_to_get_id(self, mock_api):
+        # Set the mock response as the return value of invoke
+        message = {
+            "row_id": TEST_ROW_ID,
+            "fhir_json": test_fhir_json,
+            "operation_requested": "UPDATE",
+            "file_key": TEST_FILE_KEY,
+            "supplier": TEST_SUPPLIER,
+        }
+
+        self.setup_s3()
+        # mock_response = create_mock_api_response(200)
+        mock_response = MagicMock()
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": 200,
+                "body": json.dumps(
+                    {
+                        "resourceType": "Bundle",
+                        "type": "searchset",
+                        "link": [
+                            {
+                                "relation": "self",
+                                "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization?immunization.identifier=None&_elements=None",
+                            }
+                        ],
+                        "entry": [],
+                        "total": 0,
+                    }
+                ),
+            }
+        )
+        mock_api.invoke.return_value = mock_response
+        kinesis_message = self.create_kinesis_message(message)
+
+        forward_lambda_handler(kinesis_message, None)
+
+        self.check_ack_file(s3_client, "Fatal")
 
     @patch("send_request_to_lambda.client")
     def test_forward_lambda_e2e_create_success(self, mock_api):

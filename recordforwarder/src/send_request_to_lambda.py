@@ -4,7 +4,7 @@ import json
 import os
 import requests
 import boto3
-from errors import MessageNotSuccessfulError
+from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 
 
@@ -36,7 +36,7 @@ def send_update_request(fhir_json: dict, supplier: str, identifier_system: str, 
     """sends the update request and handles the response. returns the imms_id."""
     try:
         imms_id, version = get_imms_id_and_version(identifier_system, identifier_value)
-    except ValueError as error:
+    except IdNotFoundError as error:
         raise MessageNotSuccessfulError(error) from error
     if not imms_id:
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
@@ -65,7 +65,7 @@ def send_delete_request(fhir_json: dict, supplier: str, identifier_system: str, 
     """Sends the delete request and handles the response. Returns the imms_id."""
     try:
         imms_id, _ = get_imms_id_and_version(identifier_system, identifier_value)
-    except ValueError as error:
+    except IdNotFoundError as error:
         raise MessageNotSuccessfulError(error) from error
 
     if not imms_id:
