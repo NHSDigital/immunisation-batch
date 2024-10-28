@@ -22,6 +22,7 @@ jobs:
         run: |
           poetry install
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"  
+      
       - name: Set up AWS credentials
         env:
           AWS_ACCESS_KEY_ID: "FOOBARKEY"
@@ -29,6 +30,7 @@ jobs:
         run: |
           aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
           aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY  
+      
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
           pip install moto==4.2.11
@@ -38,7 +40,7 @@ jobs:
           coverage run -m unittest discover
           coverage report -m 
           coverage html -d coverage_html_report
-          coverage json -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json
+          coverage json -o /home/runner/work/immunisation-batch/immunisation-batch/coverage/coverage-summary.json
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
  
@@ -50,19 +52,23 @@ jobs:
         with:
           name: filenameprocessor-coverage-report
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
+      
       - name: Set code coverage commit status
         run: npx -p check-code-coverage set-gh-status --from /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Check ticket name conforms to requirements
         run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
         continue-on-error: true
+      
       - name: Grab ticket name
         if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
         run: echo ::set-env name=TICKET_NAME::$(echo ${{ github.event.pull_request.head.ref }} | grep -i -o '\(apm-[0-9]\+\)\|\(apmspii-[0-9]\+\)\|\(adz-[0-9]\+\)|\(amb-[0-9]\+\)' | tr '[:lower:]' '[:upper:]')
         continue-on-error: true
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      
       - name: Comment on PR with link to JIRA ticket
         if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
         continue-on-error: true
