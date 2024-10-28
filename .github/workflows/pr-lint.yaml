@@ -50,7 +50,7 @@ jobs:
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
       
-      - name: List coverage report files
+      - name: List coverage report file
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
       
       - name: Print coverage-summary.json contents
