@@ -18,7 +18,7 @@ jobs:
           pip install setuptools wheel
 
       - name: Install pyyaml manually
-        run: pip install pyyaml==5.4.1 --no-use-pep517
+        run: pip install pyyaml==6.0 --no-use-pep517
 
       - name: Install dependencies with poetry
         run: |
