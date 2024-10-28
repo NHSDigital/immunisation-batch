@@ -27,6 +27,14 @@ jobs:
         run: |
           FILEPATH=$(find . -type d -name "filenameprocessor" -exec realpath {} \;)
           echo "Found filenameprocessor directory at: $FILEPATH"
+
+      - name: Set up dummy AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: "DUMMY_ACCESS_KEY"
+          AWS_SECRET_ACCESS_KEY: "DUMMY_SECRET_KEY"
+          AWS_DEFAULT_REGION: "eu-west-1"
+        run: echo "Dummy AWS credentials set"
+
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
           pip install coverage
