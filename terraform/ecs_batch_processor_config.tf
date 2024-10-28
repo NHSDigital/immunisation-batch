@@ -112,7 +112,9 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
       {
         Effect   = "Allow",
         Action   = "kms:Decrypt",
-        Resource = data.aws_kms_key.existing_s3_encryption_key.arn
+        Resource = [ data.aws_kms_key.existing_s3_encryption_key.arn,
+                     data.aws_kms_key.existing_kinesis_encryption_key.arn
+             ]
       },
       {
         Effect = "Allow"

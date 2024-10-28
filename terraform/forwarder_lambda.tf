@@ -130,7 +130,9 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         Action = [
           "kms:Decrypt"
         ]
-        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
+        Resource = [ data.aws_kms_key.existing_lambda_encryption_key.arn,
+                     data.aws_kms_key.existing_kinesis_encryption_key.arn
+        ]
       },
       {
         Effect = "Allow"
