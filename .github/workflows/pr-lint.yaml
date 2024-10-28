@@ -40,8 +40,7 @@ jobs:
           pwd 
           coverage run -m unittest discover
           coverage report -m 
-          coverage html -d .
-          coverage xml 
+          coverage xml -d .
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
  
