@@ -51,7 +51,7 @@ jobs:
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
       - name: Rename index.html to index.xml
         run: |
-          mv /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.html /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
+          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/index.html /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
 
       - name: Commit and push index.xml
         if: success()
