@@ -46,7 +46,10 @@ jobs:
           poetry run coverage html -d coverage_html_report
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
-
+     
+      - name: List coverage report files
+        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
+     
       - name: Upload filenameprocessor coverage report as artifact
         uses: actions/upload-artifact@v3
         with:
