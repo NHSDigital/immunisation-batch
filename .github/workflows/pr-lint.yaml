@@ -41,9 +41,9 @@ jobs:
           pip install coverage
           pip install redis
           pip install botocore==1.35.49
-          coverage run -m unittest discover
-          coverage report -m 
-          coverage html -d coverage_html_report
+          poetry run coverage run -m unittest discover -s tests
+          poetry run coverage report
+          poetry run coverage html -d coverage_html_report
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
 
