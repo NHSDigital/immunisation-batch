@@ -41,6 +41,36 @@ module "forwarding_docker_image" {
   }
 }
 
+# Define the lambdaECRImageRetreival policy
+resource "aws_ecr_repository_policy" "forwarder_lambda_ECRImageRetreival_policy" {
+  repository = aws_ecr_repository.forwarder_lambda_repository.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        "Sid": "LambdaECRImageRetrievalPolicy",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Action": [
+          "ecr:BatchGetImage",
+          "ecr:DeleteRepositoryPolicy",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:SetRepositoryPolicy"
+        ],
+        "Condition": {
+          "StringLike": {
+            "aws:sourceArn": "arn:aws:lambda:eu-west-2:${local.local_account_id}:function:${local.prefix}-forwarding_lambda"
+          }
+        }
+      }
+  ]
+  })
+}
+
 # IAM Role for Lambda
 resource "aws_iam_role" "forwarding_lambda_exec_role" {
   name = "${local.prefix}-forwarding-lambda-exec-role"
@@ -96,16 +126,20 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = "kms:Decrypt"
-        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
+        ]
+        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
       },
       {
-        Effect   = "Allow"
-        Action   = "secretsmanager:GetSecretValue"
-         Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
-        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:GenerateDataKey*"
         ]
+        Resource = data.aws_kms_key.existing_s3_encryption_key.arn
       },
       {
         Effect   = "Allow"
@@ -124,7 +158,7 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           data.aws_lambda_function.existing_create_lambda.arn,           
           data.aws_lambda_function.existing_update_lambda.arn,
           data.aws_lambda_function.existing_delete_lambda.arn,
-          data.aws_lambda_function.existing_search_lambda.arn        
+          data.aws_lambda_function.existing_search_lambda.arn       
         ]
       }
     ]
@@ -159,10 +193,11 @@ resource "aws_lambda_function" "forwarding_lambda" {
       SEARCH_LAMBDA_NAME = data.aws_lambda_function.existing_search_lambda.function_name
     }
   }
-
+  kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
   depends_on = [
     aws_iam_role_policy_attachment.forwarding_lambda_exec_policy_attachment
   ]
+  reserved_concurrent_executions = 20
 }
 
  resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
