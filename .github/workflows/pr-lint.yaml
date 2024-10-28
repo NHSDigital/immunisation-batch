@@ -51,7 +51,7 @@ jobs:
           name: filenameprocessor-coverage-report
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
       - name: Set code coverage commit status
-        run: npx -p check-code-coverage set-gh-status --path /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json
+        run: npx -p check-code-coverage set-gh-status --from /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check ticket name conforms to requirements
