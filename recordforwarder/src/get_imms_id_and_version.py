@@ -3,25 +3,22 @@
 import os
 import json
 import logging
-import boto3
 from errors import IdNotFoundError
+from clients import lambda_client
 
 logger = logging.getLogger()
 
 
-lambda_client = boto3.client("lambda", region_name="eu-west-2")
 search_lambda_name = os.getenv("SEARCH_LAMBDA_NAME")
 
 
 def get_imms_id_and_version(identifier_system: str, identifier_value: str):
     """Send a GET request to Imms API requesting the id and version"""
+    identifier = f"{identifier_system}|{identifier_value}"
     payload = {
         "headers": {"SupplierSystem": "Imms-Batch-App"},
         "body": None,
-        "queryStringParameters": {
-            "_element": "id,meta",
-            "immunization.identifier": f"{identifier_system}|{identifier_value}",
-        },
+        "queryStringParameters": {"_element": "id,meta", "immunization.identifier": identifier},
     }
     # Invoke the target Lambda function
     response = lambda_client.invoke(

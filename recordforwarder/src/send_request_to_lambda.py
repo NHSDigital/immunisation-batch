@@ -3,12 +3,11 @@
 import json
 import os
 import requests
-import boto3
 from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
+from clients import lambda_client
 
 
-client = boto3.client("lambda", region_name="eu-west-2")
 create_lambda_name = os.getenv("CREATE_LAMBDA_NAME")
 update_lambda_name = os.getenv("UPDATE_LAMBDA_NAME")
 delete_lambda_name = os.getenv("DELETE_LAMBDA_NAME")
@@ -17,7 +16,7 @@ delete_lambda_name = os.getenv("DELETE_LAMBDA_NAME")
 def send_create_request(fhir_json: dict, supplier: str) -> str:
     """Sends the create request and handles the response. Returns the imms_id."""
     payload = {"headers": {"SupplierSystem": "Imms-Batch-App", "BatchSupplierSystem": supplier}, "body": fhir_json}
-    response = client.invoke(
+    response = lambda_client.invoke(
         FunctionName=create_lambda_name, InvocationType="RequestResponse", Payload=json.dumps(payload)
     )
     response_payload = json.loads(response["Payload"].read())
@@ -50,7 +49,7 @@ def send_update_request(fhir_json: dict, supplier: str, identifier_system: str, 
         "pathParameters": {"id": imms_id},
     }
     # Invoke the target Lambda function
-    response = client.invoke(
+    response = lambda_client.invoke(
         FunctionName=update_lambda_name,
         InvocationType="RequestResponse",  # Change to 'Event' for asynchronous invocation
         Payload=json.dumps(payload),
@@ -77,7 +76,7 @@ def send_delete_request(fhir_json: dict, supplier: str, identifier_system: str, 
         "pathParameters": {"id": imms_id},
     }
     # Invoke the target Lambda function
-    response = client.invoke(
+    response = lambda_client.invoke(
         FunctionName=delete_lambda_name,
         InvocationType="RequestResponse",  # Change to 'Event' for asynchronous invocation
         Payload=json.dumps(payload),

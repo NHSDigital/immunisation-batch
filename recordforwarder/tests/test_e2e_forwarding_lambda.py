@@ -52,9 +52,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         expected_content,
         mock_diagnostics=None,
         mock_get_imms_id_and_version=None,
+        total=1,
     ):
         self.setup_s3()
-        mock_response = create_mock_api_response(response_code, mock_diagnostics)
+        mock_response = create_mock_api_response(response_code, mock_diagnostics, total)
         mock_api.invoke.return_value = mock_response
         kinesis_message = self.create_kinesis_message(message)
 
@@ -76,38 +77,9 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
         }
+        self.execute_test(mock_api, message, 200, "Fatal", total=0)
 
-        self.setup_s3()
-        # mock_response = create_mock_api_response(200)
-        mock_response = MagicMock()
-        mock_response["Payload"].read.return_value = json.dumps(
-            {
-                "statusCode": 200,
-                "body": json.dumps(
-                    {
-                        "resourceType": "Bundle",
-                        "type": "searchset",
-                        "link": [
-                            {
-                                "relation": "self",
-                                "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization?"
-                                + "immunization.identifier=None&_elements=None",
-                            }
-                        ],
-                        "entry": [],
-                        "total": 0,
-                    }
-                ),
-            }
-        )
-        mock_api.invoke.return_value = mock_response
-        kinesis_message = self.create_kinesis_message(message)
-
-        forward_lambda_handler(kinesis_message, None)
-
-        self.check_ack_file(s3_client, "Fatal")
-
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_create_success(self, mock_api):
         # Set the mock response as the return value of invoke
         message = {
@@ -119,7 +91,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         }
         self.execute_test(mock_api, message, 201, "OK")
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_create_duplicate(self, mock_api):
         message = {
             "row_id": TEST_ROW_ID,
@@ -135,7 +107,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         )
         self.execute_test(mock_api, message, 422, "Fatal Error", mock_diagnostics=mock_diagnostics)
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_create_failed(self, mock_api):
         message = {
             "row_id": TEST_ROW_ID,
@@ -149,7 +121,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         mock_diagnostics = "the provided event ID is either missing or not in the expected format."
         self.execute_test(mock_api, message, 400, "Fatal Error", mock_diagnostics=mock_diagnostics)
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_create_multi_line_diagnostics(self, mock_api):
         message = {
             "row_id": TEST_ROW_ID,
@@ -180,7 +152,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
         self.assertIn(expected_single_line_diagnostics, ack_file_content)
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_none_request(self, mock_api):
         self.setup_s3()
 
@@ -197,7 +169,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.check_ack_file(s3_client, "Fatal Error")
         mock_api.create_immunization.assert_not_called()
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_update_success(self, mock_api):
         message = {
             "row_id": TEST_ROW_ID,
@@ -208,7 +180,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         }
         self.execute_test(mock_api, message, 200, "OK", mock_get_imms_id_and_version=(str(uuid4()), 1))
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_update_failed(self, mock_api):
         message = {
             "row_id": TEST_ROW_ID,
@@ -227,7 +199,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             mock_get_imms_id_and_version=("test", 1),
         )
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_delete_success(self, mock_api):
         self.setup_s3()
         mock_response = create_mock_api_response(204)
@@ -249,7 +221,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         self.check_ack_file(s3_client, "OK")
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_delete_failed(self, mock_api):
         self.setup_s3()
         mock_response = create_mock_api_response(404, "not-found")

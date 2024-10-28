@@ -84,7 +84,7 @@ class TestForwardingLambda(unittest.TestCase):
                     expected_output,
                 )
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_new_success(self, mock_s3_client, mock_lambda_client):
         # Mock LastModified as a datetime object
@@ -112,7 +112,7 @@ class TestForwardingLambda(unittest.TestCase):
             # Check that create_ack_data was called with the correct arguments
             mock_create_ack_data.assert_called_with("20240821T10153000", "test_1", True, None, "test_id")
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_new_success_duplicate(self, mock_s3_client, mock_lambda_client):
         # Mock LastModified as a datetime object
@@ -138,7 +138,7 @@ class TestForwardingLambda(unittest.TestCase):
             # Check that the data_rows function was called with success status and formatted datetime
             mock_create_ack_data.assert_called_with("20240821T10153000", "test_2", False, diagnostics, None)
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_update_failure(self, mock_s3_client, mock_lambda_client):
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
@@ -165,7 +165,7 @@ class TestForwardingLambda(unittest.TestCase):
             forward_request_to_lambda(message_body)
             mock_create_ack_data.assert_called_with("20240821T10153000", "test_3", False, diagnostics, None)
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_update_failure_imms_id_none(self, mock_s3_client, mock_lambda_client):
         # Mock LastModified as a datetime object
@@ -185,7 +185,7 @@ class TestForwardingLambda(unittest.TestCase):
             )
             mock_lambda_client.assert_not_called()
 
-    @patch("send_request_to_lambda.client")
+    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_delete_success(self, mock_s3_client, mock_lambda_client):
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
