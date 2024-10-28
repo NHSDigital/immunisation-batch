@@ -90,7 +90,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
                         "link": [
                             {
                                 "relation": "self",
-                                "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization?immunization.identifier=None&_elements=None",
+                                "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization?"
+                                + "immunization.identifier=None&_elements=None",
                             }
                         ],
                         "entry": [],
