@@ -37,6 +37,7 @@ jobs:
           pip install coverage
           pip install redis
           pip install botocore==1.35.49
+          pwd 
           coverage run -m unittest discover
           coverage report -m 
           coverage html -d .
