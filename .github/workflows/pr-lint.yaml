@@ -44,6 +44,7 @@ jobs:
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
           poetry run coverage html -d coverage_html_report
+          poetry run coverage json -o coverage/coverage-summary.json
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
      
@@ -57,7 +58,7 @@ jobs:
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
 
       - name: Set code coverage commit status
-        run: npx -p check-code-coverage set-gh-status
+        run: npx -p check-code-coverage set-gh-status --path "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
