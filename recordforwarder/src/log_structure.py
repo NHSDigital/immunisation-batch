@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from functools import wraps
 from log_firehose import FirehoseLogger
+from utils_for_record_forwarder import extract_file_key_elements
 
 
 logging.basicConfig()
@@ -22,8 +23,8 @@ def forwarder_function_info(func):
         supplier = event.get("supplier")
         operation_requested = event.get("operation_requested")
         message_id = event.get("row_id")
-        vaccine_type = event.get("vaccine_type")
         file_key = event.get("file_key")
+        vaccine_type = extract_file_key_elements(file_key).get("vaccine_type")
         log_data = {
             "function_name": func.__name__,
             "date_time": str(datetime.now()),
@@ -40,7 +41,6 @@ def forwarder_function_info(func):
         firehose_log = dict()
 
         log_data["message"] = kwargs.get("OPERATION_OUTCOME")
-        log_data["message_id"] = kwargs.get("row_id")
         try:
             result = func(*args, **kwargs)
             end_time = time.time()
