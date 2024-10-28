@@ -73,16 +73,6 @@ jobs:
           git add /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
           git commit -m "Add filenameprocessor coverage report"
           git push origin AMB-2232---sonarcloud   # Push to the branch
-    
-
-      - name: Set code coverage commit status
-        run: npx check-code-coverage@1.10.5 set-gh-status --summary-file /home/runner/work/immunisation-batch/immunisation-batch/coverage/coverage-summary.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Print NPM Error Log
-        if: failure()  # Only runs if the previous steps failed
-        run: cat /home/runner/.npm/_logs/*.log
       
       - name: Check ticket name conforms to requirements
         run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
