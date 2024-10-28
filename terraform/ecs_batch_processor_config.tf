@@ -123,7 +123,9 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
           "kms:Decrypt",
           "kms:GenerateDataKey*"
         ]
-        Resource = data.aws_kms_key.existing_s3_encryption_key.arn
+        Resource = [ data.aws_kms_key.existing_s3_encryption_key.arn,
+                     data.aws_kms_key.existing_kinesis_encryption_key.arn
+        ]
       },
       {
         Effect   = "Allow",
