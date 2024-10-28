@@ -153,9 +153,16 @@ resource "aws_iam_policy" "lambda_kms_access_policy" {
         Action = [
           "kms:Decrypt"
         ]
-        Resource = [ data.aws_kms_key.existing_lambda_encryption_key.arn,
-                     data.aws_kms_key.existing_s3_encryption_key.arn
+        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:GenerateDataKey*"
         ]
+        Resource = data.aws_kms_key.existing_s3_encryption_key.arn
       }
     ]
   })
