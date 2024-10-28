@@ -44,9 +44,39 @@ module "file_processor_docker_image" {
   }
 }
 
+# Define the lambdaECRImageRetreival policy
+resource "aws_ecr_repository_policy" "filenameprocessor_lambda_ECRImageRetreival_policy" {
+  repository = aws_ecr_repository.file_name_processor_lambda_repository.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        "Sid": "LambdaECRImageRetrievalPolicy",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Action": [
+          "ecr:BatchGetImage",
+          "ecr:DeleteRepositoryPolicy",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:SetRepositoryPolicy"
+        ],
+        "Condition": {
+          "StringLike": {
+            "aws:sourceArn": "arn:aws:lambda:eu-west-2:${local.local_account_id}:function:${local.prefix}-file_name_processor_lambda"
+          }
+        }
+      }
+  ]
+  })
+}
+
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_exec_role" {
-  name = "${local.prefix}-lambda-exec-role"
+  name = "${local.prefix}-filenameprocessor-lambda-exec-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -62,7 +92,7 @@ resource "aws_iam_role" "lambda_exec_role" {
 
 # Policy for Lambda execution role
 resource "aws_iam_policy" "lambda_exec_policy" {
-  name   = "${local.prefix}-lambda-exec-policy"
+  name   = "${local.prefix}-filenameprocessor-lambda-exec-policy"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -99,11 +129,6 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = "kms:Decrypt"
-        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
-      },
-      {
         Effect   = "Allow",
         Action   = [
           "ec2:CreateNetworkInterface",
@@ -130,20 +155,46 @@ resource "aws_iam_policy" "lambda_exec_policy" {
 
 # Policy for Lambda to interact with SQS
 resource "aws_iam_policy" "lambda_sqs_policy" {
-  name = "${local.prefix}-lambda-sqs-policy"
+  name = "${local.prefix}-filenameprocessor-lambda-sqs-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
       Action = [
-        "sqs:SendMessage",
-        "kms:Decrypt"
+        "sqs:SendMessage"
       ],
       Resource = [
         aws_sqs_queue.fifo_queue.arn
       ]
     }]
+  })
+}
+
+resource "aws_iam_policy" "lambda_kms_access_policy" {
+  name        = "${local.prefix}-filenameprocessor-lambda-kms-policy"
+  description = "Allow Lambda to decrypt environment variables"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
+        ]
+        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:GenerateDataKey*"
+        ]
+        Resource = data.aws_kms_key.existing_s3_encryption_key.arn
+      }
+    ]
   })
 }
 
@@ -159,6 +210,11 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_policy_attachment" {
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }
 
+# Attach the kms policy to the Lambda role
+resource "aws_iam_role_policy_attachment" "lambda_kms_policy_attachment" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = aws_iam_policy.lambda_kms_access_policy.arn
+}
 # Lambda Function with Security Group and VPC.
 resource "aws_lambda_function" "file_processor_lambda" {
   function_name   = "${local.prefix}-file_name_processor_lambda"
@@ -185,6 +241,8 @@ resource "aws_lambda_function" "file_processor_lambda" {
       REDIS_PORT           = data.aws_elasticache_cluster.existing_redis.cache_nodes[0].port
     }
   }
+  kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
+  reserved_concurrent_executions = 20
 }
 
 
