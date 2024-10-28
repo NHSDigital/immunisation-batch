@@ -43,15 +43,17 @@ jobs:
           pip install botocore==1.35.49
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
-          poetry run coverage html -d coverage_html_report
+          poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/index.xml
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
       
       - name: List coverage report file
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
-      - name: Rename index.html to index.xml
+      
+      - name: Ensure coverage_html_report directory exists and move index.xml
         run: |
-          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/index.html /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
+          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/index.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
 
       - name: Commit and push index.xml
         if: success()
