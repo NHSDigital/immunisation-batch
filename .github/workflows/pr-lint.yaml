@@ -32,6 +32,7 @@ jobs:
           echo "Found filenameprocessor directory at: $FILEPATH"
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
+          pip install coverage
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
           poetry run coverage html -d coverage_html_report
