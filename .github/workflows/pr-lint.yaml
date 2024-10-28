@@ -16,11 +16,8 @@ jobs:
           pyenv install 3.10.0
           pyenv global 3.10.0
           python --version  # Confirm the installation
-
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.10.0'
+        env:
+          PATH: $HOME/.pyenv/bin:$HOME/.pyenv/shims:$PATH
 
       - name: Upgrade pip and install build dependencies
         run: |
@@ -63,28 +60,28 @@ jobs:
       #     poetry run coverage run -m unittest discover -s tests
       #     poetry run coverage report
       #     poetry run coverage html -d coverage_html_report
-      #   working-directory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordprocessor"
+      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordprocessor"
       #   continue-on-error: true
 
       # - name: Upload recordprocessor coverage report as artifact
       #   uses: actions/upload-artifact@v3
       #   with:
       #     name: recordprocessor-coverage-report
-      #     path: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordprocessor/coverage_html_report"
+      #     path: "/home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report"
 
       # - name: Run unit tests and generate coverage report for recordforwarder
       #   run: |
       #     poetry run coverage run -m unittest discover -s tests
       #     poetry run coverage report
       #     poetry run coverage html -d coverage_html_report
-      #   working-directory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder"
+      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordforwarder"
       #   continue-on-error: true
 
       # - name: Upload recordforwarder coverage report as artifact
       #   uses: actions/upload-artifact@v3
       #   with:
       #     name: recordforwarder-coverage-report
-      #     path: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder/coverage_html_report"
+      #     path: "/home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report"
 
       - name: Set code coverage commit status
         run: npx -p check-code-coverage set-gh-status
