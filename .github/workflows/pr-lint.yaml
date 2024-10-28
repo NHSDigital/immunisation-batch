@@ -35,12 +35,15 @@ jobs:
           AWS_DEFAULT_REGION: "eu-west-1"
         run: echo "Dummy AWS credentials set"
 
+
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install
+        working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"  
+
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
-          pip install coverage
-          pip install "moto[boto3,server]==4.2.14"
-          pip install redis
-          pip install boto3
+
 
           coverage run -m unittest discover
           coverage report -m 
