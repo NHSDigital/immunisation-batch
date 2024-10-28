@@ -20,7 +20,6 @@ def forwarder_function_info(func):
         print(f"EVENTTTT: {event}")
 
         supplier = event.get("supplier")
-        fhir_json = event.get("fhir_json")
         operation_requested = event.get("operation_requested")
         message_id = event.get("row_id")
         vaccine_type = event.get("vaccine_type")
