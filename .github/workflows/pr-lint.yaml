@@ -53,8 +53,8 @@ jobs:
       - name: List coverage report files
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
       
-      - name: List contents of the coverage directory
-        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/coverage/
+      - name: Print coverage-summary.json contents
+        run: cat /home/runner/work/immunisation-batch/immunisation-batch/coverage/coverage-summary.json
 
       - name: Upload filenameprocessor coverage report as artifact
         uses: actions/upload-artifact@v3
