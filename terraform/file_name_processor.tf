@@ -76,7 +76,7 @@ resource "aws_ecr_repository_policy" "filenameprocessor_lambda_ECRImageRetreival
 
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_exec_role" {
-  name = "${local.prefix}-lambda-exec-role"
+  name = "${local.prefix}-filenameprocessor-lambda-exec-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -92,7 +92,7 @@ resource "aws_iam_role" "lambda_exec_role" {
 
 # Policy for Lambda execution role
 resource "aws_iam_policy" "lambda_exec_policy" {
-  name   = "${local.prefix}-lambda-exec-policy"
+  name   = "${local.prefix}-filenameprocessor-lambda-exec-policy"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -155,7 +155,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
 
 # Policy for Lambda to interact with SQS
 resource "aws_iam_policy" "lambda_sqs_policy" {
-  name = "${local.prefix}-lambda-sqs-policy"
+  name = "${local.prefix}-filenameprocessor-lambda-sqs-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -172,7 +172,7 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
 }
 
 resource "aws_iam_policy" "lambda_kms_access_policy" {
-  name        = "${local.prefix}-lambda-kms-policy"
+  name        = "${local.prefix}-filenameprocessor-lambda-kms-policy"
   description = "Allow Lambda to decrypt environment variables"
 
   policy = jsonencode({
