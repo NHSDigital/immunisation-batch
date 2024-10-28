@@ -45,15 +45,11 @@ jobs:
           poetry run coverage report
           poetry run coverage html -d coverage_html_report
           poetry run coverage json -o coverage/coverage-summary.json
-          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage
           mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json /home/runner/work/immunisation-batch/immunisation-batch/coverage/
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
       
-      - name: Print coverage.json contents
-        run: cat /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json
-        working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
-
       - name: List coverage report files
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
       
