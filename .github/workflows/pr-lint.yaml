@@ -62,10 +62,11 @@ jobs:
           name: filenameprocessor-coverage-report
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
 
-      - name: Set code coverage commit status
-        run: npx -p check-code-coverage set-gh-status
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      -  name: Set code coverage commit status
+         run: npx check-code-coverage@1.10.5 set-gh-status
+         env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Check ticket name conforms to requirements
         run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
