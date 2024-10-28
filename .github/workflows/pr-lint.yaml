@@ -6,23 +6,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-     
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
           python-version: '3.10'
-
       - name: Upgrade pip and install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel
-
       - name: Install Poetry
         run: pip install poetry
-
       - name: Install dependencies with poetry for the main project
         run: poetry install
-
       - name: Install dependencies with poetry for filenameprocessor
         run: |
           poetry install
@@ -34,44 +29,40 @@ jobs:
         run: |
           aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
           aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY  
-
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
           pip install moto==4.2.11
           pip install coverage
           pip install redis
           pip install botocore==1.35.49
-          poetry run coverage run -m unittest discover -s tests
-          poetry run coverage report
-          poetry run coverage html -d coverage_html_report
+          coverage run -m unittest discover
+          coverage report -m 
+          coverage html -d coverage_html_report
+          coverage json -o coverage/coverage-summary.json
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
-     
+ 
       - name: List coverage report files
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
-     
+ 
       - name: Upload filenameprocessor coverage report as artifact
         uses: actions/upload-artifact@v3
         with:
           name: filenameprocessor-coverage-report
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
-
       - name: Set code coverage commit status
-        run: npx -p check-code-coverage set-gh-status
+        run: npx -p check-code-coverage set-gh-status --path /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check ticket name conforms to requirements
         run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
         continue-on-error: true
-
       - name: Grab ticket name
         if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
         run: echo ::set-env name=TICKET_NAME::$(echo ${{ github.event.pull_request.head.ref }} | grep -i -o '\(apm-[0-9]\+\)\|\(apmspii-[0-9]\+\)\|\(adz-[0-9]\+\)|\(amb-[0-9]\+\)' | tr '[:lower:]' '[:upper:]')
         continue-on-error: true
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-
       - name: Comment on PR with link to JIRA ticket
         if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
         continue-on-error: true
