@@ -1,39 +1,32 @@
 """ImmunizationApi class for sending GET request to Imms API to obtain id and version"""
 
 import os
-import json
 import logging
 from errors import IdNotFoundError
 from clients import lambda_client
+from utils_for_record_forwarder import invoke_lambda
+from constants import Constants
 
 logger = logging.getLogger()
 
 
-search_lambda_name = os.getenv("SEARCH_LAMBDA_NAME")
-
-
-def get_imms_id_and_version(identifier_system: str, identifier_value: str):
+def get_imms_id_and_version(fhir_json: dict) -> tuple[str, int]:
     """Send a GET request to Imms API requesting the id and version"""
-    identifier = f"{identifier_system}|{identifier_value}"
-    payload = {
-        "headers": {"SupplierSystem": "Imms-Batch-App"},
-        "body": None,
-        "queryStringParameters": {"_element": "id,meta", "immunization.identifier": identifier},
-    }
-    # Invoke the target Lambda function
-    response = lambda_client.invoke(
-        FunctionName=search_lambda_name,
-        InvocationType="RequestResponse",  # Change to 'Event' for asynchronous invocation
-        Payload=json.dumps(payload),
-    )
-    response_payload = json.loads(response["Payload"].read())
-    status_code = response_payload.get("statusCode")
-    response = json.loads(response_payload.get("body"))
+    # Create payload
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME}
+    identifier = fhir_json.get("identifier", [{}])[0]
+    immunization_identifier = f"{identifier.get('system')}|{identifier.get('value')}"
+    query_string_parameters = {"_element": "id,meta", "immunization.identifier": immunization_identifier}
+    payload = {"headers": headers, "body": None, "queryStringParameters": query_string_parameters}
 
-    if not (response.get("total") == 1 and status_code == 200):
-        logger.error("imms_id not found:%s and status_code: %s", response, status_code)
+    # Invoke lambda
+    status_code, body, _ = invoke_lambda(lambda_client, os.getenv("SEARCH_LAMBDA_NAME"), payload)
+
+    # Handle non-200 or empty response
+    if not (body.get("total") == 1 and status_code == 200):
+        logger.error("imms_id not found:%s and status_code: %s", body, status_code)
         raise IdNotFoundError("Imms id not found")
 
-    resource = response.get("entry", [])[0]["resource"]
-
+    # Return imms_id and version
+    resource = body.get("entry", [])[0]["resource"]
     return resource.get("id"), resource.get("meta", {}).get("versionId")

@@ -1,40 +1,31 @@
 """Function to send the request directly to lambda (or return appropriate diagnostics if this is not possible)"""
 
-import json
 import os
-import requests
 from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 from clients import lambda_client
-
-
-create_lambda_name = os.getenv("CREATE_LAMBDA_NAME")
-update_lambda_name = os.getenv("UPDATE_LAMBDA_NAME")
-delete_lambda_name = os.getenv("DELETE_LAMBDA_NAME")
+from utils_for_record_forwarder import invoke_lambda
+from constants import Constants
 
 
 def send_create_request(fhir_json: dict, supplier: str) -> str:
     """Sends the create request and handles the response. Returns the imms_id."""
-    payload = {"headers": {"SupplierSystem": "Imms-Batch-App", "BatchSupplierSystem": supplier}, "body": fhir_json}
-    response = lambda_client.invoke(
-        FunctionName=create_lambda_name, InvocationType="RequestResponse", Payload=json.dumps(payload)
-    )
-    response_payload = json.loads(response["Payload"].read())
-    if response_payload.get("statusCode") != 201:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload["body"]))
+    # Send create request
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+    payload = {"headers": headers, "body": fhir_json}
+    status_code, body, headers = invoke_lambda(lambda_client, os.getenv("CREATE_LAMBDA_NAME"), payload)
+    if status_code != 201:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
 
+    # Return imms id (default to None if unable to find the id)
+    return headers.get("Location").split("/")[-1] or None
+
+
+def send_update_request(fhir_json: dict, supplier: str) -> str:
+    """Obtains the imms_id, sends the update request and handles the response. Returns the imms_id."""
+    # Obtain imms_id and version
     try:
-        imms_headers = response_payload.get("headers")
-        imms_id = imms_headers["Location"].split("/")[-1]
-    except (AttributeError, IndexError):
-        imms_id = None
-    return imms_id
-
-
-def send_update_request(fhir_json: dict, supplier: str, identifier_system: str, identifier_value: str) -> str:
-    """sends the update request and handles the response. returns the imms_id."""
-    try:
-        imms_id, version = get_imms_id_and_version(identifier_system, identifier_value)
+        imms_id, version = get_imms_id_and_version(fhir_json)
     except IdNotFoundError as error:
         raise MessageNotSuccessfulError(error) from error
     if not imms_id:
@@ -42,65 +33,49 @@ def send_update_request(fhir_json: dict, supplier: str, identifier_system: str, 
     if not version:
         raise MessageNotSuccessfulError("Unable to obtain Imms version")
 
+    # Send update request
     fhir_json["id"] = imms_id
-    payload = {
-        "headers": {"SupplierSystem": "Imms-Batch-App", "BatchSupplierSystem": supplier, "E-Tag": version},
-        "body": fhir_json,
-        "pathParameters": {"id": imms_id},
-    }
-    # Invoke the target Lambda function
-    response = lambda_client.invoke(
-        FunctionName=update_lambda_name,
-        InvocationType="RequestResponse",  # Change to 'Event' for asynchronous invocation
-        Payload=json.dumps(payload),
-    )
-    response_payload = json.loads(response["Payload"].read())
-    if response_payload.get("statusCode") != 200:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload["body"]))
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version}
+    payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
+    status_code, body, _ = invoke_lambda(lambda_client, os.getenv("UPDATE_LAMBDA_NAME"), payload)
+    if status_code != 200:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
+
     return imms_id
 
 
-def send_delete_request(fhir_json: dict, supplier: str, identifier_system: str, identifier_value: str) -> str:
+def send_delete_request(fhir_json: dict, supplier: str) -> str:
     """Sends the delete request and handles the response. Returns the imms_id."""
+    # Obtain imms_id
     try:
-        imms_id, _ = get_imms_id_and_version(identifier_system, identifier_value)
+        imms_id, _ = get_imms_id_and_version(fhir_json)
     except IdNotFoundError as error:
         raise MessageNotSuccessfulError(error) from error
-
     if not imms_id:
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
 
-    payload = {
-        "headers": {"SupplierSystem": "Imms-Batch-App", "BatchSupplierSystem": supplier},
-        "body": fhir_json,
-        "pathParameters": {"id": imms_id},
-    }
-    # Invoke the target Lambda function
-    response = lambda_client.invoke(
-        FunctionName=delete_lambda_name,
-        InvocationType="RequestResponse",  # Change to 'Event' for asynchronous invocation
-        Payload=json.dumps(payload),
-    )
-    response_payload = json.loads(response["Payload"].read())
-    if response_payload.get("statusCode") != 204:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_payload["body"]))
+    # Send delete request
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+    payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
+    status_code, body, _ = invoke_lambda(lambda_client, os.getenv("DELETE_LAMBDA_NAME"), payload)
+    if status_code != 204:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
 
     return imms_id
 
 
-def get_operation_outcome_diagnostics(response: requests.Response) -> str:
+def get_operation_outcome_diagnostics(body: dict) -> str:
     """
     Returns the diagnostics from the API response. If the diagnostics can't be found in the API response,
     returns a default diagnostics string
     """
     try:
-        response = json.loads(response)
-        return response.get("issue")[0].get("diagnostics")
-    except (requests.exceptions.JSONDecodeError, AttributeError, IndexError):
+        return body.get("issue")[0].get("diagnostics")
+    except (AttributeError, IndexError):
         return "Unable to obtain diagnostics from API response"
 
 
-def send_request_to_lambda(message_body):
+def send_request_to_lambda(message_body: dict) -> str:
     """
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
     If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
@@ -111,13 +86,7 @@ def send_request_to_lambda(message_body):
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     operation_requested = message_body.get("operation_requested")
-    identifier_system = fhir_json.get("identifier", [{}])[0].get("system")
-    identifier_value = fhir_json.get("identifier", [{}])[0].get("value")
-    if operation_requested == "CREATE":
-        return send_create_request(fhir_json, supplier)
 
-    if operation_requested == "UPDATE":
-        return send_update_request(fhir_json, supplier, identifier_system, identifier_value)
-
-    if operation_requested == "DELETE":
-        return send_delete_request(fhir_json, supplier, identifier_system, identifier_value)
+    # Send request to Imms FHIR API and return the imms_id
+    function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
+    return function_map[operation_requested](fhir_json, supplier)
