@@ -43,23 +43,17 @@ jobs:
           pip install botocore==1.35.49
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
-          poetry run coverage xml -d coverage_html_report
+          poetry run coverage html -d coverage_html_report
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
       
       - name: List coverage report file
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
-      
-      - name: Print coverage-summary.json contents
-        run: cat /home/runner/work/immunisation-batch/immunisation-batch/coverage/coverage-summary.json
+      - name: Rename index.html to index.xml
+        run: |
+          mv /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.html /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
 
-      - name: Upload filenameprocessor coverage report as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: filenameprocessor-coverage-report
-          path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
-
-      - name: Commit and push coverage report
+      - name: Commit and push index.xml
         if: success()
         run: |
           git config --global user.name "github-actions[bot]"
@@ -67,10 +61,11 @@ jobs:
           git fetch origin AMB-2232---sonarcloud  # Fetch the latest changes from the branch
           git checkout AMB-2232---sonarcloud      # Checkout the branch to avoid detached HEAD
           git pull origin AMB-2232---sonarcloud   # Merge any changes
-          git add /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
-          git commit -m "Add filenameprocessor coverage report"
+          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
+          git commit -m "Add filenameprocessor coverage index as XML"
           git push origin AMB-2232---sonarcloud   # Push to the branch
-      
+
+
       - name: Check ticket name conforms to requirements
         run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
         continue-on-error: true
