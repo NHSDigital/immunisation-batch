@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import patch, MagicMock
 from boto3 import client as boto3_client
 from uuid import uuid4
 import json
