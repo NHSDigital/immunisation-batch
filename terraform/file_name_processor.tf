@@ -99,11 +99,6 @@ resource "aws_iam_policy" "lambda_exec_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = "kms:Decrypt"
-        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
-      },
-      {
         Effect   = "Allow",
         Action   = [
           "ec2:CreateNetworkInterface",
@@ -137,8 +132,7 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
     Statement = [{
       Effect = "Allow",
       Action = [
-        "sqs:SendMessage",
-        "kms:Decrypt"
+        "sqs:SendMessage"
       ],
       Resource = [
         aws_sqs_queue.fifo_queue.arn
@@ -159,7 +153,9 @@ resource "aws_iam_policy" "lambda_kms_access_policy" {
         Action = [
           "kms:Decrypt"
         ]
-        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
+        Resource = [ data.aws_kms_key.existing_lambda_encryption_key.arn,
+                     data.aws_kms_key.existing_s3_encryption_key.arn
+        ]
       }
     ]
   })
