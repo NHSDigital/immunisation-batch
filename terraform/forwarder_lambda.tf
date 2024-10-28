@@ -123,7 +123,8 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         Resource = [
           data.aws_lambda_function.existing_create_lambda.arn,           
           data.aws_lambda_function.existing_update_lambda.arn,
-          data.aws_lambda_function.existing_delete_lambda.arn        
+          data.aws_lambda_function.existing_delete_lambda.arn,
+          data.aws_lambda_function.existing_search_lambda.arn        
         ]
       }
     ]
