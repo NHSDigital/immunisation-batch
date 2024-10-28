@@ -33,6 +33,9 @@ jobs:
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
           pip install coverage
+          pip install moto
+          pip install boto3
+          
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
           poetry run coverage html -d coverage_html_report
