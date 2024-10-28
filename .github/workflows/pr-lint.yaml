@@ -62,14 +62,17 @@ jobs:
           name: filenameprocessor-coverage-report
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
 
-      - name: Commit coverage report to repository
-        if: success()  # Optional: Only commit if previous steps succeeded
+      - name: Commit and push coverage report
+        if: success()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin AMB-2232---sonarcloud  # Fetch the latest changes from the branch
+          git checkout AMB-2232---sonarcloud      # Checkout the branch to avoid detached HEAD
+          git pull origin AMB-2232---sonarcloud   # Merge any changes
           git add /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
           git commit -m "Add filenameprocessor coverage report"
-          git push origin HEAD:AMB-2232---sonarcloud
+          git push origin AMB-2232---sonarcloud   # Push to the branch
     
 
       - name: Set code coverage commit status
