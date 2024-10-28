@@ -34,7 +34,7 @@ jobs:
           pip install moto==4.2.11
           pip install coverage
           pip install redis
-          pip install botocore==1.13.20
+          pip install botocore==1.35.49
           coverage run -m unittest discover
           coverage report -m 
           coverage html -d coverage_html_report
