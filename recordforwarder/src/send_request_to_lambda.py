@@ -5,6 +5,7 @@ import os
 import requests
 from errors import MessageNotSuccessfulError
 import boto3
+from log_structure import forwarder_function_info
 
 
 client = boto3.client("lambda", region_name="eu-west-2")
@@ -86,6 +87,7 @@ def get_operation_outcome_diagnostics(response: requests.Response) -> str:
         return "Unable to obtain diagnostics from API response"
 
 
+@forwarder_function_info
 def send_request_to_lambda(message_body):
     """
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.

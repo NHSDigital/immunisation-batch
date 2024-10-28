@@ -125,6 +125,14 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           data.aws_lambda_function.existing_update_lambda.arn,
           data.aws_lambda_function.existing_delete_lambda.arn        
         ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "firehose:PutRecord",
+          "firehose:PutRecordBatch"
+        ],
+        "Resource": data.aws_kinesis_firehose_delivery_stream.splunk_stream.arn
       }
     ]
   })
