@@ -53,7 +53,7 @@ jobs:
       - name: Ensure coverage_html_report directory exists and move index.xml
         run: |
           mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
-          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/index.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/index.xml
+          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/index.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor.xml
 
       - name: Commit and push index.xml
         if: success()
