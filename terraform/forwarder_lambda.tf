@@ -41,6 +41,36 @@ module "forwarding_docker_image" {
   }
 }
 
+# Define the lambdaECRImageRetreival policy
+resource "aws_ecr_repository_policy" "forwarder_lambda_ECRImageRetreival_policy" {
+  repository = aws_ecr_repository.forwarder_lambda_repository.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        "Sid": "LambdaECRImageRetrievalPolicy",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Action": [
+          "ecr:BatchGetImage",
+          "ecr:DeleteRepositoryPolicy",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:SetRepositoryPolicy"
+        ],
+        "Condition": {
+          "StringLike": {
+            "aws:sourceArn": "arn:aws:lambda:eu-west-2:${local.local_account_id}:function:${local.prefix}-forwarding_lambda"
+          }
+        }
+      }
+  ]
+  })
+}
+
 # IAM Role for Lambda
 resource "aws_iam_role" "forwarding_lambda_exec_role" {
   name = "${local.prefix}-forwarding-lambda-exec-role"

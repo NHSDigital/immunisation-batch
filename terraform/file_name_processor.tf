@@ -44,6 +44,36 @@ module "file_processor_docker_image" {
   }
 }
 
+# Define the lambdaECRImageRetreival policy
+resource "aws_ecr_repository_policy" "filenameprocessor_lambda_ECRImageRetreival_policy" {
+  repository = aws_ecr_repository.file_name_processor_lambda_repository.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        "Sid": "LambdaECRImageRetrievalPolicy",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Action": [
+          "ecr:BatchGetImage",
+          "ecr:DeleteRepositoryPolicy",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:SetRepositoryPolicy"
+        ],
+        "Condition": {
+          "StringLike": {
+            "aws:sourceArn": "arn:aws:lambda:eu-west-2:${local.local_account_id}:function:${local.prefix}-file_name_processor_lambda"
+          }
+        }
+      }
+  ]
+  })
+}
+
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_exec_role" {
   name = "${local.prefix}-lambda-exec-role"
