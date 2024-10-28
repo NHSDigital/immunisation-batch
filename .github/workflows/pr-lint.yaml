@@ -17,10 +17,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel
 
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Update lock file if needed
+        run: poetry lock --no-update
+
       - name: Install dependencies with poetry
-        run: |
-          pip install poetry
-          poetry install
+        run: poetry install
 
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
