@@ -26,9 +26,9 @@ jobs:
       - name: Install dependencies with poetry
         run: poetry install
       
-      - name: Find filenameprocessor directory
+      - name: Find full path of filenameprocessor directory
         run: |
-          FILEPATH=$(find . -type d -name "filenameprocessor")
+          FILEPATH=$(find . -type d -name "filenameprocessor" -exec realpath {} \;)
           echo "Found filenameprocessor directory at: $FILEPATH"
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
