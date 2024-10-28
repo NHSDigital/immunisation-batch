@@ -209,6 +209,7 @@ resource "aws_lambda_function" "file_processor_lambda" {
     }
   }
   kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
+  reserved_concurrent_executions = 20
 }
 
 

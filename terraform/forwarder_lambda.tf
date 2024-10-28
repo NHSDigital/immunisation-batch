@@ -96,16 +96,11 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = "kms:Decrypt"
-        Resource = "arn:aws:kms:${var.aws_region}:${local.local_account_id}:key/*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = "secretsmanager:GetSecretValue"
-         Resource = ["arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/int/*",
-        "arn:aws:secretsmanager:${var.aws_region}:${local.local_account_id}:secret:imms/immunization/internal-dev/*"
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
         ]
+        Resource = data.aws_kms_key.existing_lambda_encryption_key.arn
       },
       {
         Effect   = "Allow"
@@ -123,7 +118,8 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
         Resource = [
           data.aws_lambda_function.existing_create_lambda.arn,           
           data.aws_lambda_function.existing_update_lambda.arn,
-          data.aws_lambda_function.existing_delete_lambda.arn        
+          data.aws_lambda_function.existing_delete_lambda.arn,
+          data.aws_lambda_function.existing_search_lambda.arn       
         ]
       }
     ]
@@ -155,12 +151,14 @@ resource "aws_lambda_function" "forwarding_lambda" {
       CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
       UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
       DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
+      SEARCH_LAMBDA_NAME = data.aws_lambda_function.existing_search_lambda.function_name
     }
   }
-
+  kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
   depends_on = [
     aws_iam_role_policy_attachment.forwarding_lambda_exec_policy_attachment
   ]
+  reserved_concurrent_executions = 20
 }
 
  resource "aws_lambda_event_source_mapping" "kinesis_event_source_mapping_forwarder_lambda" {
