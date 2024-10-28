@@ -43,10 +43,7 @@ jobs:
           pip install botocore==1.35.49
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
-          poetry run coverage html -d coverage_html_report
-          poetry run coverage json -o coverage/coverage-summary.json
-          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage
-          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage/coverage-summary.json /home/runner/work/immunisation-batch/immunisation-batch/coverage/
+          poetry run coverage xml -d coverage_html_report
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
       
