@@ -63,11 +63,9 @@ jobs:
           path: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report"
 
       - name: Set code coverage commit status
-  raun: npx check-code-coverage@1.10.5 set-gh-status --summary-file /path/to/coverage-summary.json
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
+        run: npx check-code-coverage@1.10.5 set-gh-status --summary-file /home/runner/work/immunisation-batch/immunisation-batch/coverage/coverage-summary.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check ticket name conforms to requirements
         run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
