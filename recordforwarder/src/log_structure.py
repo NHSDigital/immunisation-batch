@@ -40,7 +40,8 @@ def forwarder_function_info(func):
         start_time = time.time()
         firehose_log = dict()
 
-        log_data["message"] = kwargs.get("OPERATION_OUTCOME")
+        # log_data["message"] = kwargs.get("OPERATION_OUTCOME")
+
         try:
             result = func(*args, **kwargs)
             end_time = time.time()
@@ -53,7 +54,10 @@ def forwarder_function_info(func):
             return result
 
         except Exception as e:
+            log_data["status_code"] = 400
             log_data["error"] = str(e)
+            log_data["status"] = "Fail"
+            log_data.pop("message", None)
             end = time.time()
             log_data["time_taken"] = f"{round(end - start_time, 5)}s"
             logger.exception(json.dumps(log_data))
