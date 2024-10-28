@@ -6,11 +6,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+     
+      - name: Install pyenv and Python 3.10.0
+        run: |
+          curl https://pyenv.run | bash
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          eval "$(pyenv init --path)"
+          eval "$(pyenv init -)"
+          pyenv install 3.10.0
+          pyenv global 3.10.0
+          python --version  # Confirm the installation
 
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.10.1'
+          python-version: '3.10.0'
 
       - name: Upgrade pip and install build dependencies
         run: |
