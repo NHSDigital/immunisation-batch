@@ -118,7 +118,9 @@ resource "aws_vpc_endpoint" "kinesis_endpoint" {
     Statement = [
       {
         "Effect": "Allow",
-        "Principal": "*",
+        "Principal": "AWS": [
+            "arn:aws:iam::${local.local_account_id}:root"
+        ],
         "Action": [
           "firehose:ListDeliveryStreams",
           "firehose:PutRecord",
