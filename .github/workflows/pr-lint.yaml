@@ -12,8 +12,10 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+      - name: Upgrade pip and install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel
 
       - name: Install pyyaml manually
         run: pip install pyyaml==5.4.1 --no-use-pep517
