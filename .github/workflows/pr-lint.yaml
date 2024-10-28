@@ -30,7 +30,7 @@ jobs:
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
           pip install coverage
-          pip install moto==4.2.14
+          pip install "moto[boto3,server]==4.2.14"
           pip install redis
           pip install boto3
 
