@@ -27,6 +27,13 @@ jobs:
         run: |
           poetry install
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"  
+      - name: Set up AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: "FOOBARKEY"
+          AWS_SECRET_ACCESS_KEY: "FOOBARSECRET"
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY  
 
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
