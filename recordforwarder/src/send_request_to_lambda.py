@@ -89,4 +89,4 @@ def send_request_to_lambda(message_body: dict) -> str:
 
     # Send request to Imms FHIR API and return the imms_id
     function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
-    return function_map[operation_requested](fhir_json, supplier)
+    return function_map[operation_requested](fhir_json=fhir_json, supplier=supplier)

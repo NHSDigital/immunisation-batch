@@ -50,6 +50,15 @@ def create_mock_api_response(status_code: int, diagnostics: str = None, total=1)
                 ),
             }
         )
+    if status_code == 200 and total == 1:
+        mock_response["Payload"].read.return_value = json.dumps(
+            {
+                "statusCode": status_code,
+                "body": '{"resourceType": "Bundle", "type": "searchset",'
+                '"entry": [{"resource": {"id": "277befd9-574e-47fe-a6ee-189858af3bb0",'
+                '"meta": {"versionId": 2}}}], "total": 1}',
+            }
+        )
     if diagnostics:
         mock_response["Payload"].read.return_value = json.dumps(
             {"statusCode": status_code, "body": create_mock_operation_outcome(diagnostics)}
