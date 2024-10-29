@@ -42,6 +42,13 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: '3.10'
+       
+      - name: Fetch and print the current branch name
+        run: |
+          git fetch --all
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+          echo "Current branch name: $BRANCH_NAME"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Set up AWS credentials
         env:
@@ -96,18 +103,16 @@ jobs:
           mv /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report/recordprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordprocessor_coverage.xml
           mv /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report/recordforwarder_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordforwarder_coverage.xml
 
-      - name: Print branch name
-        run: |
-          echo "Branch name: ${{ github.ref_name }}"
+     
 
-      - name: Commit and push coverage reports
-        if: success()
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin ${{ github.ref_name }}
-          git checkout ${{ github.ref_name }}
-          git pull origin ${{ github.ref_name }}
-          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*.xml
-          git commit -m "Add coverage index as XML"
-          git push origin ${{ github.ref_name }}
+      # - name: Commit and push coverage reports
+      #   if: success()
+      #   run: |
+      #     git config --global user.name "github-actions[bot]"
+      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      #     git fetch origin ${{ github.ref_name }}
+      #     git checkout ${{ github.ref_name }}
+      #     git pull origin ${{ github.ref_name }}
+      #     git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*.xml
+      #     git commit -m "Add coverage index as XML"
+      #     git push origin ${{ github.ref_name }}
