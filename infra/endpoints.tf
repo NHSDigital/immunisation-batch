@@ -103,3 +103,34 @@ resource "aws_vpc_endpoint" "s3_endpoint" {
     Name = "immunisation-s3-endpoint"
   }
 }
+
+resource "aws_vpc_endpoint" "kinesis_endpoint" {
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.${var.aws_region}.kinesis-firehose"
+  vpc_endpoint_type = "Interface"
+
+  subnet_ids          = data.aws_subnets.default.ids
+  security_group_ids  = [aws_security_group.lambda_redis_sg.id]
+  private_dns_enabled = true
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        "Effect": "Allow",
+        "Principal": "AWS": [
+            "arn:aws:iam::${local.local_account_id}:root"
+        ],
+        "Action": [
+          "firehose:ListDeliveryStreams",
+          "firehose:PutRecord",
+          "firehose:PutRecordBatch"
+        ],
+        "Resource": "*"
+      }
+    ]
+  })
+  tags = {
+    Name = "immunisation-kinesis-endpoint"
+  }
+}
