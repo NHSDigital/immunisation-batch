@@ -52,6 +52,7 @@ jobs:
         run: |
           pip install moto==4.2.11
           pip install coverage
+          pip install simplejson
           pip install botocore==1.35.49
           mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report
           poetry run coverage run -m unittest discover -s tests
