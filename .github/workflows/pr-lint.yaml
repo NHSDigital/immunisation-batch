@@ -41,45 +41,50 @@ jobs:
           pip install coverage
           pip install redis
           pip install botocore==1.35.49
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
-          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
-          rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
           poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
 
-      # - name: Run unit tests and generate coverage report for filenameprocessor
-      #   run: |
-      #     pip install moto==4.2.11
-      #     pip install coverage
-      #     pip install botocore==1.35.49
-      #     poetry run coverage run -m unittest discover -s tests
-      #     poetry run coverage report
-      #     poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/recordprocessor_coverage.xml
-      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordprocessor"
-      #   continue-on-error: true
+      - name: Run unit tests and generate coverage report for recordprocessor
+        run: |
+          pip install moto==4.2.11
+          pip install coverage
+          pip install botocore==1.35.49
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report
+          poetry run coverage run -m unittest discover -s tests
+          poetry run coverage report
+          poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report/recordprocessor_coverage.xml
+        working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordprocessor"
+        continue-on-error: true
 
-      # - name: Run unit tests and generate coverage report for filenameprocessor
-      #   run: |
-      #     pip install moto==4.2.11
-      #     pip install coverage
-      #     pip install redis
-      #     pip install botocore==1.35.49
-      #     poetry run coverage run -m unittest discover -s tests
-      #     poetry run coverage report
-      #     poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml
-      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
-      #   continue-on-error: true    
+      - name: Run unit tests and generate coverage report for recordforwarder
+        run: |
+          pip install moto==4.2.11
+          pip install coverage
+          pip install botocore==1.35.49
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report
+          poetry run coverage run -m unittest discover -s tests
+          poetry run coverage report
+          poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report/recordforwarder_coverage.xml
+        working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordforwarder"
+        continue-on-error: true    
       
       - name: List coverage report file
-        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
+        run: |
+          ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
+          ls -R /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report
+          ls -R /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report
       
-      # - name: Ensure coverage_html_report directory exists and move index.xml
-      #   run: |
-      #     mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
-      #     rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
-      #     mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor_coverage.xml
+      - name: Ensure coverage_html_report directory exists and move index.xml
+        run: |
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
+          rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
+          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor_coverage.xml
+          mv /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report/recordprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordprocessor_coverage.xml
+          mv /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report/recordforwarder_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordforwarder_coverage.xml
 
       - name: Commit and push index.xml
         if: success()
@@ -90,7 +95,9 @@ jobs:
           git checkout AMB-2232---sonarcloud      # Checkout the branch to avoid detached HEAD
           git pull origin AMB-2232---sonarcloud   # Merge any changes
           git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor_coverage.xml
-          git commit -m "Add filenameprocessor coverage index as XML"
+          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordprocessor_coverage.xml
+          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordforwarder_coverage.xml
+          git commit -m "Add coverage index as XML"
           git push origin AMB-2232---sonarcloud   # Push to the branch
 
 
