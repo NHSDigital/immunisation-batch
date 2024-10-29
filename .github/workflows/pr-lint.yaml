@@ -43,18 +43,43 @@ jobs:
           pip install botocore==1.35.49
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
+          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
+          rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
           poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
         continue-on-error: true
+
+      # - name: Run unit tests and generate coverage report for filenameprocessor
+      #   run: |
+      #     pip install moto==4.2.11
+      #     pip install coverage
+      #     pip install botocore==1.35.49
+      #     poetry run coverage run -m unittest discover -s tests
+      #     poetry run coverage report
+      #     poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/recordprocessor_coverage.xml
+      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordprocessor"
+      #   continue-on-error: true
+
+      # - name: Run unit tests and generate coverage report for filenameprocessor
+      #   run: |
+      #     pip install moto==4.2.11
+      #     pip install coverage
+      #     pip install redis
+      #     pip install botocore==1.35.49
+      #     poetry run coverage run -m unittest discover -s tests
+      #     poetry run coverage report
+      #     poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml
+      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"
+      #   continue-on-error: true    
       
       - name: List coverage report file
-        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
+        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
       
-      - name: Ensure coverage_html_report directory exists and move index.xml
-        run: |
-          mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
-          rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
-          mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor_coverage.xml
+      # - name: Ensure coverage_html_report directory exists and move index.xml
+      #   run: |
+      #     mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
+      #     rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
+      #     mv /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report/filenameprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor_coverage.xml
 
       - name: Commit and push index.xml
         if: success()
