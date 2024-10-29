@@ -15,7 +15,7 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     TEST_SUPPLIER,
     TEST_ROW_ID,
 )
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_api_response
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_search_lambda_response
 import base64
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
@@ -52,10 +52,10 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         expected_content,
         mock_diagnostics=None,
         mock_get_imms_id_and_version=None,
-        total=1,
+        id_and_version_found=True,
     ):
         self.setup_s3()
-        mock_response = create_mock_api_response(response_code, mock_diagnostics, total)
+        mock_response = create_mock_search_lambda_response(response_code, mock_diagnostics, id_and_version_found)
         mock_api.invoke.return_value = mock_response
         kinesis_message = self.create_kinesis_message(message)
 
@@ -77,7 +77,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             "file_key": TEST_FILE_KEY,
             "supplier": TEST_SUPPLIER,
         }
-        self.execute_test(mock_api, message, 200, "Fatal", total=0)
+        self.execute_test(mock_api, message, 200, "Fatal", id_and_version_found=False)
 
     @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_create_success(self, mock_api):
@@ -141,7 +141,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         )
 
         self.setup_s3()
-        mock_response = create_mock_api_response(400, mock_diagnostics)
+        mock_response = create_mock_search_lambda_response(400, mock_diagnostics)
         mock_api.invoke.return_value = mock_response
         mock_api.create_immunization.return_value = mock_response
 
@@ -202,7 +202,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_delete_success(self, mock_api):
         self.setup_s3()
-        mock_response = create_mock_api_response(204)
+        mock_response = create_mock_search_lambda_response(204)
         mock_api.invoke.return_value = mock_response
 
         message = {
@@ -224,7 +224,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
     @patch("send_request_to_lambda.lambda_client")
     def test_forward_lambda_e2e_delete_failed(self, mock_api):
         self.setup_s3()
-        mock_response = create_mock_api_response(404, "not-found")
+        mock_response = create_mock_search_lambda_response(404, "not-found")
         mock_api.invoke.return_value = mock_response
         message = {
             "row_id": TEST_ROW_ID,

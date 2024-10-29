@@ -10,7 +10,8 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
 from utils_for_record_forwarder import get_environment
 from update_ack_file import create_ack_data
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_operation_outcome
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_search_lambda_response
+
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 
@@ -117,12 +118,8 @@ class TestForwardingLambda(unittest.TestCase):
     def test_forward_request_to_api_new_success_duplicate(self, mock_s3_client, mock_lambda_client):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
-        mock_response = MagicMock()
         diagnostics = "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
-        mock_response["Payload"].read.return_value = json.dumps(
-            {"statusCode": 422, "body": create_mock_operation_outcome(diagnostics)}
-        )
-        mock_lambda_client.invoke.return_value = mock_response
+        mock_lambda_client.invoke.return_value = create_mock_search_lambda_response(422, diagnostics)
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
@@ -142,14 +139,10 @@ class TestForwardingLambda(unittest.TestCase):
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_update_failure(self, mock_s3_client, mock_lambda_client):
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
-        mock_response = MagicMock()
         diagnostics = (
             "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
         )
-        mock_response["Payload"].read.return_value = json.dumps(
-            {"statusCode": 422, "body": create_mock_operation_outcome(diagnostics)}
-        )
-        mock_lambda_client.invoke.return_value = mock_response
+        mock_lambda_client.invoke.return_value = create_mock_search_lambda_response(422, diagnostics)
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(

@@ -28,7 +28,7 @@ def process_row(vaccine: Vaccine, allowed_operations: set, row: dict) -> dict:
         logger.info("Skipping row as supplier does not have the permissions for this operation %s", operation_requested)
         return {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
-    # Handle missing UNIQUE_ID or UNIQUE_ID_URI or invalid conversion
+    # Handle missing UNIQUE_ID or UNIQUE_ID_URI
     if not (row.get("UNIQUE_ID_URI") and row.get("UNIQUE_ID")):
         logger.error("Invalid row format: row is missing either UNIQUE_ID or UNIQUE_ID_URI")
         return {"diagnostics": Diagnostics.MISSING_UNIQUE_ID}
