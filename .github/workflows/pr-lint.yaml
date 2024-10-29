@@ -42,12 +42,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: '3.10'
-       
-      - name: Fetch and print the current branch name
-        run: |
-          echo "Branch name: ${{ github.head_ref }}"
-
-
+      
       - name: Set up AWS credentials
         env:
           AWS_ACCESS_KEY_ID: "FOOBARKEY"
@@ -103,14 +98,14 @@ jobs:
 
      
 
-      # - name: Commit and push coverage reports
-      #   if: success()
-      #   run: |
-      #     git config --global user.name "github-actions[bot]"
-      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
-      #     git fetch origin ${{ github.ref_name }}
-      #     git checkout ${{ github.ref_name }}
-      #     git pull origin ${{ github.ref_name }}
-      #     git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*.xml
-      #     git commit -m "Add coverage index as XML"
-      #     git push origin ${{ github.ref_name }}
+      - name: Commit and push coverage reports
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin ${{ github.head_ref }}
+          git checkout ${{ github.head_ref }}
+          git pull origin ${{ github.head_ref }}
+          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*.xml
+          git commit -m "Add coverage index as XML"
+          git push origin ${{ github.head_ref }}
