@@ -45,7 +45,7 @@ jobs:
        
       - name: Fetch and print the current branch name
         run: |
-          run: echo "Branch name: ${{ github.head_ref }}"
+          echo "Branch name: ${{ github.head_ref }}"
 
 
       - name: Set up AWS credentials
