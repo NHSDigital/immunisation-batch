@@ -1,10 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import json
 from datetime import datetime
-import time
 from send_request_to_lambda import send_request_to_lambda
-from errors import MessageNotSuccessfulError
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import TEST_IMMS_ID
 
 
