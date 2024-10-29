@@ -37,6 +37,7 @@ jobs:
 
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
+          pip install poetry
           pip install moto==4.2.11
           pip install coverage
           pip install redis
@@ -50,6 +51,7 @@ jobs:
 
       - name: Run unit tests and generate coverage report for recordprocessor
         run: |
+          pip install poetry
           pip install moto==4.2.11
           pip install coverage
           pip install simplejson
@@ -63,6 +65,7 @@ jobs:
 
       - name: Run unit tests and generate coverage report for recordforwarder
         run: |
+          pip install poetry
           pip install moto==4.2.11
           pip install coverage
           pip install botocore==1.35.49
