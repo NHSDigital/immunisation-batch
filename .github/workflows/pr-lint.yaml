@@ -45,10 +45,8 @@ jobs:
        
       - name: Fetch and print the current branch name
         run: |
-          git fetch --all
-          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-          echo "Current branch name: $BRANCH_NAME"
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          run: echo "Branch name: ${{ github.head_ref }}"
+
 
       - name: Set up AWS credentials
         env:
