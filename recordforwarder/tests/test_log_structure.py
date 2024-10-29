@@ -1,71 +1,153 @@
-# import unittest
-# import json
-# from unittest.mock import patch
-# from src.log_structure import function_info
+import unittest
+from unittest.mock import patch, MagicMock
+import json
+from datetime import datetime
+import time
+from send_request_to_lambda import send_request_to_lambda
+from errors import MessageNotSuccessfulError
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import TEST_IMMS_ID
 
 
-# class TestFunctionInfoWrapper(unittest.TestCase):
+class TestSendRequestToLambda(unittest.TestCase):
+    def setUp(self):
+        self.message_body_base = {
+            "row_id": "6543219",
+            "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
+            "supplier": "EMIS",
+            "operation_requested": "operation_requested",
+            "fhir_json": {"resourceType": "Immunization"},
+        }
 
-#     @staticmethod
-#     def mock_success_function(event, context):
-#         return "Success"
+    def extract_log_json(self, log_entry):
+        """Extracts JSON from log entry."""
+        json_start = log_entry.find("{")
+        json_str = log_entry[json_start:]
+        return json.loads(json_str)
 
-#     @staticmethod
-#     def mock_function_raises(event, context):
-#         raise ValueError("Test error")
+    @patch("send_request_to_lambda.send_create_request")
+    @patch("log_structure.firehose_logger")
+    @patch("time.time")
+    @patch("log_structure.datetime")
+    def test_splunk_logging_create(self, mock_datetime, mock_time, mock_firehose_logger, mock_send_create_request):
+        fixed_time = datetime(2024, 10, 29, 12, 0, 0)
+        mock_datetime.now.return_value = fixed_time
+        mock_time.side_effect = [1000000.0, 1000001.0, 1000001.0]
+        mock_send_create_request.return_value = TEST_IMMS_ID
+        with self.assertLogs(level="INFO") as log:
+            message_body = self.message_body_base.copy()
+            message_body["operation_requested"] = "CREATE"
 
-#     @patch("src.log_structure.logger")
-#     def test_successful_execution(self, mock_logger):
-#         # Arrange
-#         wrapped_function = function_info(self.mock_success_function)
-#         event = {
-#             "headers": {"X-Correlation-ID": "test_correlation", "X-Request-ID": "test_request"},
-#             "path": "/test",
-#             "requestContext": {"resourcePath": "/test"},
-#         }
+            result = send_request_to_lambda(message_body)
+            print(f"{result}")
+            self.assertEqual(result, "imms_6543219")
+            self.assertGreater(len(log.output), 0)
 
-#         # Act
-#         result = wrapped_function(event, {})
+            log_json = self.extract_log_json(log.output[0])
 
-#         # Assert
-#         self.assertEqual(result, "Success")
-#         mock_logger.info.assert_called()
+            expected_values = {
+                "function_name": "send_request_to_lambda",
+                "date_time": fixed_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "status": "success",
+                "supplier": "EMIS",
+                "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
+                "vaccine_type": "FLU",
+                "message_id": "6543219",
+                "action_flag": "CREATE",
+                "time_taken": 1.0,
+            }
 
-#         args, kwargs = mock_logger.info.call_args
-#         logged_info = json.loads(args[0])
+            self.assertEqual(log_json, expected_values)
 
-#         self.assertIn("function_name", logged_info)
-#         self.assertIn("time_taken", logged_info)
-#         self.assertEqual(logged_info["X-Correlation-ID"], "test_correlation")
-#         self.assertEqual(logged_info["X-Request-ID"], "test_request")
-#         self.assertEqual(logged_info["actual_path"], "/test")
-#         self.assertEqual(logged_info["resource_path"], "/test")
+            self.assertIsInstance(log_json["time_taken"], float)
 
-#     @patch("src.log_structure.logger")
-#     def test_exception_handling(self, mock_logger):
+            # Check firehose logging call
+            mock_firehose_logger.forwarder_send_log.assert_called_once_with({"event": log_json})
+            mock_firehose_logger.forwarder_send_log.reset_mock()
 
-#         # Act
-#         decorated_function_raises = function_info(self.mock_function_raises)
+    @patch("send_request_to_lambda.send_update_request")
+    @patch("log_structure.firehose_logger")
+    @patch("time.time")
+    @patch("log_structure.datetime")
+    @patch("send_request_to_lambda.MessageNotSuccessfulError")
+    def test_splunk_logging_update(
+        self, mock_MessageNotSuccessfulError, mock_datetime, mock_time, mock_firehose_logger, mock_send_update_request
+    ):
+        fixed_time = datetime(2024, 10, 29, 12, 0, 0)
+        mock_datetime.now.return_value = fixed_time
+        mock_time.side_effect = [1000000.0, 1000001.0, 1000001.0]
+        mock_send_update_request.return_value = TEST_IMMS_ID
+        mock_MessageNotSuccessfulError.return_value = "Unable to obtain imms event id"
+        with self.assertLogs(level="INFO") as log:
+            message_body = self.message_body_base.copy()
+            message_body["operation_requested"] = "UPDATE"
 
-#         with self.assertRaises(ValueError):
-#             # Assert
-#             event = {
-#                 "headers": {"X-Correlation-ID": "failed_test_correlation", "X-Request-ID": "failed_test_request"},
-#                 "path": "/failed_test",
-#                 "requestContext": {"resourcePath": "/failed_test"},
-#             }
-#             context = {}
-#             decorated_function_raises(event, context)
+            result = send_request_to_lambda(message_body)
+            print(f"{result}")
+            self.assertEqual(result, "imms_6543219")
+            self.assertGreater(len(log.output), 0)
 
-#         # Assert
-#         mock_logger.exception.assert_called()
-#         args, kwargs = mock_logger.exception.call_args
-#         logged_info = json.loads(args[0])
+            log_json = self.extract_log_json(log.output[0])
 
-#         self.assertIn("function_name", logged_info)
-#         self.assertIn("time_taken", logged_info)
-#         self.assertEqual(logged_info["X-Correlation-ID"], "failed_test_correlation")
-#         self.assertEqual(logged_info["X-Request-ID"], "failed_test_request")
-#         self.assertEqual(logged_info["actual_path"], "/failed_test")
-#         self.assertEqual(logged_info["resource_path"], "/failed_test")
-#         self.assertEqual(logged_info["error"], str(ValueError("Test error")))
+            expected_values = {
+                "function_name": "send_request_to_lambda",
+                "date_time": fixed_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "status": "success",
+                "supplier": "EMIS",
+                "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
+                "vaccine_type": "FLU",
+                "message_id": "6543219",
+                "action_flag": "UPDATE",
+                "time_taken": 1.0,
+            }
+
+            self.assertEqual(log_json, expected_values)
+
+            self.assertIsInstance(log_json["time_taken"], float)
+
+            # Check firehose logging call
+            mock_firehose_logger.forwarder_send_log.assert_called_once_with({"event": log_json})
+            mock_firehose_logger.forwarder_send_log.reset_mock()
+
+    @patch("send_request_to_lambda.send_delete_request")
+    @patch("log_structure.firehose_logger")
+    @patch("time.time")
+    @patch("log_structure.datetime")
+    def test_splunk_logging_delete(self, mock_datetime, mock_time, mock_firehose_logger, mock_send_delete_request):
+        fixed_time = datetime(2024, 10, 29, 12, 0, 0)
+        mock_datetime.now.return_value = fixed_time
+        mock_time.side_effect = [1000000.0, 1000001.0, 1000001.0]
+        mock_send_delete_request.return_value = TEST_IMMS_ID
+        with self.assertLogs(level="INFO") as log:
+            message_body = self.message_body_base.copy()
+            message_body["operation_requested"] = "DELETE"
+
+            result = send_request_to_lambda(message_body)
+            print(f"{result}")
+            self.assertEqual(result, "imms_6543219")
+            self.assertGreater(len(log.output), 0)
+
+            log_json = self.extract_log_json(log.output[0])
+
+            expected_values = {
+                "function_name": "send_request_to_lambda",
+                "date_time": fixed_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "status": "success",
+                "supplier": "EMIS",
+                "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
+                "vaccine_type": "FLU",
+                "message_id": "6543219",
+                "action_flag": "DELETE",
+                "time_taken": 1.0,
+            }
+
+            self.assertEqual(log_json, expected_values)
+
+            self.assertIsInstance(log_json["time_taken"], float)
+
+            # Check firehose logging call
+            mock_firehose_logger.forwarder_send_log.assert_called_once_with({"event": log_json})
+            mock_firehose_logger.forwarder_send_log.reset_mock()
+
+
+if __name__ == "__main__":
+    unittest.main()

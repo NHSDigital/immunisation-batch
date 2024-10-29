@@ -9,7 +9,7 @@ logger = logging.getLogger()
 logger.setLevel("INFO")
 
 
-class FirehoseLogger:
+class Forwarder_FirehoseLogger:
     def __init__(
         self,
         stream_name: str = os.getenv("SPLUNK_FIREHOSE_NAME"),
@@ -18,7 +18,7 @@ class FirehoseLogger:
         self.firehose_client = boto_client
         self.delivery_stream_name = stream_name
 
-    def send_log(self, log_message):
+    def forwarder_send_log(self, log_message):
         log_to_splunk = log_message
         encoded_log_data = json.dumps(log_to_splunk).encode("utf-8")
         try:

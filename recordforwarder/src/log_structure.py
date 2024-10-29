@@ -3,7 +3,7 @@ import json
 import time
 from datetime import datetime
 from functools import wraps
-from log_firehose import FirehoseLogger
+from log_firehose import Forwarder_FirehoseLogger
 from utils_for_record_forwarder import extract_file_key_elements
 
 
@@ -11,7 +11,7 @@ logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
-firehose_logger = FirehoseLogger()
+firehose_logger = Forwarder_FirehoseLogger()
 
 
 def forwarder_function_info(func):
@@ -40,8 +40,6 @@ def forwarder_function_info(func):
         start_time = time.time()
         firehose_log = dict()
 
-        # log_data["message"] = kwargs.get("OPERATION_OUTCOME")
-
         try:
             result = func(*args, **kwargs)
             end_time = time.time()
@@ -49,7 +47,7 @@ def forwarder_function_info(func):
             print(f"LOGGGYG: {log_data}")
             logger.info(json.dumps(log_data))
             firehose_log["event"] = log_data
-            firehose_logger.send_log(firehose_log)
+            firehose_logger.forwarder_send_log(firehose_log)
             print(f"RESULTTY: {result}")
             return result
 
@@ -62,7 +60,7 @@ def forwarder_function_info(func):
             log_data["time_taken"] = f"{round(end - start_time, 5)}s"
             logger.exception(json.dumps(log_data))
             firehose_log["event"] = log_data
-            firehose_logger.send_log(firehose_log)
+            firehose_logger.forwarder_send_log(firehose_log)
             raise
 
     return wrapper

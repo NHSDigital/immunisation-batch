@@ -51,7 +51,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 )
                 return {
                     "statusCode": 200,
-                    "body": json_dumps("successfully sent to SQS queue"),
+                    "body": json_dumps("Successfully sent to SQS queue"),
                     "file_info": file_info,
                 }
             elif "config" in bucket_name:
@@ -78,8 +78,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                     message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
                 )
                 return {
-                    "statusCode": 500,
-                    "body": json_dumps("initial file validation failed"),
+                    "statusCode": 400,
+                    "body": json_dumps("Infrastructure Level Response Value - Processing Error"),
                     "file_info": file_info,
                 }
 

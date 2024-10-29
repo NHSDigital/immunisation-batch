@@ -191,13 +191,28 @@ class TestRecordProcessor(unittest.TestCase):
         mock_response = create_mock_api_response(200, None)
         mock_api.invoke.return_value = mock_response
         main(test_event)
-        expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
+        # expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
-            ("CREATE no permissions", 0, expected_kinesis_data, False),
-            ("UPDATE no permissions", 1, expected_kinesis_data, False),
-            ("DELETE no permissions", 2, expected_kinesis_data, False),
+            (
+                "CREATE no permissions",
+                0,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "CREATE"},
+                False,
+            ),
+            (
+                "UPDATE no permissions",
+                1,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
+                False,
+            ),
+            (
+                "DELETE no permissions",
+                2,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
+                False,
+            ),
         ]
 
         self.make_assertions(test_cases)
@@ -219,8 +234,18 @@ class TestRecordProcessor(unittest.TestCase):
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
             ("CREATE create permission only", 0, {"operation_requested": "CREATE"}, True),
-            ("UPDATE create permission only", 1, {"diagnostics": Diagnostics.NO_PERMISSIONS}, False),
-            ("DELETE create permission only", 2, {"diagnostics": Diagnostics.NO_PERMISSIONS}, False),
+            (
+                "UPDATE create permission only",
+                1,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
+                False,
+            ),
+            (
+                "DELETE create permission only",
+                2,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
+                False,
+            ),
         ]
 
         self.make_assertions(test_cases)
@@ -236,11 +261,21 @@ class TestRecordProcessor(unittest.TestCase):
         mock_api.invoke.return_value = mock_response
         main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
+        # expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
-            ("UPDATE imms id not found", 0, expected_kinesis_data, False),
-            ("DELETE imms id not found", 1, expected_kinesis_data, False),
+            (
+                "UPDATE imms id not found",
+                0,
+                {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID, "operation_requested": "UPDATE"},
+                False,
+            ),
+            (
+                "DELETE imms id not found",
+                1,
+                {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID, "operation_requested": "DELETE"},
+                False,
+            ),
         ]
 
         self.make_assertions(test_cases)
@@ -256,11 +291,21 @@ class TestRecordProcessor(unittest.TestCase):
         mock_api.invoke.return_value = mock_response
         main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
+        # expected_kinesis_data = {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
-            ("UPDATE imms id not found", 0, expected_kinesis_data, False),
-            ("DELETE imms id not found", 1, expected_kinesis_data, False),
+            (
+                "UPDATE imms id not found",
+                0,
+                {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID, "operation_requested": "UPDATE"},
+                False,
+            ),
+            (
+                "DELETE imms id not found",
+                1,
+                {"diagnostics": Diagnostics.UNABLE_TO_OBTAIN_IMMS_ID, "operation_requested": "DELETE"},
+                False,
+            ),
         ]
 
         self.make_assertions(test_cases)
@@ -272,7 +317,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.MISSING_UNIQUE_ID}
+        expected_kinesis_data = {"diagnostics": Diagnostics.MISSING_UNIQUE_ID, "operation_requested": "CREATE"}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE no unique id", 0, expected_kinesis_data, False)])
 
@@ -283,7 +328,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG, "operation_requested": ""}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE no action_flag", 0, expected_kinesis_data, False)])
 
@@ -294,7 +339,7 @@ class TestRecordProcessor(unittest.TestCase):
         with patch("process_row.get_imms_id", return_value=API_RESPONSE_WITH_ID_AND_VERSION):
             main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG, "operation_requested": "INVALID"}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE invalid action_flag", 0, expected_kinesis_data, False)])
 
