@@ -1,5 +1,6 @@
 name: PR Quality Check
 on: pull_request
+
 jobs:
   link-ticket:
     runs-on: ubuntu-latest
@@ -12,21 +13,36 @@ jobs:
         with:
           python-version: '3.10'
 
-      # - name: Upgrade pip and install build dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip
-      #     pip install setuptools wheel
+      - name: Check ticket name conforms to requirements
+        run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
+        continue-on-error: true
 
-      # - name: Install Poetry
-      #   run: pip install poetry
+      - name: Grab ticket name
+        if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
+        run: echo "TICKET_NAME=$(echo ${{ github.event.pull_request.head.ref }} | grep -i -o '\(apm-[0-9]\+\)\|\(apmspii-[0-9]\+\)\|\(adz-[0-9]\+\)|\(amb-[0-9]\+\)' | tr '[:lower:]' '[:upper:]')" >> $GITHUB_ENV
+        continue-on-error: true
 
-      # - name: Install dependencies with poetry for the main project
-      #   run: poetry install
+      - name: Comment on PR with link to JIRA ticket
+        if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
+        uses: unsplash/comment-on-pr@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          msg: |
+            This branch is work on a ticket in the NHS Digital APM JIRA Project. Here's a handy link to the ticket:
+            # [${{ env.TICKET_NAME }}](https://nhsd-jira.digital.nhs.uk/browse/${{ env.TICKET_NAME }})
 
-      # - name: Install dependencies with poetry for filenameprocessor
-      #   run: |
-      #     poetry install
-      #   working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor"  
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+
       - name: Set up AWS credentials
         env:
           AWS_ACCESS_KEY_ID: "FOOBARKEY"
@@ -35,13 +51,12 @@ jobs:
           aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
           aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY  
 
+      - name: Install dependencies
+        run: |
+          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
+
       - name: Run unit tests and generate coverage report for filenameprocessor
         run: |
-          pip install poetry
-          pip install moto==4.2.11
-          pip install coverage
-          pip install redis
-          pip install botocore==1.35.49
           mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
@@ -51,11 +66,6 @@ jobs:
 
       - name: Run unit tests and generate coverage report for recordprocessor
         run: |
-          pip install poetry
-          pip install moto==4.2.11
-          pip install coverage
-          pip install simplejson
-          pip install botocore==1.35.49
           mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
@@ -65,24 +75,20 @@ jobs:
 
       - name: Run unit tests and generate coverage report for recordforwarder
         run: |
-          pip install poetry
-          pip install moto==4.2.11
-          pip install coverage
-          pip install botocore==1.35.49
           mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report
           poetry run coverage run -m unittest discover -s tests
           poetry run coverage report
           poetry run coverage xml -o /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report/recordforwarder_coverage.xml
         working-directory: "/home/runner/work/immunisation-batch/immunisation-batch/recordforwarder"
-        continue-on-error: true    
-      
+        continue-on-error: true
+
       - name: List coverage report file
         run: |
           ls -R /home/runner/work/immunisation-batch/immunisation-batch/filenameprocessor/coverage_html_report
           ls -R /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report
           ls -R /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report
-      
-      - name: Ensure coverage_html_report directory exists and move index.xml
+
+      - name: Aggregate coverage reports
         run: |
           mkdir -p /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
           rm -rf /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*
@@ -90,39 +96,14 @@ jobs:
           mv /home/runner/work/immunisation-batch/immunisation-batch/recordprocessor/coverage_html_report/recordprocessor_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordprocessor_coverage.xml
           mv /home/runner/work/immunisation-batch/immunisation-batch/recordforwarder/coverage_html_report/recordforwarder_coverage.xml /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordforwarder_coverage.xml
 
-      - name: Commit and push index.xml
+      - name: Commit and push coverage reports
         if: success()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin AMB-2232---sonarcloud  # Fetch the latest changes from the branch
-          git checkout AMB-2232---sonarcloud      # Checkout the branch to avoid detached HEAD
-          git pull origin AMB-2232---sonarcloud   # Merge any changes
-          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/filenameprocessor_coverage.xml
-          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordprocessor_coverage.xml
-          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/recordforwarder_coverage.xml
+          git fetch origin AMB-2232---sonarcloud
+          git checkout AMB-2232---sonarcloud
+          git pull origin AMB-2232---sonarcloud
+          git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*.xml
           git commit -m "Add coverage index as XML"
-          git push origin AMB-2232---sonarcloud   # Push to the branch
-
-
-      - name: Check ticket name conforms to requirements
-        run: echo ${{ github.event.pull_request.head.ref }} | grep -i -E -q "(apm-[0-9]+)|(apmspii-[0-9]+)|(adz-[0-9]+)|(amb-[0-9]+)|(dependabot\/)"
-        continue-on-error: true
-
-      - name: Grab ticket name
-        if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
-        run: echo ::set-env name=TICKET_NAME::$(echo ${{ github.event.pull_request.head.ref }} | grep -i -o '\(apm-[0-9]\+\)\|\(apmspii-[0-9]\+\)\|\(adz-[0-9]\+\)|\(amb-[0-9]\+\)' | tr '[:lower:]' '[:upper:]')
-        continue-on-error: true
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-
-      - name: Comment on PR with link to JIRA ticket
-        if: contains(github.event.pull_request.head.ref, 'apm-') || contains(github.event.pull_request.head.ref, 'APM-') || contains(github.event.pull_request.head.ref, 'apmspii-') || contains(github.event.pull_request.head.ref, 'APMSPII-') || contains(github.event.pull_request.head.ref, 'adz-') || contains(github.event.pull_request.head.ref, 'ADZ-') || contains(github.event.pull_request.head.ref, 'amb-') || contains(github.event.pull_request.head.ref, 'AMB-')
-        continue-on-error: true
-        uses: unsplash/comment-on-pr@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          msg: |
-            This branch is work on a ticket in the NHS Digital APM JIRA Project. Here's a handy link to the ticket:
-            # [${{ env.TICKET_NAME }}](https://nhsd-jira.digital.nhs.uk/browse/${{ env.TICKET_NAME}})
+          git push origin AMB-2232---sonarcloud
