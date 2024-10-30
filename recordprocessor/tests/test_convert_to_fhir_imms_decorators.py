@@ -8,22 +8,26 @@ NOTE: the public function `decorate` is tested in `TestDecorate` class.
 from decimal import Decimal
 import copy
 import unittest
-
-from src.convert_to_fhir_imms_resource import (
+import os
+import sys
+maindir = os.path.dirname(__file__)
+srcdir = '../src'
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
+from convert_to_fhir_imms_resource import (  # noqa: E402
     _decorate_patient,
     _decorate_vaccination,
     _decorate_vaccine,
     _decorate_performer,
     _decorate_immunization,
 )
-from src.constants import Urls
-from tests.utils_for_recordprocessor_tests.decorator_constants import (
+from constants import Urls  # noqa: E402
+from tests.utils_for_recordprocessor_tests.decorator_constants import (  # noqa: E402
     AllHeaders,
     AllHeadersExpectedOutput,
     ExtensionItems,
     COVID_19_TARGET_DISEASE_ELEMENT,
 )
-from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import all_fields
+from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests import all_fields  # noqa: E402
 
 empty_csv_data = {k: "" for k in all_fields}
 
