@@ -82,8 +82,21 @@ jobs:
           git commit -m "Add coverage index as XML"
           git push origin ${{ github.head_ref }}
       
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: Install Sonar Scanner
+        run: |
+            wget -O sonar-scanner.zip
+            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+            unzip sonar-scanner.zip
+            mv sonar-scanner-4.6.2.2472-linux sonar-scanner
+            export PATH="${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
+      
+      - name: Run SonarQube Scan
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PATH: "${{ github.workspace }}/sonar-scanner/bin:${{ env.PATH }}"
+        run: |
+          sonar-scanner \
+          -Dsonar.projectKey=NHSDigital_immunisation-batch \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.login=$SONAR_TOKEN \
+          -Dsonar.python.coverage.reportPaths=filenameprocessor_coverage.xml
