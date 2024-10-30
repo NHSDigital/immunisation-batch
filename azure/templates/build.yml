@@ -1,10 +1,4 @@
 steps:
-  {% comment %} - bash: |
-      BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f batch.Dockerfile .
-
-    displayName: Test lambda code for filenameprocessor
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/filenameprocessor" {% endcomment %}
-
   - bash: |
       BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f Dockerfile .
 
