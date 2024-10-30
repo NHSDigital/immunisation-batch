@@ -13,9 +13,8 @@ jobs:
           wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
           unzip sonar-scanner.zip
           mv sonar-scanner-4.6.2.2472-linux sonar-scanner
-          echo "Add Sonar Scanner to PATH"
-          echo "${GITHUB_WORKSPACE}/sonar-scanner/bin" >> $GITHUB_ENV  # Add to env to persist across steps
-
+          echo "SONAR_SCANNER_BIN=${GITHUB_WORKSPACE}/sonar-scanner/bin" >> $GITHUB_ENV  # Correct way to set environment variable
+          
       - name: Diagnostic Check for Environment
         shell: bash
         run: |
@@ -25,13 +24,14 @@ jobs:
           which sh || echo "sh is missing"
           echo "Checking for Sonar Scanner"
           which sonar-scanner || echo "Sonar Scanner not found"
+          echo "Sonar Scanner Bin Path: $SONAR_SCANNER_BIN"  # Check if environment variable was set
 
       - name: Run SonarQube Scan
         shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          ${GITHUB_WORKSPACE}/sonar-scanner/bin/sonar-scanner \  # Use absolute path for reliability
+          $SONAR_SCANNER_BIN/sonar-scanner \  # Use environment variable directly for path
           -Dsonar.projectKey=NHSDigital_immunisation-batch \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=$SONAR_TOKEN \
