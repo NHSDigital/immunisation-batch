@@ -1,16 +1,16 @@
 """Utils for filenameprocessor lambda"""
 
-import os
+from decrpyt_key import decrypt_key
 from csv import DictReader
 from typing import Union
 from io import StringIO
 from constants import Constants
-from s3_clients import s3_client
+from boto_clients import s3_client
 
 
 def get_environment() -> str:
     """Returns the current environment. Defaults to internal-dev for pr and user environments"""
-    _env = os.getenv("ENVIRONMENT")
+    _env = decrypt_key("ENVIRONMENT")
     # default to internal-dev for pr and user environments
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
