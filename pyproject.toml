@@ -5,6 +5,7 @@ python = "^3.8"
 name = "immunisation-batch"
 version = "0.0.1-alpha"
 description = "TODO"
+packages = [{include = "immunisation_batch"}]
 authors = [
     #TODO add authors
 ]
