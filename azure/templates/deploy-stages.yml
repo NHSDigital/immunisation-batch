@@ -16,6 +16,8 @@ stages:
           environment: internal-dev
           post_init:
               - template: post-deploy.yml
+                parameters:
+                  aws_account_type: 'dev'
   - stage: Integration
     dependsOn: InternalDev
     jobs:
@@ -26,6 +28,8 @@ stages:
           environment: int
           post_init:
               - template: post-deploy.yml
+                parameters:
+                  aws_account_type: 'dev'
   - stage: Ref_Approval
     dependsOn: Integration
     jobs:
@@ -40,3 +44,21 @@ stages:
           environment: ref
           post_init:
               - template: post-deploy.yml
+                parameters:
+                  aws_account_type: 'dev'
+  - stage: Prod_Approval
+    dependsOn: Reference
+    jobs:
+      - template: deploy-manual-approval.yml
+  - stage: Production
+    dependsOn: Prod_Approval
+    jobs:
+      - template: deploy-stage.yml
+        parameters:
+          service_name: ${{ parameters.service_name }}
+          short_service_name: ${{ parameters.short_service_name }}
+          environment: prod
+          post_init:
+              - template: post-deploy.yml
+                parameters:
+                  aws_account_type: 'prod'

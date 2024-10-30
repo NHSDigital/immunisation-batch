@@ -84,3 +84,6 @@ data "aws_kms_key" "existing_s3_encryption_key" {
 data "aws_kms_key" "existing_lambda_encryption_key" {
   key_id = "alias/imms-batch-lambda-env-encryption"
 }
+data "aws_kms_key" "existing_kinesis_encryption_key" {
+  key_id = "alias/imms-batch-kinesis-stream-encryption"
+}

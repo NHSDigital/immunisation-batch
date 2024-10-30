@@ -20,3 +20,5 @@ class Constants:
         "OPERATION_OUTCOME",
         "MESSAGE_DELIVERY",
     ]
+
+    IMMS_BATCH_APP_NAME = "Imms-Batch-App"

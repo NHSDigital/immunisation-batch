@@ -10,7 +10,7 @@ resource "aws_ecr_repository" "file_name_processor_lambda_repository" {
   image_scanning_configuration {
     scan_on_push = true
   }
-  name = "${local.prefix}-filename-processor-repo"
+  name = "${local.prefix}-filenameproc-repo"
 }
 
 # Module for building and pushing Docker image to ECR
@@ -66,7 +66,7 @@ resource "aws_ecr_repository_policy" "filenameprocessor_lambda_ECRImageRetreival
         ],
         "Condition": {
           "StringLike": {
-            "aws:sourceArn": "arn:aws:lambda:eu-west-2:${local.local_account_id}:function:${local.prefix}-file_name_processor_lambda"
+            "aws:sourceArn": "arn:aws:lambda:eu-west-2:${local.local_account_id}:function:${local.prefix}-filenameproc_lambda"
           }
         }
       }
@@ -76,7 +76,7 @@ resource "aws_ecr_repository_policy" "filenameprocessor_lambda_ECRImageRetreival
 
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_exec_role" {
-  name = "${local.prefix}-filenameprocessor-lambda-exec-role"
+  name = "${local.prefix}-filenameproc-lambda-exec-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -92,7 +92,7 @@ resource "aws_iam_role" "lambda_exec_role" {
 
 # Policy for Lambda execution role
 resource "aws_iam_policy" "lambda_exec_policy" {
-  name   = "${local.prefix}-filenameprocessor-lambda-exec-policy"
+  name   = "${local.prefix}-filenameproc-lambda-exec-policy"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -103,7 +103,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-       Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${local.prefix}-file_name_processor_lambda:*"
+       Resource = "arn:aws:logs:${var.aws_region}:${local.local_account_id}:log-group:/aws/lambda/${local.prefix}-filenameproc_lambda:*"
       },
       {
         Effect   = "Allow"
@@ -163,7 +163,7 @@ resource "aws_iam_policy" "lambda_exec_policy" {
 
 # Policy for Lambda to interact with SQS
 resource "aws_iam_policy" "lambda_sqs_policy" {
-  name = "${local.prefix}-filenameprocessor-lambda-sqs-policy"
+  name = "${local.prefix}-filenameproc-lambda-sqs-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -180,7 +180,7 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
 }
 
 resource "aws_iam_policy" "lambda_kms_access_policy" {
-  name        = "${local.prefix}-filenameprocessor-lambda-kms-policy"
+  name        = "${local.prefix}-filenameproc-lambda-kms-policy"
   description = "Allow Lambda to decrypt environment variables"
 
   policy = jsonencode({
@@ -225,7 +225,7 @@ resource "aws_iam_role_policy_attachment" "lambda_kms_policy_attachment" {
 }
 # Lambda Function with Security Group and VPC.
 resource "aws_lambda_function" "file_processor_lambda" {
-  function_name   = "${local.prefix}-file_name_processor_lambda"
+  function_name   = "${local.prefix}-filenameproc_lambda"
   role            = aws_iam_role.lambda_exec_role.arn
   package_type    = "Image"
   image_uri       = module.file_processor_docker_image.image_uri
