@@ -5,13 +5,13 @@ from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda
-from constants import Constants
+from constants import IMMS_BATCH_APP_NAME
 
 
 def send_create_request(fhir_json: dict, supplier: str) -> str:
     """Sends the create request and handles the response. Returns the imms_id."""
     # Send create request
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
     payload = {"headers": headers, "body": fhir_json}
     status_code, body, headers = invoke_lambda(lambda_client, os.getenv("CREATE_LAMBDA_NAME"), payload)
     if status_code != 201:
@@ -35,7 +35,7 @@ def send_update_request(fhir_json: dict, supplier: str) -> str:
 
     # Send update request
     fhir_json["id"] = imms_id
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version}
+    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version}
     payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
     status_code, body, _ = invoke_lambda(lambda_client, os.getenv("UPDATE_LAMBDA_NAME"), payload)
     if status_code != 200:
@@ -55,7 +55,7 @@ def send_delete_request(fhir_json: dict, supplier: str) -> str:
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
 
     # Send delete request
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
     payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
     status_code, body, _ = invoke_lambda(lambda_client, os.getenv("DELETE_LAMBDA_NAME"), payload)
     if status_code != 204:

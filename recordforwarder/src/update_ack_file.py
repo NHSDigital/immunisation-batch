@@ -6,7 +6,7 @@ from io import StringIO, BytesIO
 from typing import Union
 from botocore.exceptions import ClientError
 from clients import s3_client
-from constants import Constants
+from constants import ACK_HEADERS
 from utils_for_record_forwarder import get_environment
 
 logger = logging.getLogger()
@@ -58,7 +58,7 @@ def obtain_current_ack_content(ack_bucket_name: str, ack_file_key: str) -> Strin
         logger.error("error:%s", error)
         if error.response["Error"]["Code"] in ("404", "NoSuchKey"):
             # If ack file does not exist in S3 create a new file
-            accumulated_csv_content.write("|".join(Constants.ack_headers) + "\n")
+            accumulated_csv_content.write("|".join(ACK_HEADERS) + "\n")
         else:
             raise
     return accumulated_csv_content

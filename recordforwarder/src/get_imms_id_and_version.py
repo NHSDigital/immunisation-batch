@@ -5,7 +5,7 @@ import logging
 from errors import IdNotFoundError
 from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda
-from constants import Constants
+from constants import IMMS_BATCH_APP_NAME
 
 logger = logging.getLogger()
 
@@ -13,7 +13,7 @@ logger = logging.getLogger()
 def get_imms_id_and_version(fhir_json: dict) -> tuple[str, int]:
     """Send a GET request to Imms API requesting the id and version"""
     # Create payload
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME}
+    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME}
     identifier = fhir_json.get("identifier", [{}])[0]
     immunization_identifier = f"{identifier.get('system')}|{identifier.get('value')}"
     query_string_parameters = {"_element": "id,meta", "immunization.identifier": immunization_identifier}
