@@ -12,6 +12,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+      
+      - name: List files in immunisation-batch directory
+        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch
+        
       - name: Install tox and other packages
         run: pip install tox
       - name: Run tox
