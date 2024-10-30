@@ -16,7 +16,7 @@ jobs:
       - name: List files in immunisation-batch directory
         run: ls -R /home/runner/work/immunisation-batch/immunisation-batch
         
-      - name: Install tox and other packages
+      - name: Install tox and other package
         run: pip install tox
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
