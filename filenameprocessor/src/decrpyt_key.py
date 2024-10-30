@@ -4,7 +4,7 @@ from boto_clients import kms_client
 
 
 def decrypt_key(os_env_key_name):
-
+    print("starting decryption")
     # Get the encrypted environment variable
     encrypted_value = os.getenv(os_env_key_name)
 
