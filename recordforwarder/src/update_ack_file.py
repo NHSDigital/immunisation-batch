@@ -5,7 +5,7 @@ import os
 from io import StringIO, BytesIO
 from typing import Union
 from botocore.exceptions import ClientError
-from s3_clients import s3_client
+from clients import s3_client
 from constants import Constants
 from utils_for_record_forwarder import get_environment
 
