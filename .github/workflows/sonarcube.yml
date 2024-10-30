@@ -1,7 +1,11 @@
 name: SonarCloud
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
+    types: [labeled, opened, synchronize, reopened, unlabeled]
 
 
 jobs:
@@ -24,28 +28,19 @@ jobs:
 
       - name: Run unittest with filenameprocessor-coverage
         run: |
-          pwd
           pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
           poetry run coverage run --source=filenameprocessor -m unittest discover -s filenameprocessor
           poetry run coverage xml -o filenameprocessor-coverage.xml
       
       - name: Run unittest with recordprocessor-coverage
         run: |
-          pwd
-          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
           poetry run coverage run --source=recordprocessor -m unittest discover -s recordprocessor
           poetry run coverage xml -o recordprocessor-coverage.xml
-          
+
       - name: Run unittest with recordforwarder-coverage
         run: |
-          pwd
-          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
           poetry run coverage run --source=recordforwarder -m unittest discover -s recordforwarder
           poetry run coverage xml -o recordforwarder-coverage.xml    
-
-      - name: Aggregate coverage report
-        run: |
-            ls -R /home/runner/work/immunisation-batch/immunisation-batch
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
