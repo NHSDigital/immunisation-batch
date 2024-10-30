@@ -145,3 +145,26 @@ test_fhir_json = {
         }
     ],
 }
+
+test_fixed_time_taken = [
+    1000000.0,
+    1000001.0,
+    1000001.0,
+    1000000.0,
+    1000001.0,
+    1000001.0,
+    1000000.0,
+    1000001.0,
+    1000001.0,
+]
+
+
+class Diagnostics:
+    """Diagnostics messages"""
+
+    INVALID_ACTION_FLAG = "Invalid ACTION_FLAG - ACTION_FLAG must be 'NEW', 'UPDATE' or 'DELETE'"
+    NO_PERMISSIONS = "No permissions for requested operation"
+    MISSING_UNIQUE_ID = "UNIQUE_ID or UNIQUE_ID_URI is missing"
+    UNABLE_TO_OBTAIN_IMMS_ID = "Unable to obtain imms event id"
+    UNABLE_TO_OBTAIN_VERSION = "Unable to obtain current imms event version"
+    INVALID_CONVERSION = "Unable to convert row to FHIR Immunization Resource JSON format"
