@@ -14,12 +14,9 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install tox and other packages
         run: pip install tox
-        working-directory: ./immunisation-batch  # specify the working directory
       - name: Run tox
         run: tox -e py
-        working-directory: ./immunisation-batch  # specify the working directory
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          working-directory: ./immunisation-batch  # specify the working directory
