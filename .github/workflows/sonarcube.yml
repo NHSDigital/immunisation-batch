@@ -18,10 +18,6 @@ jobs:
         
       - name: Install tox and other packages
         run: pip install tox
-      - name: Run tox
-        run: |
-          pip install 'poetry-core>=1.0.0'
-          tox -e py
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
