@@ -11,7 +11,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: '17'
-          distribution: 'adopt'  # Or 'temurin' if you prefer
+          distribution: 'temurin'  # You can also use 'adopt'
 
       - name: Install Sonar Scanner
         shell: bash
@@ -36,6 +36,8 @@ jobs:
         shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          JAVA_HOME: /opt/hostedtoolcache/Java_17/*/x64  # Force Java 17
+          PATH: "/opt/hostedtoolcache/Java_17/*/x64/bin:${{ env.PATH }}"
         run: |
           $SONAR_SCANNER_BIN/sonar-scanner \
           -Dsonar.projectKey=NHSDigital_immunisation-batch \
