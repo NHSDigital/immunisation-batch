@@ -8,13 +8,14 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install Sonar Scanner
-        shell: bash  # Explicitly set to bash
+        shell: bash
         run: |
           wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
           unzip sonar-scanner.zip
           mv sonar-scanner-4.6.2.2472-linux sonar-scanner
-          export PATH="${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
-      
+          echo "Add Sonar Scanner to PATH"
+          echo "${GITHUB_WORKSPACE}/sonar-scanner/bin" >> $GITHUB_ENV  # Add to env to persist across steps
+
       - name: Diagnostic Check for Environment
         shell: bash
         run: |
@@ -22,17 +23,16 @@ jobs:
           ls -l /usr/bin/env || echo "/usr/bin/env missing"
           echo "Checking for sh"
           which sh || echo "sh is missing"
-
+          echo "Checking for Sonar Scanner"
+          which sonar-scanner || echo "Sonar Scanner not found"
 
       - name: Run SonarQube Scan
-        shell: bash  # Explicitly set to bash
+        shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          PATH: "${{ github.workspace }}/sonar-scanner/bin:${{ env.PATH }}"
         run: |
-          sonar-scanner \
+          ${GITHUB_WORKSPACE}/sonar-scanner/bin/sonar-scanner \  # Use absolute path for reliability
           -Dsonar.projectKey=NHSDigital_immunisation-batch \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=$SONAR_TOKEN \
           -Dsonar.python.coverage.reportPaths=filenameprocessor_coverage.xml
-
