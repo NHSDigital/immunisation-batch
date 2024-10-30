@@ -84,8 +84,7 @@ jobs:
       
       - name: Install Sonar Scanner
         run: |
-            wget -O sonar-scanner.zip
-            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+            wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
             unzip sonar-scanner.zip
             mv sonar-scanner-4.6.2.2472-linux sonar-scanner
             export PATH="${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
