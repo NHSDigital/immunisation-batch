@@ -92,7 +92,7 @@ jobs:
       - name: Run SonarQube Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          PATH: "${{ github.workspace }}/sonar-scanner/bin:${{ env.PATH }}"
+          PATH: "${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
         run: |
           sonar-scanner \
           -Dsonar.projectKey=NHSDigital_immunisation-batch \
