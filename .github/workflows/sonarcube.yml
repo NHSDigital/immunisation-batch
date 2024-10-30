@@ -1,46 +1,22 @@
 name: sonarcloud
 on: pull_request
 jobs:
-  sonar_scan:
+  sonarcloud:
+    name: SonarCloud
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v3
+      - uses: actions/checkout@v2
         with:
-          java-version: '17'
-          distribution: 'temurin'  # You can also use 'adopt'
-
-      - name: Install Sonar Scanner
-        shell: bash
-        run: |
-          wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
-          unzip sonar-scanner.zip
-          mv sonar-scanner-4.6.2.2472-linux sonar-scanner
-          echo "SONAR_SCANNER_BIN=${GITHUB_WORKSPACE}/sonar-scanner/bin" >> $GITHUB_ENV
-
-      - name: Diagnostic Check for Environment
-        shell: bash
-        run: |
-          echo "Checking /usr/bin/env"
-          ls -l /usr/bin/env || echo "/usr/bin/env missing"
-          echo "Checking for sh"
-          which sh || echo "sh is missing"
-          echo "Checking for Sonar Scanner"
-          which sonar-scanner || echo "Sonar Scanner not found"
-          echo "Sonar Scanner Bin Path: $SONAR_SCANNER_BIN"
-
-      - name: Run SonarQube Scan
-        shell: bash
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Run tox
+        run: tox -e py
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          JAVA_HOME: /opt/hostedtoolcache/Java_17/*/x64  # Force Java 17
-          PATH: "/opt/hostedtoolcache/Java_17/*/x64/bin:${{ env.PATH }}"
-        run: |
-          $SONAR_SCANNER_BIN/sonar-scanner \
-          -Dsonar.projectKey=NHSDigital_immunisation-batch \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.login=$SONAR_TOKEN \
-          -Dsonar.python.coverage.reportPaths=filenameprocessor_coverage.xml
