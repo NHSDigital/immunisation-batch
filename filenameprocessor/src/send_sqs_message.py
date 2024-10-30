@@ -1,7 +1,6 @@
 """Functions to send a message to SQS"""
 
 import logging
-import os
 from json import dumps as json_dumps
 from utils_for_filenameprocessor import extract_file_key_elements
 from boto_clients import sqs_client

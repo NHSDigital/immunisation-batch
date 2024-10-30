@@ -6,7 +6,7 @@ from decrpyt_key import decrypt_key
 def upload_to_elasticache(file_key, bucket_name):
     """
     Uploads the file content from S3 to ElastiCache (Redis).
-    """ 
+    """
     host_addr = decrypt_key('REDIS_HOST')
     port_no = decrypt_key('REDIS_PORT')
     redis_client = redis.StrictRedis(host=host_addr, port=port_no, decode_responses=True)
