@@ -4,21 +4,21 @@ jobs:
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python }}
+    # steps:
+    #   - uses: actions/checkout@v2
+    #     with:
+    #       fetch-depth: 0
+    #   - name: Setup Python
+    #     uses: actions/setup-python@v2
+    #     with:
+    #       python-version: ${{ matrix.python }}
       
-      - name: List files in immunisation-batch directory
-        run: ls -R /home/runner/work/immunisation-batch/immunisation-batch
+    #   - name: List files in immunisation-batch directory
+    #     run: ls -R /home/runner/work/immunisation-batch/immunisation-batch
         
-      - name: Install tox and other package
-        run: pip install tox
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    #   - name: Install tox and other package
+    #     run: pip install tox
+    #   - name: SonarCloud Scan
+    #     uses: SonarSource/sonarcloud-github-action@master
+    #     env:
+    #       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
