@@ -10,6 +10,7 @@ def get_environment() -> str:
     # default to internal-dev for pr and user environments
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
+
 def extract_file_key_elements(file_key: str) -> dict:
     """
     Returns a dictionary containing each of the elements which can be extracted from the file key.
@@ -19,6 +20,7 @@ def extract_file_key_elements(file_key: str) -> dict:
     file_key_parts_without_extension = file_key.split(".")[0].split("_")
     file_key_elements = {"vaccine_type": file_key_parts_without_extension[0]}
     return file_key_elements
+
 
 def invoke_lambda(lambda_client, lambda_name: str, payload: dict) -> tuple[int, dict, str]:
     """

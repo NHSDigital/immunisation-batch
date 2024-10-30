@@ -37,6 +37,7 @@ def process_row(vaccine: Vaccine, allowed_operations: set, row: dict) -> dict:
         return {
             "diagnostics": Diagnostics.MISSING_UNIQUE_ID,
             "operation_requested": operation_requested,
-    
+        }
+
     # Handle success
     return {"fhir_json": convert_to_fhir_imms_resource(row, vaccine), "operation_requested": operation_requested}

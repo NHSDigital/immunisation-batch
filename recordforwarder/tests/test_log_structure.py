@@ -6,7 +6,6 @@ from send_request_to_lambda import send_request_to_lambda
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
     TEST_IMMS_ID,
     test_fixed_time_taken,
-    Diagnostics,
 )
 from errors import MessageNotSuccessfulError
 

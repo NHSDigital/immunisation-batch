@@ -9,7 +9,6 @@ from constants import Constants
 from log_structure import forwarder_function_info
 
 
-
 def send_create_request(fhir_json: dict, supplier: str) -> str:
     """Sends the create request and handles the response. Returns the imms_id."""
     # Send create request
@@ -75,6 +74,7 @@ def get_operation_outcome_diagnostics(body: dict) -> str:
         return body.get("issue")[0].get("diagnostics")
     except (AttributeError, IndexError):
         return "Unable to obtain diagnostics from API response"
+
 
 @forwarder_function_info
 def send_request_to_lambda(message_body: dict) -> str:
