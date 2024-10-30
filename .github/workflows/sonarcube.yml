@@ -21,15 +21,27 @@ jobs:
         run: |
           aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
           aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY  
-             
-      - name: Run unittest with coverage
+
+      - name: Run unittest with filenameprocessor-coverage
         run: |
           pwd
           pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
           poetry run coverage run --source=filenameprocessor -m unittest discover -s filenameprocessor
-          poetry run coverage xml -o sonarcloud-coverage.xml
-
-        # working-directory: "/home/runner/work/immunisation-fhir-api/immunisation-fhir-api/backend"  
+          poetry run coverage xml -o filenameprocessor-coverage.xml
+      
+      - name: Run unittest with recordprocessor-coverage
+        run: |
+          pwd
+          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
+          poetry run coverage run --source=recordprocessor -m unittest discover -s recordprocessor
+          poetry run coverage xml -o recordprocessor-coverage.xml
+          
+      - name: Run unittest with recordforwarder-coverage
+        run: |
+          pwd
+          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
+          poetry run coverage run --source=recordforwarder -m unittest discover -s recordforwarder
+          poetry run coverage xml -o recordforwarder-coverage.xml    
 
       - name: Aggregate coverage report
         run: |
