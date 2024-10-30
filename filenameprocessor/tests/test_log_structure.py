@@ -1,11 +1,10 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from boto3 import client as boto3_client
-from moto import mock_s3, mock_sqs
+from moto import mock_s3
 import json
 import os
 from typing import Optional
-from log_structure import function_info
 from file_name_processor import lambda_handler
 from tests.utils_for_tests.values_for_tests import (
     SOURCE_BUCKET_NAME,
@@ -65,11 +64,11 @@ class TestFunctionInfoDecorator(unittest.TestCase):
         mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
         event = self.event_file
 
-        s3_client = set_up_s3_buckets_and_upload_file()
+        set_up_s3_buckets_and_upload_file()
         with patch(
             "initial_file_validation.get_supplier_permissions",
             return_value=["FLU_CREATE", "FLU_UPDATE"],
-        ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
+        ), patch("send_sqs_message.send_to_supplier_queue"):
             lambda_handler(event, context=None)
 
         result = lambda_handler(event, None)
@@ -111,9 +110,7 @@ class TestFunctionInfoDecorator(unittest.TestCase):
         mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
         event = self.event_file
 
-        s3_client = set_up_s3_buckets_and_upload_file(
-            file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB")
-        )
+        set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB"))
         with patch(
             "initial_file_validation.get_supplier_permissions",
             return_value=["FLU_CREATE", "FLU_UPDATE"],

@@ -16,8 +16,6 @@ firehose_logger = FirehoseLogger()
 def function_info(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        event = args[0] if args else {}
-
         log_data = {
             "function_name": func.__name__,
             "date_time": str(datetime.now()),
