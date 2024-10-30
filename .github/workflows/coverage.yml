@@ -81,3 +81,13 @@ jobs:
           git add /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report/*.xml
           git commit -m "Add coverage index as XML"
           git push origin ${{ github.head_ref }}
+      
+          - name: Upload Coverage to SonarQube
+          env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          run: |
+            sonar-scanner \
+            -Dsonar.projectKey=NHSDigital_immunisation-batch \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.python.coverage.reportPaths=coverage-report/*.xml
