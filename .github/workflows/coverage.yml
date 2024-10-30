@@ -87,15 +87,15 @@ jobs:
             wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
             unzip sonar-scanner.zip
             mv sonar-scanner-4.6.2.2472-linux sonar-scanner
-            export PATH="${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
-            pwd
+            export PATH="/home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report"
       
       - name: Run SonarQube Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          PATH: "${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
+          PATH: "/home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report"
         run: |
-          pwd
+          
+          ls -R /home/runner/work/immunisation-batch/immunisation-batch/coverage_html_report
           sonar-scanner \
           -Dsonar.projectKey=NHSDigital_immunisation-batch \
           -Dsonar.host.url=https://sonarcloud.io \
