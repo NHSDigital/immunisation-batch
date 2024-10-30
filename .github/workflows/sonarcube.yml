@@ -17,8 +17,8 @@ jobs:
       - name: Run unittest with coverage
         run: |
           pwd
-          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson responses structlog fhir.resources jsonpath_ng pydantic==1.10.13 requests aws-lambda-typing cffi pyjwt boto3-stubs-lite[dynamodb]~=1.26.90
-          poetry run coverage run --source=filenameprocessor -m unittest discover -s filenameprocessor/tests -p "*.py"
+          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson
+          poetry run coverage run --source=filenameprocessor -m unittest discover -s filenameprocessor
           poetry run coverage xml -o sonarcloud-coverage.xml
 
         # working-directory: "/home/runner/work/immunisation-fhir-api/immunisation-fhir-api/backend"  
