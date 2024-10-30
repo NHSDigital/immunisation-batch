@@ -88,12 +88,14 @@ jobs:
             unzip sonar-scanner.zip
             mv sonar-scanner-4.6.2.2472-linux sonar-scanner
             export PATH="${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
+            pwd
       
       - name: Run SonarQube Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           PATH: "${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
         run: |
+          pwd
           sonar-scanner \
           -Dsonar.projectKey=NHSDigital_immunisation-batch \
           -Dsonar.host.url=https://sonarcloud.io \
