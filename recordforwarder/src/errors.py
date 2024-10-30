@@ -9,3 +9,10 @@ class MessageNotSuccessfulError(Exception):
 
     def __init__(self, message=None):
         self.message = message
+
+
+class IdNotFoundError(Exception):
+    """Error message for when the imms event id could not be found by the Imms FHIR API search lambda"""
+
+    def __init__(self, message=None):
+        self.message = message
