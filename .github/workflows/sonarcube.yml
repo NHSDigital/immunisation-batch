@@ -14,6 +14,14 @@ jobs:
           unzip sonar-scanner.zip
           mv sonar-scanner-4.6.2.2472-linux sonar-scanner
           export PATH="${PATH}:${GITHUB_WORKSPACE}/sonar-scanner/bin"
+      
+      - name: Diagnostic Check for Environment
+        shell: bash
+        run: |
+          echo "Checking /usr/bin/env"
+          ls -l /usr/bin/env || echo "/usr/bin/env missing"
+          echo "Checking for sh"
+          which sh || echo "sh is missing"
 
 
       - name: Run SonarQube Scan
