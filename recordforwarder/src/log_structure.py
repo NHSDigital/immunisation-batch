@@ -18,7 +18,6 @@ def forwarder_function_info(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         event = args[0] if args else {}
-        print(f"EVENTTTT: {event}")
 
         supplier = event.get("supplier")
         operation_requested = event.get("operation_requested")
@@ -36,7 +35,7 @@ def forwarder_function_info(func):
             "message_id": message_id,
             "time_taken": None,
         }
-        print(f"{log_data}")
+
         start_time = time.time()
         firehose_log = dict()
 
@@ -44,11 +43,9 @@ def forwarder_function_info(func):
             result = func(*args, **kwargs)
             end_time = time.time()
             log_data["time_taken"] = round(end_time - start_time, 5)
-            print(f"LOGGGYG: {log_data}")
             logger.info(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.forwarder_send_log(firehose_log)
-            print(f"RESULTTY: {result}")
             return result
 
         except Exception as e:

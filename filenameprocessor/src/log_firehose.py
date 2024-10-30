@@ -12,7 +12,7 @@ logger.setLevel("INFO")
 class FirehoseLogger:
     def __init__(
         self,
-        stream_name: str = os.getenv("SPLUNK_FIREHOSE_NAME"),
+        stream_name: str = os.getenv("SPLUNK_FIREHOSE_NAME", "immunisation-fhir-api-internal-dev-splunk-firehose"),
         boto_client=boto3.client("firehose", config=Config(region_name="eu-west-2")),
     ):
         self.firehose_client = boto_client

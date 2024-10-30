@@ -1,71 +1,142 @@
-# import unittest
-# import json
-# from unittest.mock import patch
-# from src.log_structure import function_info
+import unittest
+from unittest.mock import patch, MagicMock
+from boto3 import client as boto3_client
+from moto import mock_s3, mock_sqs
+import json
+import os
+from typing import Optional
+from log_structure import function_info
+from file_name_processor import lambda_handler
+from tests.utils_for_tests.values_for_tests import (
+    SOURCE_BUCKET_NAME,
+    PERMISSION_JSON,
+    DESTINATION_BUCKET_NAME,
+    VALID_FILE_CONTENT,
+)
 
 
-# class TestFunctionInfoWrapper(unittest.TestCase):
+def set_up_s3_buckets_and_upload_file(file_key: Optional[str] = None, file_content: str = None):
+    """
+    Sets up the source and destination buckets and uploads the test file to the source bucket.
+    Returns the S3 client.
+    """
+    s3_client = boto3_client("s3", region_name="eu-west-2")
 
-#     @staticmethod
-#     def mock_success_function(event, context):
-#         return "Success"
+    for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
+        s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "eu-west-2"})
 
-#     @staticmethod
-#     def mock_function_raises(event, context):
-#         raise ValueError("Test error")
+    s3_client.put_object(
+        Bucket=SOURCE_BUCKET_NAME,
+        Key=file_key or "Flu_Vaccinations_v5_YGM41_20240708T12100100.csv",
+        Body=file_content or VALID_FILE_CONTENT,
+    )
 
-#     @patch("src.log_structure.logger")
-#     def test_successful_execution(self, mock_logger):
-#         # Arrange
-#         wrapped_function = function_info(self.mock_success_function)
-#         event = {
-#             "headers": {"X-Correlation-ID": "test_correlation", "X-Request-ID": "test_request"},
-#             "path": "/test",
-#             "requestContext": {"resourcePath": "/test"},
-#         }
+    return s3_client
 
-#         # Act
-#         result = wrapped_function(event, {})
 
-#         # Assert
-#         self.assertEqual(result, "Success")
-#         mock_logger.info.assert_called()
+class TestFunctionInfoDecorator(unittest.TestCase):
 
-#         args, kwargs = mock_logger.info.call_args
-#         logged_info = json.loads(args[0])
+    event_file = {
+        "Records": [
+            {
+                "s3": {
+                    "bucket": {"name": SOURCE_BUCKET_NAME},
+                    "object": {"key": "Flu_Vaccinations_v5_YGM41_20240708T12100100.csv"},
+                }
+            }
+        ]
+    }
 
-#         self.assertIn("function_name", logged_info)
-#         self.assertIn("time_taken", logged_info)
-#         self.assertEqual(logged_info["X-Correlation-ID"], "test_correlation")
-#         self.assertEqual(logged_info["X-Request-ID"], "test_request")
-#         self.assertEqual(logged_info["actual_path"], "/test")
-#         self.assertEqual(logged_info["resource_path"], "/test")
+    @mock_s3
+    @patch("initial_file_validation.get_permissions_config_json_from_cache")
+    @patch("log_structure.logger")
+    @patch("log_structure.firehose_logger")
+    @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
+    @patch("fetch_permissions.redis_client")
+    def test_splunk_logger_successful_validation(
+        self,
+        mock_redis_client,
+        mock_firehose_logger,
+        mock_logger,
+        mock_get_permissions,
+    ):
+        """Tests the splunk logger is called when file validation is successful"""
+        mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
+        mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
+        event = self.event_file
 
-#     @patch("src.log_structure.logger")
-#     def test_exception_handling(self, mock_logger):
+        s3_client = set_up_s3_buckets_and_upload_file()
+        with patch(
+            "initial_file_validation.get_supplier_permissions",
+            return_value=["FLU_CREATE", "FLU_UPDATE"],
+        ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
+            lambda_handler(event, context=None)
 
-#         # Act
-#         decorated_function_raises = function_info(self.mock_function_raises)
+        result = lambda_handler(event, None)
 
-#         with self.assertRaises(ValueError):
-#             # Assert
-#             event = {
-#                 "headers": {"X-Correlation-ID": "failed_test_correlation", "X-Request-ID": "failed_test_request"},
-#                 "path": "/failed_test",
-#                 "requestContext": {"resourcePath": "/failed_test"},
-#             }
-#             context = {}
-#             decorated_function_raises(event, context)
+        self.assertEqual(result["statusCode"], 200)
+        self.assertIn("Successfully sent to SQS queue", result["body"])
+        filename = result["file_info"][0]["filename"]
+        self.assertEqual(filename, "Flu_Vaccinations_v5_YGM41_20240708T12100100.csv")
+        self.assertIn("message_id", result["file_info"][0])
+        log_call_args = mock_logger.info.call_args[0][0]
+        log_data = json.loads(log_call_args)
 
-#         # Assert
-#         mock_logger.exception.assert_called()
-#         args, kwargs = mock_logger.exception.call_args
-#         logged_info = json.loads(args[0])
+        self.assertTrue(mock_logger.info.called)
+        self.assertTrue(mock_firehose_logger.send_log.called)
+        log_data = json.loads(log_call_args)
 
-#         self.assertIn("function_name", logged_info)
-#         self.assertIn("time_taken", logged_info)
-#         self.assertEqual(logged_info["X-Correlation-ID"], "failed_test_correlation")
-#         self.assertEqual(logged_info["X-Request-ID"], "failed_test_request")
-#         self.assertEqual(logged_info["actual_path"], "/failed_test")
-#         self.assertEqual(logged_info["resource_path"], "/failed_test")
-#         self.assertEqual(logged_info["error"], str(ValueError("Test error")))
+        self.assertEqual(log_data["function_name"], "lambda_handler")
+        self.assertEqual(log_data["status"], 200)
+
+        # Assert - Check Firehose log called
+        mock_firehose_logger.send_log.assert_called_with({"event": log_data})
+        mock_firehose_logger.send_log.reset_mock()
+
+    @mock_s3
+    @patch("initial_file_validation.get_permissions_config_json_from_cache")
+    @patch("log_structure.logger")
+    @patch("log_structure.firehose_logger")
+    @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
+    @patch("fetch_permissions.redis_client")
+    def test_splunk_logger_failed_validation(
+        self,
+        mock_redis_client,
+        mock_firehose_logger,
+        mock_logger,
+        mock_get_permissions,
+    ):
+        """Tests the splunk logger is called when file validation is unsuccessful"""
+        mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
+        mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
+        event = self.event_file
+
+        s3_client = set_up_s3_buckets_and_upload_file(
+            file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB")
+        )
+        with patch(
+            "initial_file_validation.get_supplier_permissions",
+            return_value=["FLU_CREATE", "FLU_UPDATE"],
+        ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
+            lambda_handler(event, context=None)
+
+        result = lambda_handler(event, None)
+        mock_send_to_supplier_queue.assert_not_called()
+        self.assertEqual(result["statusCode"], 400)
+        self.assertIn("Infrastructure Level Response Value - Processing Error", result["body"])
+        filename = result["file_info"][0]["filename"]
+        self.assertEqual(filename, "Flu_Vaccinations_v5_YGM41_20240708T12100100.csv")
+        self.assertIn("message_id", result["file_info"][0])
+        log_call_args = mock_logger.info.call_args[0][0]
+        log_data = json.loads(log_call_args)
+
+        self.assertTrue(mock_logger.info.called)
+        self.assertTrue(mock_firehose_logger.send_log.called)
+        log_data = json.loads(log_call_args)
+
+        self.assertEqual(log_data["function_name"], "lambda_handler")
+        self.assertEqual(log_data["status"], 400)
+
+        # # Assert - Check Firehose log call
+        mock_firehose_logger.send_log.assert_called_with({"event": log_data})
+        mock_firehose_logger.send_log.reset_mock()

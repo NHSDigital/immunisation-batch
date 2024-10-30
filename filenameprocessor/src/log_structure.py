@@ -17,7 +17,6 @@ def function_info(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         event = args[0] if args else {}
-        print(f"Event: {event}")
 
         log_data = {
             "function_name": func.__name__,
@@ -29,7 +28,7 @@ def function_info(func):
             "message_id": "message_id",
             "time_taken": None,
         }
-        print(f"{log_data}")
+
         start_time = time.time()
         firehose_log = dict()
         try:
@@ -41,7 +40,7 @@ def function_info(func):
             log_data["message"] = json.loads(result["body"])
             if isinstance(result, dict):
                 file_info = result.get("file_info")
-                print(f"FILEINFO: {file_info}")
+
                 if isinstance(file_info, list) and file_info:
                     first_file_info = file_info[0]
                     file_key = first_file_info.get("filename")
@@ -51,7 +50,6 @@ def function_info(func):
                     log_data["supplier"] = file_key_elements["supplier"]
                     log_data["vaccine_type"] = file_key_elements["vaccine_type"]
 
-            print(f"LOGGGYG: {log_data}")
             logger.info(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.send_log(firehose_log)
