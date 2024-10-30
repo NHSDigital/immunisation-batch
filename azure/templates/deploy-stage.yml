@@ -168,10 +168,10 @@ jobs:
           parameters:
             state: success
             on_success: true
-            description: "Build succeeded"
+            description: "Deploy succeeded"
 
         - template: azure/components/update-github-status.yml@common
           parameters:
             state: failure
             on_failure: true
-            description: "Build failed"
+            description: "Deploy failed"
