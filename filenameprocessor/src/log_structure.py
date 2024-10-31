@@ -29,51 +29,46 @@ def function_info(func):
 
         start_time = time.time()
         firehose_log = dict()
+
         try:
             result = func(*args, **kwargs)
             end_time = time.time()  # End the timer
             log_data["time_taken"] = round(end_time - start_time, 5)
 
+            log_data["status"] = result.get("statusCode")
+            log_data["message"] = json.loads(result["body"])
             if isinstance(result, dict):
-                status_code = result.get("statusCode")
+                file_info = result.get("file_info")
 
-                # Handle 400 client errors
-                if status_code == 400:
-                    log_data["status"] = 400
-                    log_data["message"] = json.loads(result.get("body", "{}"))
-                    logger.info(json.dumps(log_data))
+                if isinstance(file_info, list) and file_info:
+                    first_file_info = file_info[0]
+                    file_key = first_file_info.get("filename")
+                    log_data["file_key"] = file_key
+                    log_data["message_id"] = first_file_info.get("message_id")
+                    file_key_elements = extract_file_key_elements(file_key)
+                    log_data["supplier"] = file_key_elements["supplier"]
+                    log_data["vaccine_type"] = file_key_elements["vaccine_type"]
 
-                else:
-                    log_data["status"] = status_code
-                    log_data["message"] = json.loads(result.get("body", "{}"))
-
-                    file_info = result.get("file_info")
-                    if isinstance(file_info, list) and file_info:
-                        first_file_info = file_info[0]
-                        file_key = first_file_info.get("filename")
-                        log_data["file_key"] = file_key
-                        log_data["message_id"] = first_file_info.get("message_id")
-
-                        file_key_elements = extract_file_key_elements(file_key)
-                        log_data["supplier"] = file_key_elements["supplier"]
-                        log_data["vaccine_type"] = file_key_elements["vaccine_type"]
-
-                    logger.info(json.dumps(log_data))
-
-            # Send log to Firehose
+            logger.info(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.send_log(firehose_log)
             return result
 
         except Exception as e:
-            # Unexpected server errors
-            log_data["status"] = 500
-            log_data["error"] = str(e)
+            if log_data["status"] == 400 and log_data["status"] != 200:
+                log_data["status"] = 400
+                log_data["error"] = str(e)
+            else:
+                log_data["status"] = 500
+                log_data["error"] = str(e)
+                log_data["message"] = "Server Processing Issue"
+
             end = time.time()
             log_data["time_taken"] = f"{round(end - start_time, 5)}s"
             logger.exception(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.send_log(firehose_log)
+
             raise
 
     return wrapper
