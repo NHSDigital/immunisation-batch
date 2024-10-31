@@ -10,8 +10,8 @@ from uuid import uuid4
 from initial_file_validation import initial_file_validation
 from send_sqs_message import make_and_send_sqs_message
 from make_and_upload_ack_file import make_and_upload_ack_file
-from s3_clients import s3_client
-from elasticcache import upload_to_elasticache
+from boto_clients import s3_client
+from load_elasticcache import upload_to_elasticache
 
 logging.basicConfig(level="INFO")
 logger = logging.getLogger()

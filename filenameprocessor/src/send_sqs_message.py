@@ -1,10 +1,10 @@
 """Functions to send a message to SQS"""
 
 import logging
-import os
 from json import dumps as json_dumps
 from utils_for_filenameprocessor import extract_file_key_elements
-from s3_clients import sqs_client
+from boto_clients import sqs_client
+from decrpyt_key import decrypt_key
 
 logger = logging.getLogger()
 
@@ -17,8 +17,10 @@ def send_to_supplier_queue(message_body: dict) -> bool:
         return False
 
     # Find the URL of the relevant queue
-    imms_env = os.getenv("SHORT_QUEUE_PREFIX", "imms-batch-internal-dev")
-    account_id = os.getenv("LOCAL_ACCOUNT_ID")
+    local_env = decrypt_key("SHORT_QUEUE_PREFIX")
+    local_accnt = decrypt_key("LOCAL_ACCOUNT_ID")
+    imms_env = local_env
+    account_id = local_accnt
     queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/{imms_env}-metadata-queue.fifo"
 
     # Send to queue

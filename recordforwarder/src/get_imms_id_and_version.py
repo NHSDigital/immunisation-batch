@@ -1,11 +1,10 @@
 """ImmunizationApi class for sending GET request to Imms API to obtain id and version"""
-
-import os
 import logging
 from errors import IdNotFoundError
 from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda
 from constants import Constants
+from decrpyt_key import decrypt_key
 
 logger = logging.getLogger()
 
@@ -20,7 +19,8 @@ def get_imms_id_and_version(fhir_json: dict) -> tuple[str, int]:
     payload = {"headers": headers, "body": None, "queryStringParameters": query_string_parameters}
 
     # Invoke lambda
-    status_code, body, _ = invoke_lambda(lambda_client, os.getenv("SEARCH_LAMBDA_NAME"), payload)
+    search_lambda_name = decrypt_key("SEARCH_LAMBDA_NAME")
+    status_code, body, _ = invoke_lambda(lambda_client, search_lambda_name, payload)
 
     # Handle non-200 or empty response
     if not (body.get("total") == 1 and status_code == 200):

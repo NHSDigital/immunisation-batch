@@ -1,12 +1,12 @@
 """Utils for recordforwarder"""
 
-import os
 import json
+from decrpyt_key import decrypt_key
 
 
 def get_environment() -> str:
     """Returns the current environment. Defaults to internal-dev for pr and user environments"""
-    _env = os.getenv("ENVIRONMENT")
+    _env = decrypt_key("ENVIRONMENT")
     # default to internal-dev for pr and user environments
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 

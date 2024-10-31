@@ -173,6 +173,25 @@ resource "aws_iam_role_policy_attachment" "forwarding_lambda_exec_policy_attachm
   policy_arn = aws_iam_policy.forwarding_lambda_exec_policy.arn
 }
 
+resource "aws_kms_ciphertext" "create_lambda_name" {
+  key_id    = data.aws_kms_key.existing_lambda_encryption_key.key_id
+  plaintext = data.aws_lambda_function.existing_create_lambda.function_name
+}
+
+resource "aws_kms_ciphertext" "update_lambda_name" {
+  key_id    = data.aws_kms_key.existing_lambda_encryption_key.key_id
+  plaintext = data.aws_lambda_function.existing_update_lambda.function_name
+}
+
+resource "aws_kms_ciphertext" "delete_lambda_name" {
+  key_id    = data.aws_kms_key.existing_lambda_encryption_key.key_id
+  plaintext = data.aws_lambda_function.existing_delete_lambda.function_name
+}
+
+resource "aws_kms_ciphertext" "search_lambda_name" {
+  key_id    = data.aws_kms_key.existing_lambda_encryption_key.key_id
+  plaintext = data.aws_lambda_function.existing_search_lambda.function_name
+}
 # Lambda Function
 resource "aws_lambda_function" "forwarding_lambda" {
   function_name  = "${local.prefix}-forwarding_lambda"
@@ -184,18 +203,16 @@ resource "aws_lambda_function" "forwarding_lambda" {
 
   environment {
     variables = {
-      SOURCE_BUCKET_NAME = "${local.prefix}-data-sources"
-      ACK_BUCKET_NAME    = "${local.prefix}-data-destinations"
-      ENVIRONMENT        = local.environment
-      LOCAL_ACCOUNT_ID   = local.local_account_id
-      SHORT_QUEUE_PREFIX = local.short_queue_prefix
-      CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
-      UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
-      DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
-      SEARCH_LAMBDA_NAME = data.aws_lambda_function.existing_search_lambda.function_name
+      SOURCE_BUCKET_NAME = aws_kms_ciphertext.source_bucket_name.ciphertext_blob
+      ACK_BUCKET_NAME    = aws_kms_ciphertext.ack_bucket_name.ciphertext_blob
+      ENVIRONMENT        = aws_kms_ciphertext.local_env.ciphertext_blob
+      LOCAL_ACCOUNT_ID   = aws_kms_ciphertext.local_account.ciphertext_blob
+      CREATE_LAMBDA_NAME = aws_kms_ciphertext.create_lambda_name.ciphertext_blob
+      UPDATE_LAMBDA_NAME = aws_kms_ciphertext.update_lambda_name.ciphertext_blob
+      DELETE_LAMBDA_NAME = aws_kms_ciphertext.delete_lambda_name.ciphertext_blob
+      SEARCH_LAMBDA_NAME = aws_kms_ciphertext.search_lambda_name.ciphertext_blob
     }
   }
-  kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
   depends_on = [
     aws_iam_role_policy_attachment.forwarding_lambda_exec_policy_attachment
   ]

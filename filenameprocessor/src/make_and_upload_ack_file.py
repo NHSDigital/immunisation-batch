@@ -1,10 +1,9 @@
 """Create ack file and upload to S3 bucket"""
 
 from csv import writer
-import os
 from io import StringIO, BytesIO
-from utils_for_filenameprocessor import get_environment
-from s3_clients import s3_client
+from boto_clients import s3_client
+from decrpyt_key import decrypt_key
 
 
 def make_ack_data(
@@ -43,7 +42,8 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
     # Upload the CSV file to S3
     csv_buffer.seek(0)
     csv_bytes = BytesIO(csv_buffer.getvalue().encode("utf-8"))
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-destinations")
+    ack_bucket = decrypt_key("ACK_BUCKET_NAME")
+    ack_bucket_name = ack_bucket
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
 
 
