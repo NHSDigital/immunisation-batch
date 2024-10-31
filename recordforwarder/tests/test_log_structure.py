@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import json
 from datetime import datetime
 from send_request_to_lambda import send_request_to_lambda
@@ -8,6 +8,8 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     test_fixed_time_taken,
 )
 from errors import MessageNotSuccessfulError
+from log_structure import forwarder_function_info, firehose_logger
+import logging
 
 
 class Test_Splunk_logging(unittest.TestCase):
@@ -281,6 +283,41 @@ class Test_Splunk_logging(unittest.TestCase):
 
         mock_logger.exception.assert_called()
         self.assertIn("API Error: Unable to delete resource", str(mock_logger.exception.call_args))
+
+    @patch("logging.getLogger")
+    @patch.object(firehose_logger, "forwarder_send_log")
+    def test_forwarder_function_info_500_error(self, mock_firehose_log, mock_get_logger):
+
+        logger = logging.getLogger()
+        logger.setLevel(logging.ERROR)
+        log_capture_string = []
+
+        class LogCapture:
+            def __call__(self, msg):
+                log_capture_string.append(msg)
+
+        mock_get_logger.return_value.error = LogCapture()
+        mock_get_logger.return_value.exception = LogCapture()
+
+        message_body = {
+            "supplier": "TestSupplier",
+            "fhir_json": {"resourceType": "Patient"},
+            "operation_requested": "UPDATE",
+            "file_key": "file_123",
+            "row_id": "row_456",
+        }
+
+        # Raise a 500 error
+        @forwarder_function_info
+        def test_500_error_function(message_body):
+            raise Exception("Simulated server error.")
+
+        with self.assertRaises(Exception) as context:
+            test_500_error_function(message_body)
+
+        self.assertEqual(str(context.exception), "Simulated server error.")
+
+        self.assertTrue(mock_firehose_log.called)
 
 
 if __name__ == "__main__":

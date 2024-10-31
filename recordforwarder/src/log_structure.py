@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import wraps
 from log_firehose import Forwarder_FirehoseLogger
 from utils_for_record_forwarder import extract_file_key_elements
+from errors import MessageNotSuccessfulError
 
 
 logging.basicConfig()
@@ -48,8 +49,20 @@ def forwarder_function_info(func):
             firehose_logger.forwarder_send_log(firehose_log)
             return result
 
-        except Exception as e:
+        except MessageNotSuccessfulError as e:
             log_data["status_code"] = 400
+            log_data["error"] = str(e)
+            log_data["status"] = "Fail"
+            log_data.pop("message", None)
+            end = time.time()
+            log_data["time_taken"] = f"{round(end - start_time, 5)}s"
+            logger.exception(json.dumps(log_data))
+            firehose_log["event"] = log_data
+            firehose_logger.forwarder_send_log(firehose_log)
+            raise
+
+        except Exception as e:
+            log_data["status_code"] = 500
             log_data["error"] = str(e)
             log_data["status"] = "Fail"
             log_data.pop("message", None)

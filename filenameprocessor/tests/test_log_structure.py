@@ -1,11 +1,12 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from boto3 import client as boto3_client
 from moto import mock_s3
 import json
 import os
 from typing import Optional
 from file_name_processor import lambda_handler
+from log_structure import function_info
 from tests.utils_for_tests.values_for_tests import (
     SOURCE_BUCKET_NAME,
     PERMISSION_JSON,
@@ -137,3 +138,31 @@ class TestFunctionInfoDecorator(unittest.TestCase):
         # # Assert - Check Firehose log call
         mock_firehose_logger.send_log.assert_called_with({"event": log_data})
         mock_firehose_logger.send_log.reset_mock()
+
+
+@function_info
+def mock_function_that_fails():
+    raise ValueError("An unexpected error occurred")
+
+
+class TestLogging500Error(unittest.TestCase):
+    @patch("log_firehose.FirehoseLogger.send_log")
+    @patch("logging.Logger.exception")
+    def test_500_error_logging(self, mock_logger_exception, mock_firehose_send_log):
+        with self.assertRaises(ValueError):
+            mock_function_that_fails()
+
+        log_data = json.loads(mock_logger_exception.call_args[0][0])
+
+        self.assertEqual(log_data["function_name"], "mock_function_that_fails")
+        self.assertEqual(log_data["status"], 500)
+        self.assertIn("An unexpected error occurred", log_data["error"])
+
+        # Verify Firehose logger was called with correct log data
+        firehose_log_data = mock_firehose_send_log.call_args[0][0]["event"]
+        self.assertEqual(firehose_log_data["status"], 500)
+        self.assertIn("An unexpected error occurred", firehose_log_data["error"])
+
+
+if __name__ == "__main__":
+    unittest.main()
