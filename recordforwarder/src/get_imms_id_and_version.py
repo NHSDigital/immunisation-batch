@@ -1,5 +1,5 @@
 """ImmunizationApi class for sending GET request to Imms API to obtain id and version"""
-
+import logging
 from errors import IdNotFoundError
 from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda

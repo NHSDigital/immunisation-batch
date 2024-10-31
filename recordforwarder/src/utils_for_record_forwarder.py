@@ -3,6 +3,7 @@
 import json
 from decrpyt_key import decrypt_key
 
+
 def get_environment() -> str:
     """Returns the current environment. Defaults to internal-dev for pr and user environments"""
     _env = decrypt_key("ENVIRONMENT")
