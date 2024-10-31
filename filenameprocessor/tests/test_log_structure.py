@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from boto3 import client as boto3_client
 from moto import mock_s3
 import json

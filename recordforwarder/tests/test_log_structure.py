@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import json
 from datetime import datetime
 from send_request_to_lambda import send_request_to_lambda
