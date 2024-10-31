@@ -1,13 +1,12 @@
 """Functions for adding a row of data to the ack file"""
 
 import logging
-import os
 from io import StringIO, BytesIO
 from typing import Union
 from botocore.exceptions import ClientError
 from clients import s3_client
 from constants import Constants
-from utils_for_record_forwarder import get_environment
+from decrpyt_key import decrypt_key
 
 logger = logging.getLogger()
 
@@ -80,9 +79,8 @@ def update_ack_file(
     file_key: str, row_id: str, successful_api_response: bool, diagnostics: Union[None, str], imms_id: Union[None, str]
 ) -> None:
     """Updates the ack file with the new data row based on the given arguments"""
-    imms_env = get_environment()
-    source_bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-sources")
-    ack_bucket_name = os.getenv("ACK_BUCKET_NAME", f"immunisation-batch-{imms_env}-data-destinations")
+    source_bucket_name = decrypt_key("SOURCE_BUCKET_NAME")
+    ack_bucket_name = decrypt_key("ACK_BUCKET_NAME")
     ack_file_key = f"forwardedFile/{file_key.replace('.csv', '_BusAck.csv')}"
     response = s3_client.head_object(Bucket=source_bucket_name, Key=file_key)
     created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
