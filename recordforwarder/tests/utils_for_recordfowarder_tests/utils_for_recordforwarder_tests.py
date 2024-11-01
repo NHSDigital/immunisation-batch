@@ -3,17 +3,17 @@ import requests
 import json
 
 
-def create_mock_operation_outcome(diagnostics: str) -> dict:
+def create_mock_operation_outcome(diagnostics: str, code: str = "duplicate") -> dict:
     return {
         "resourceType": "OperationOutcome",
-        "id": "45b552ca-755a-473f-84df-c7e7767bd2ac",
+        "id": "an_imms_id",
         "meta": {"profile": ["https://simplifier.net/guide/UKCoreDevelopment2/ProfileUKCore-OperationOutcome"]},
         "issue": [
             {
                 "severity": "error",
-                "code": "duplicate",
+                "code": code,
                 "details": {
-                    "coding": [{"system": "https://fhir.nhs.uk/Codesystem/http-error-codes", "code": "DUPLICATE"}]
+                    "coding": [{"system": "https://fhir.nhs.uk/Codesystem/http-error-codes", "code": code.upper()}]
                 },
                 "diagnostics": diagnostics,
             }

@@ -3,6 +3,8 @@
 import os
 import json
 
+from clients import lambda_client
+
 
 def get_environment() -> str:
     """Returns the current environment. Defaults to internal-dev for pr and user environments"""
@@ -11,7 +13,7 @@ def get_environment() -> str:
     return _env if _env in ["internal-dev", "int", "ref", "sandbox", "prod"] else "internal-dev"
 
 
-def invoke_lambda(lambda_client, lambda_name: str, payload: dict) -> tuple[int, dict, str]:
+def invoke_lambda(lambda_name: str, payload: dict) -> tuple[int, dict, str]:
     """
     Uses the lambda_client to invoke the specified lambda with the given payload.
     Returns the ressponse status code, body (loaded in as a dictionary) and headers.

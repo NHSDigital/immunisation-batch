@@ -1,8 +1,9 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from moto import mock_s3
 from boto3 import client as boto3_client
 import json
+from io import StringIO
 from botocore.exceptions import ClientError
 from datetime import datetime
 import base64
@@ -10,13 +11,54 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
 from utils_for_record_forwarder import get_environment
 from update_ack_file import create_ack_data
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_search_lambda_response
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
+    create_mock_operation_outcome,
+    response_body_id_and_version_found,
+)
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 
 
+def generate_lambda_invocation_side_effect(message, mock_lambda_payloads):
+    # Mock the responses from the calls to the Imms FHIR API lambdas
+    # Note that a different response is mocked for each different lambda call
+    def lambda_invocation_side_effect(FunctionName, *_args, **_kwargs):  # pylint: disable=invalid-name
+        response_payload = None
+        # Mock the response for the relevant lambda for the operation
+        operation = message["operation_requested"]
+        if FunctionName == f"mock_{operation.lower()}_lambda_name":
+            response_payload = mock_lambda_payloads[operation]
+        # Mock the search lambda (for the get_imms_id_and_version lambda call)
+        elif FunctionName == "mock_search_lambda_name":
+            response_payload = mock_lambda_payloads["SEARCH"]
+        return {"Payload": StringIO(json.dumps(response_payload))}
+
+    return lambda_invocation_side_effect
+
+
+def generate_payload(status_code: int, headers: dict = {}, body: dict = None):
+    return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
+
+
+lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
+
+
+MOCK_ENVIRONMENT_DICT = {
+    "SOURCE_BUCKET_NAME": "immunisation-batch-internal-dev-data-sources",
+    "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-data-destinations",
+    "ENVIRONMENT": "internal-dev",
+    "LOCAL_ACCOUNT_ID": "123456789012",
+    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
+    "CREATE_LAMBDA_NAME": "mock_create_lambda_name",
+    "UPDATE_LAMBDA_NAME": "mock_update_lambda_name",
+    "DELETE_LAMBDA_NAME": "mock_delete_lambda_name",
+    "SEARCH_LAMBDA_NAME": "mock_search_lambda_name",
+}
+
+
 @mock_s3
+@patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestForwardingLambda(unittest.TestCase):
 
     @patch("utils_for_record_forwarder.os.getenv")
@@ -85,80 +127,89 @@ class TestForwardingLambda(unittest.TestCase):
                     expected_output,
                 )
 
-    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
-    def test_forward_request_to_api_new_success(self, mock_s3_client, mock_lambda_client):
+    def test_forward_request_to_api_new_success(self, mock_s3_client):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
-        mock_response = MagicMock()
-        mock_response["Payload"].read.return_value = json.dumps(
-            {"statusCode": 201, "headers": {"Location": "https://example.com/immunization/test_id"}}
-        )
-        mock_lambda_client.invoke.return_value = mock_response
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
-        # Mock the create_ack_data method
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data:
-            # Prepare the message body for the forward_request_to_lambda function
-            message_body = {
-                "row_id": "test_1",
-                "file_key": "file.csv",
-                "supplier": "Test_supplier",
-                "operation_requested": "CREATE",
-                "fhir_json": {"Name": "test"},
-            }
-            # Call the function you are testing
-            forward_request_to_lambda(message_body)
-            # Check that create_ack_data was called with the correct arguments
-            mock_create_ack_data.assert_called_with("20240821T10153000", "test_1", True, None, "test_id")
+        message = {
+            "row_id": "test_1",
+            "file_key": "file.csv",
+            "supplier": "Test_supplier",
+            "operation_requested": "CREATE",
+            "fhir_json": {"Name": "test"},
+        }
 
-    @patch("send_request_to_lambda.lambda_client")
+        # Mock the create_ack_data method and lambda invocation repsonse payloads
+        mock_lambda_payloads = {"CREATE": generate_payload(status_code=201, headers=lambda_success_headers)}
+        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
+            "utils_for_record_forwarder.lambda_client.invoke",
+            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+        ):
+            forward_request_to_lambda(message)
+
+        mock_create_ack_data.assert_called_with("20240821T10153000", "test_1", True, None, "test_id")
+
     @patch("update_ack_file.s3_client")
-    def test_forward_request_to_api_new_success_duplicate(self, mock_s3_client, mock_lambda_client):
+    def test_forward_request_to_api_new_duplicate(self, mock_s3_client):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         diagnostics = "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
-        mock_lambda_client.invoke.return_value = create_mock_search_lambda_response(422, diagnostics)
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data:
-            message_body = {
-                "row_id": "test_2",
-                "file_key": "file.csv",
-                "supplier": "Test_supplier",
-                "operation_requested": "CREATE",
-                "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
-            }
-            forward_request_to_lambda(message_body)
-            # Check that the data_rows function was called with success status and formatted datetime
-            mock_create_ack_data.assert_called_with("20240821T10153000", "test_2", False, diagnostics, None)
+        message = {
+            "row_id": "test_2",
+            "file_key": "file.csv",
+            "supplier": "Test_supplier",
+            "operation_requested": "CREATE",
+            "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
+        }
 
-    @patch("send_request_to_lambda.lambda_client")
+        mock_lambda_payloads = {
+            "CREATE": generate_payload(status_code=422, body=create_mock_operation_outcome(diagnostics))
+        }
+        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
+            "utils_for_record_forwarder.lambda_client.invoke",
+            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+        ):
+            forward_request_to_lambda(message)
+
+        mock_create_ack_data.assert_called_with("20240821T10153000", "test_2", False, diagnostics, None)
+
     @patch("update_ack_file.s3_client")
-    def test_forward_request_to_api_update_failure(self, mock_s3_client, mock_lambda_client):
+    def test_forward_request_to_api_update_failure(self, mock_s3_client):
+        # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         diagnostics = (
             "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
         )
-        mock_lambda_client.invoke.return_value = create_mock_search_lambda_response(422, diagnostics)
+        # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
-            "send_request_to_lambda.get_imms_id_and_version", return_value=("an_imms_id", 1)
-        ):
-            message_body = {
-                "row_id": "test_3",
-                "file_key": "file.csv",
-                "supplier": "Test_supplier",
-                "operation_requested": "UPDATE",
-                "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
-            }
-            forward_request_to_lambda(message_body)
-            mock_create_ack_data.assert_called_with("20240821T10153000", "test_3", False, diagnostics, None)
+        message = {
+            "row_id": "test_3",
+            "file_key": "file.csv",
+            "supplier": "Test_supplier",
+            "operation_requested": "UPDATE",
+            "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
+        }
 
-    @patch("send_request_to_lambda.lambda_client")
+        mock_lambda_payloads = {
+            "UPDATE": generate_payload(status_code=422, body=create_mock_operation_outcome(diagnostics)),
+            "SEARCH": generate_payload(status_code=200, body=response_body_id_and_version_found),
+        }
+        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
+            "utils_for_record_forwarder.lambda_client.invoke",
+            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+        ):
+            forward_request_to_lambda(message)
+
+        mock_create_ack_data.assert_called_with("20240821T10153000", "test_3", False, diagnostics, None)
+
+    @patch("utils_for_record_forwarder.lambda_client.invoke")
     @patch("update_ack_file.s3_client")
     def test_forward_request_to_api_update_failure_imms_id_none(self, mock_s3_client, mock_lambda_client):
         # Mock LastModified as a datetime object
@@ -178,27 +229,33 @@ class TestForwardingLambda(unittest.TestCase):
             )
             mock_lambda_client.assert_not_called()
 
-    @patch("send_request_to_lambda.lambda_client")
     @patch("update_ack_file.s3_client")
-    def test_forward_request_to_api_delete_success(self, mock_s3_client, mock_lambda_client):
+    def test_forward_request_to_api_delete_success(self, mock_s3_client):
+        # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
+        # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
-        mock_response = MagicMock()
-        mock_response["Payload"].read.return_value = json.dumps(
-            {"statusCode": 204, "headers": {"Location": "https://example.com/immunization/test_id"}}
-        )
-        mock_lambda_client.invoke.return_value = mock_response
+
+        message = {
+            "row_id": "test_6",
+            "file_key": "file.csv",
+            "operation_requested": "DELETE",
+            "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
+        }
+
+        mock_lambda_payloads = {
+            "DELETE": generate_payload(status_code=204),
+            "SEARCH": generate_payload(status_code=200, body=response_body_id_and_version_found),
+        }
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
-            "send_request_to_lambda.get_imms_id_and_version", return_value=("an_imms_id", 1)
+            "utils_for_record_forwarder.lambda_client.invoke",
+            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
         ):
-            message_body = {
-                "row_id": "test_6",
-                "file_key": "file.csv",
-                "operation_requested": "DELETE",
-                "fhir_json": {"identifier": [{"system": "test_system", "value": "test_value"}]},
-            }
-            forward_request_to_lambda(message_body)
-            mock_create_ack_data.assert_called_with("20240821T10153000", "test_6", True, None, "an_imms_id")
+            forward_request_to_lambda(message)
+
+        mock_create_ack_data.assert_called_with(
+            "20240821T10153000", "test_6", True, None, "277befd9-574e-47fe-a6ee-189858af3bb0"
+        )
 
     @patch("forwarding_lambda.forward_request_to_lambda")
     @patch("utils_for_record_forwarder.get_environment")

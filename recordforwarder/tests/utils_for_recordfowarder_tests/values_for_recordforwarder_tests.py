@@ -2,8 +2,6 @@
 
 SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
 DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
-CONFIG_BUCKET_NAME = "immunisation-batch-internal-dev-configs"
-STREAM_NAME = "imms-batch-internal-dev-processingdata-stream"
 
 AWS_REGION = "eu-west-2"
 
@@ -14,14 +12,6 @@ TEST_ROW_ID = "123456"
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"forwardedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_BusAck.csv"
-
-MOCK_ENVIRONMENT_DICT = {
-    "ENVIRONMENT": "internal-dev",
-    "LOCAL_ACCOUNT_ID": "123456",
-    "ACK_BUCKET_NAME": DESTINATION_BUCKET_NAME,
-    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-    "KINESIS_STREAM_ARN": f"arn:aws:kinesis:{AWS_REGION}:123456789012:stream/{STREAM_NAME}",
-}
 
 test_fhir_json = {
     "resourceType": "Immunization",

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 from boto3 import client as boto3_client
-from uuid import uuid4
 import json
+from io import StringIO
 from moto import mock_s3
 from forwarding_lambda import forward_lambda_handler
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
@@ -15,14 +15,40 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     TEST_SUPPLIER,
     TEST_ROW_ID,
 )
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import create_mock_search_lambda_response
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
+    response_body_id_and_version_found,
+    response_body_id_and_version_not_found,
+    create_mock_operation_outcome,
+)
 import base64
+
+
+def generate_payload(status_code: int, headers: dict = {}, body: dict = None):
+    return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
+
+
+base_message_fields = {"row_id": TEST_ROW_ID, "file_key": TEST_FILE_KEY, "supplier": TEST_SUPPLIER}
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
 
+lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
+
+MOCK_ENVIRONMENT_DICT = {
+    "SOURCE_BUCKET_NAME": "immunisation-batch-internal-dev-data-sources",
+    "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-data-destinations",
+    "ENVIRONMENT": "internal-dev",
+    "LOCAL_ACCOUNT_ID": "123456789012",
+    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
+    "CREATE_LAMBDA_NAME": "mock_create_lambda_name",
+    "UPDATE_LAMBDA_NAME": "mock_update_lambda_name",
+    "DELETE_LAMBDA_NAME": "mock_delete_lambda_name",
+    "SEARCH_LAMBDA_NAME": "mock_search_lambda_name",
+}
+
 
 @mock_s3
+@patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestForwardingLambdaE2E(unittest.TestCase):
 
     def setup_s3(self):
@@ -44,216 +70,116 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
         self.assertIn(expected_content, ack_file_content)
 
-    def execute_test(
-        self,
-        mock_api,
-        message,
-        response_code,
-        expected_content,
-        mock_diagnostics=None,
-        mock_get_imms_id_and_version=None,
-        id_and_version_found=True,
-    ):
+    def execute_test(self, message, expected_content, mock_lambda_payloads: dict):
         self.setup_s3()
-        mock_response = create_mock_search_lambda_response(response_code, mock_diagnostics, id_and_version_found)
-        mock_api.invoke.return_value = mock_response
-        kinesis_message = self.create_kinesis_message(message)
 
-        if mock_get_imms_id_and_version:
-            with patch("send_request_to_lambda.get_imms_id_and_version", return_value=mock_get_imms_id_and_version):
-                forward_lambda_handler(kinesis_message, None)
-        else:
-            forward_lambda_handler(kinesis_message, None)
+        # Mock the responses from the calls to the Imms FHIR API lambdas
+        # Note that a different response is mocked for each different lambda call
+        def lambda_invocation_side_effect(FunctionName, *_args, **_kwargs):  # pylint: disable=invalid-name
+            response_payload = None
+            # Mock the response for the relevant lambda for the operation
+            operation = message["operation_requested"]
+            if FunctionName == f"mock_{operation.lower()}_lambda_name":
+                response_payload = mock_lambda_payloads[operation]
+            # Mock the search lambda (for the get_imms_id_and_version lambda call)
+            elif FunctionName == "mock_search_lambda_name":
+                response_payload = mock_lambda_payloads["SEARCH"]
+            return {"Payload": StringIO(json.dumps(response_payload))}
+
+        with patch("utils_for_record_forwarder.lambda_client.invoke", side_effect=lambda_invocation_side_effect):
+            forward_lambda_handler(event=self.create_kinesis_message(message), _=None)
 
         self.check_ack_file(s3_client, expected_content)
 
-    @patch("get_imms_id_and_version.lambda_client")
-    def test_forward_lambda_e2e_update_failed_unable_to_get_id(self, mock_api):
-        # Set the mock response as the return value of invoke
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "UPDATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
+    def test_forward_lambda_e2e_update_failed_unable_to_get_id(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
+        mock_lambda_payloads = {
+            "SEARCH": generate_payload(status_code=200, body=response_body_id_and_version_not_found),
         }
-        self.execute_test(mock_api, message, 200, "Fatal", id_and_version_found=False)
+        self.execute_test(message, "Fatal", mock_lambda_payloads)
 
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_create_success(self, mock_api):
-        # Set the mock response as the return value of invoke
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "CREATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-        }
-        self.execute_test(mock_api, message, 201, "OK")
+    def test_forward_lambda_e2e_create_success(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
+        mock_lambda_payloads = {"CREATE": generate_payload(status_code=201, headers=lambda_success_headers)}
+        self.execute_test(message, "OK", mock_lambda_payloads=mock_lambda_payloads)
 
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_create_duplicate(self, mock_api):
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "CREATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
-        }
+    def test_forward_lambda_e2e_create_duplicate(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
         mock_diagnostics = (
             "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
         )
-        self.execute_test(mock_api, message, 422, "Fatal Error", mock_diagnostics=mock_diagnostics)
+        mock_body = create_mock_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
+        mock_lambda_payloads = {"CREATE": generate_payload(status_code=422, body=mock_body)}
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads=mock_lambda_payloads)
 
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_create_failed(self, mock_api):
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "CREATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
-        }
+    def test_forward_lambda_e2e_create_failed(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
         mock_diagnostics = "the provided event ID is either missing or not in the expected format."
-        self.execute_test(mock_api, message, 400, "Fatal Error", mock_diagnostics=mock_diagnostics)
+        mock_body = create_mock_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
+        mock_lambda_payloads = {"CREATE": generate_payload(status_code=400, body=mock_body)}
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads=mock_lambda_payloads)
 
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_create_multi_line_diagnostics(self, mock_api):
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "CREATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
-        }
+    def test_forward_lambda_e2e_create_multi_line_diagnostics(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
         mock_diagnostics = """This a string
                     of diagnostics which spans multiple lines
             and has some carriage returns\n\nand random space"""
-
+        mock_body = create_mock_operation_outcome(diagnostics=mock_diagnostics)
+        mock_lambda_payloads = {"CREATE": generate_payload(status_code=404, body=mock_body)}
         expected_single_line_diagnostics = (
             "This a string of diagnostics which spans multiple lines and has some carriage returns and random space"
         )
+        self.execute_test(message, expected_single_line_diagnostics, mock_lambda_payloads)
 
-        self.setup_s3()
-        mock_response = create_mock_search_lambda_response(400, mock_diagnostics)
-        mock_api.invoke.return_value = mock_response
-        mock_api.create_immunization.return_value = mock_response
-
-        kinesis_message = self.create_kinesis_message(message)
-        forward_lambda_handler(kinesis_message, None)
-
-        ack_file_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_ACK_FILE_KEY)
-        ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
-        self.assertIn(expected_single_line_diagnostics, ack_file_content)
-
-    @patch("send_request_to_lambda.lambda_client")
+    @patch("utils_for_record_forwarder.lambda_client.invoke")
     def test_forward_lambda_e2e_none_request(self, mock_api):
         self.setup_s3()
+        message = {**base_message_fields, "diagnostics": "Unsupported file type received as an attachment"}
 
-        message = {
-            "row_id": TEST_ROW_ID,
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "diagnostics": "Unsupported file type received as an attachment",
-        }
-
-        kinesis_message = self.create_kinesis_message(message)
-        forward_lambda_handler(kinesis_message, None)
+        forward_lambda_handler(self.create_kinesis_message(message), None)
 
         self.check_ack_file(s3_client, "Fatal Error")
         mock_api.create_immunization.assert_not_called()
 
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_update_success(self, mock_api):
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "UPDATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
+    def test_forward_lambda_e2e_update_success(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
+        mock_lambda_payloads = {
+            "UPDATE": generate_payload(200),
+            "SEARCH": generate_payload(200, body=response_body_id_and_version_found),
         }
-        self.execute_test(mock_api, message, 200, "OK", mock_get_imms_id_and_version=(str(uuid4()), 1))
+        self.execute_test(message, "OK", mock_lambda_payloads)
 
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_update_failed(self, mock_api):
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "UPDATE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-        }
+    def test_forward_lambda_e2e_update_failed(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
         mock_diagnstics = "the provided event ID is either missing or not in the expected format."
-        self.execute_test(
-            mock_api,
-            message,
-            400,
-            "Fatal Error",
-            mock_diagnostics=mock_diagnstics,
-            mock_get_imms_id_and_version=("test", 1),
-        )
-
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_delete_success(self, mock_api):
-        self.setup_s3()
-        mock_response = create_mock_search_lambda_response(204)
-        mock_api.invoke.return_value = mock_response
-
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "DELETE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
+        mock_lambda_payloads = {
+            "UPDATE": generate_payload(400, body=create_mock_operation_outcome(mock_diagnstics)),
+            "SEARCH": generate_payload(200, body=response_body_id_and_version_found),
         }
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads)
 
-        kinesis_message = self.create_kinesis_message(message)
-        with patch("send_request_to_lambda.get_imms_id_and_version", return_value=("test", 1)):
-            forward_lambda_handler(kinesis_message, None)
-
-        self.check_ack_file(s3_client, "OK")
-
-    @patch("send_request_to_lambda.lambda_client")
-    def test_forward_lambda_e2e_delete_failed(self, mock_api):
-        self.setup_s3()
-        mock_response = create_mock_search_lambda_response(404, "not-found")
-        mock_api.invoke.return_value = mock_response
-        message = {
-            "row_id": TEST_ROW_ID,
-            "fhir_json": test_fhir_json,
-            "operation_requested": "DELETE",
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "imms_id": "test",
-            "version": 1,
+    def test_forward_lambda_e2e_delete_success(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "DELETE"}
+        mock_lambda_payloads = {
+            "DELETE": generate_payload(204),
+            "SEARCH": generate_payload(200, body=response_body_id_and_version_found),
         }
+        self.execute_test(message, "OK", mock_lambda_payloads)
 
-        kinesis_message = self.create_kinesis_message(message)
-        with patch("send_request_to_lambda.get_imms_id_and_version", return_value=("test", 1)):
-            forward_lambda_handler(kinesis_message, None)
-
-        self.check_ack_file(s3_client, "Fatal Error")
+    def test_forward_lambda_e2e_delete_failed(self):
+        message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "DELETE"}
+        mock_diagnstics = "the provided event ID is either missing or not in the expected format."
+        mock_lambda_payloads = {
+            "UPDATE": generate_payload(404, body=create_mock_operation_outcome(mock_diagnstics, code="not-found")),
+            "SEARCH": generate_payload(200, body=response_body_id_and_version_not_found),
+        }
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads)
 
     def test_forward_lambda_e2e_no_permissions(self):
         self.setup_s3()
+        message = {**base_message_fields, "diagnostics": "No permissions for operation"}
 
-        message = {
-            "row_id": TEST_ROW_ID,
-            "file_key": TEST_FILE_KEY,
-            "supplier": TEST_SUPPLIER,
-            "diagnostics": "No permissions for operation",
-        }
-
-        kinesis_message = self.create_kinesis_message(message)
-        forward_lambda_handler(kinesis_message, None)
+        forward_lambda_handler(self.create_kinesis_message(message), None)
 
         self.check_ack_file(s3_client, "Fatal Error")
 

@@ -3,7 +3,6 @@
 import os
 import logging
 from errors import IdNotFoundError
-from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda
 from constants import IMMS_BATCH_APP_NAME
 
@@ -20,7 +19,7 @@ def get_imms_id_and_version(fhir_json: dict) -> tuple[str, int]:
     payload = {"headers": headers, "body": None, "queryStringParameters": query_string_parameters}
 
     # Invoke lambda
-    status_code, body, _ = invoke_lambda(lambda_client, os.getenv("SEARCH_LAMBDA_NAME"), payload)
+    status_code, body, _ = invoke_lambda(os.getenv("SEARCH_LAMBDA_NAME"), payload)
 
     # Handle non-200 or empty response
     if not (body.get("total") == 1 and status_code == 200):
