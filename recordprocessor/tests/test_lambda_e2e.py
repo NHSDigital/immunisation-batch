@@ -186,13 +186,28 @@ class TestRecordProcessor(unittest.TestCase):
         test_event = json.dumps(test_event)
 
         main(test_event)
-        expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
+        # expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
-            ("CREATE no permissions", 0, expected_kinesis_data, False),
-            ("UPDATE no permissions", 1, expected_kinesis_data, False),
-            ("DELETE no permissions", 2, expected_kinesis_data, False),
+            (
+                "CREATE no permissions",
+                0,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "CREATE"},
+                False,
+            ),
+            (
+                "UPDATE no permissions",
+                1,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
+                False,
+            ),
+            (
+                "DELETE no permissions",
+                2,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
+                False,
+            ),
         ]
 
         self.make_assertions(test_cases)
@@ -212,8 +227,18 @@ class TestRecordProcessor(unittest.TestCase):
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         test_cases = [
             ("CREATE create permission only", 0, {"operation_requested": "CREATE"}, True),
-            ("UPDATE create permission only", 1, {"diagnostics": Diagnostics.NO_PERMISSIONS}, False),
-            ("DELETE create permission only", 2, {"diagnostics": Diagnostics.NO_PERMISSIONS}, False),
+            (
+                "UPDATE create permission only",
+                1,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
+                False,
+            ),
+            (
+                "DELETE create permission only",
+                2,
+                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
+                False,
+            ),
         ]
 
         self.make_assertions(test_cases)
@@ -224,7 +249,7 @@ class TestRecordProcessor(unittest.TestCase):
 
         main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG, "operation_requested": ""}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE no action_flag", 0, expected_kinesis_data, False)])
 
@@ -234,7 +259,7 @@ class TestRecordProcessor(unittest.TestCase):
 
         main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG}
+        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG, "operation_requested": "INVALID"}
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success)
         self.make_assertions([("CREATE invalid action_flag", 0, expected_kinesis_data, False)])
 

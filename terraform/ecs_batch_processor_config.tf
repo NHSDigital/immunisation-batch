@@ -203,10 +203,13 @@ resource "aws_ecs_task_definition" "ecs_task" {
         name  = "KINESIS_STREAM_ARN"
         value = "${local.new_kinesis_arn}"
       },
+      { name  = "SPLUNK_FIREHOSE_NAME"
+        value = data.aws_kinesis_firehose_delivery_stream.splunk_stream.name},
       {
         name  = "SEARCH_IMMS_LAMBDA"
         value = data.aws_lambda_function.existing_search_lambda.function_name
       },
+
     ]
     logConfiguration = {
       logDriver = "awslogs"
