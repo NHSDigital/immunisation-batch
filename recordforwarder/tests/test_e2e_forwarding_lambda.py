@@ -1,4 +1,5 @@
 # pylint: disable=wrong-import-position
+# flake8: noqa: E402
 """E2e tests for forwarding lambda"""
 
 import unittest
@@ -16,8 +17,8 @@ maindir = os.path.dirname(__file__)
 SRCDIR = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, SRCDIR)))
 
-from forwarding_lambda import forward_lambda_handler  # flake8: noqa: E402
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # flake8: noqa: E402
+from forwarding_lambda import forward_lambda_handler
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
     test_fhir_json,
     AWS_REGION,
     SOURCE_BUCKET_NAME,

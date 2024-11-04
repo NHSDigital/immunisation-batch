@@ -1,4 +1,5 @@
 # pylint: disable=wrong-import-position
+# flake8: noqa: E402
 """Tests for forwarding lambda"""
 
 import unittest
@@ -18,19 +19,19 @@ maindir = os.path.dirname(__file__)
 SRCDIR = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, SRCDIR)))
 
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # flake8: noqa: E402
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
     lambda_success_headers,
     MOCK_ENVIRONMENT_DICT,
     AWS_REGION,
 )
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (  # flake8: noqa: E402
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
     create_mock_operation_outcome,
     response_body_id_and_version_found,
     generate_payload,
 )
-from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda  # flake8: noqa: E402
-from utils_for_record_forwarder import get_environment  # flake8: noqa: E402
-from update_ack_file import create_ack_data  # flake8: noqa: E402
+from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
+from utils_for_record_forwarder import get_environment
+from update_ack_file import create_ack_data
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
