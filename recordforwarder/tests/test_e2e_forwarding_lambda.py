@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import patch
-from boto3 import client as boto3_client
+import base64
 import json
 from io import StringIO
+from boto3 import client as boto3_client
 from moto import mock_s3
 from forwarding_lambda import forward_lambda_handler
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
@@ -12,39 +13,20 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     DESTINATION_BUCKET_NAME,
     TEST_FILE_KEY,
     TEST_ACK_FILE_KEY,
-    TEST_SUPPLIER,
-    TEST_ROW_ID,
+    base_message_fields,
+    lambda_success_headers,
+    MOCK_ENVIRONMENT_DICT,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
     response_body_id_and_version_found,
     response_body_id_and_version_not_found,
     create_mock_operation_outcome,
+    generate_payload,
 )
-import base64
 
-
-def generate_payload(status_code: int, headers: dict = {}, body: dict = None):
-    return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
-
-
-base_message_fields = {"row_id": TEST_ROW_ID, "file_key": TEST_FILE_KEY, "supplier": TEST_SUPPLIER}
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
-
-lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
-
-MOCK_ENVIRONMENT_DICT = {
-    "SOURCE_BUCKET_NAME": "immunisation-batch-internal-dev-data-sources",
-    "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-data-destinations",
-    "ENVIRONMENT": "internal-dev",
-    "LOCAL_ACCOUNT_ID": "123456789012",
-    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-    "CREATE_LAMBDA_NAME": "mock_create_lambda_name",
-    "UPDATE_LAMBDA_NAME": "mock_update_lambda_name",
-    "DELETE_LAMBDA_NAME": "mock_delete_lambda_name",
-    "SEARCH_LAMBDA_NAME": "mock_search_lambda_name",
-}
 
 
 @mock_s3
@@ -64,7 +46,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
         return {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
-    def check_ack_file(self, s3_client, expected_content):
+    def check_ack_file(self, expected_content):
         """Helper to check the acknowledgment file content"""
         ack_file_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_ACK_FILE_KEY)
         ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
@@ -89,7 +71,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         with patch("utils_for_record_forwarder.lambda_client.invoke", side_effect=lambda_invocation_side_effect):
             forward_lambda_handler(event=self.create_kinesis_message(message), _=None)
 
-        self.check_ack_file(s3_client, expected_content)
+        self.check_ack_file(expected_content)
 
     def test_forward_lambda_e2e_update_failed_unable_to_get_id(self):
         message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
@@ -138,7 +120,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         forward_lambda_handler(self.create_kinesis_message(message), None)
 
-        self.check_ack_file(s3_client, "Fatal Error")
+        self.check_ack_file("Fatal Error")
         mock_api.create_immunization.assert_not_called()
 
     def test_forward_lambda_e2e_update_success(self):
@@ -181,7 +163,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
         forward_lambda_handler(self.create_kinesis_message(message), None)
 
-        self.check_ack_file(s3_client, "Fatal Error")
+        self.check_ack_file("Fatal Error")
 
 
 if __name__ == "__main__":

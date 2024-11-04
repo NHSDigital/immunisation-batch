@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock
-import requests
 import json
 
 
@@ -19,6 +17,10 @@ def create_mock_operation_outcome(diagnostics: str, code: str = "duplicate") -> 
             }
         ],
     }
+
+
+def generate_payload(status_code: int, headers: dict = {}, body: dict = None):
+    return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
 
 
 response_body_id_and_version_not_found = {
@@ -41,26 +43,3 @@ response_body_id_and_version_found = {
     "entry": [{"resource": {"id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": {"versionId": 2}}}],
     "total": 1,
 }
-
-
-def create_mock_search_lambda_response(
-    status_code: int, diagnostics: str = None, id_and_version_found: bool = True
-) -> requests.Response:
-    """Creates a mock response for a request sent to the search lambda for imms_id and version."""
-
-    body = (
-        create_mock_operation_outcome(diagnostics)
-        if diagnostics
-        else response_body_id_and_version_found if id_and_version_found else response_body_id_and_version_not_found
-    )
-
-    mock_response = MagicMock()
-    mock_response["Payload"].read.return_value = json.dumps(
-        {
-            "statusCode": status_code,
-            "headers": {"Location": "https://example.com/immunization/test_id"},
-            **({"body": json.dumps(body)} if body is not None else {}),
-        }
-    )
-
-    return mock_response

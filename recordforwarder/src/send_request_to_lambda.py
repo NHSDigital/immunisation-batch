@@ -17,7 +17,7 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
 
     # Return imms id (default to None if unable to find the id)
-    return headers.get("Location").split("/")[-1] or None
+    return headers.get("Location", "").split("/")[-1] or None
 
 
 def send_update_request(fhir_json: dict, supplier: str) -> str:

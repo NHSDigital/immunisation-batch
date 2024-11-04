@@ -14,6 +14,11 @@ from update_ack_file import create_ack_data
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
     create_mock_operation_outcome,
     response_body_id_and_version_found,
+    generate_payload,
+)
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
+    lambda_success_headers,
+    MOCK_ENVIRONMENT_DICT,
 )
 
 
@@ -35,26 +40,6 @@ def generate_lambda_invocation_side_effect(message, mock_lambda_payloads):
         return {"Payload": StringIO(json.dumps(response_payload))}
 
     return lambda_invocation_side_effect
-
-
-def generate_payload(status_code: int, headers: dict = {}, body: dict = None):
-    return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
-
-
-lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
-
-
-MOCK_ENVIRONMENT_DICT = {
-    "SOURCE_BUCKET_NAME": "immunisation-batch-internal-dev-data-sources",
-    "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-data-destinations",
-    "ENVIRONMENT": "internal-dev",
-    "LOCAL_ACCOUNT_ID": "123456789012",
-    "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-    "CREATE_LAMBDA_NAME": "mock_create_lambda_name",
-    "UPDATE_LAMBDA_NAME": "mock_update_lambda_name",
-    "DELETE_LAMBDA_NAME": "mock_delete_lambda_name",
-    "SEARCH_LAMBDA_NAME": "mock_search_lambda_name",
-}
 
 
 @mock_s3
