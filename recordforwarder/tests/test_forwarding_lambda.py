@@ -1,38 +1,35 @@
+"""Tests for forwarding lambda"""
+
 import unittest
 from unittest.mock import patch
-from moto import mock_s3
-from boto3 import client as boto3_client
+import os
+import sys
 import json
 from io import StringIO
-from botocore.exceptions import ClientError
 from datetime import datetime
 import base64
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION
-from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
-from utils_for_record_forwarder import get_environment
-from update_ack_file import create_ack_data
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
+from moto import mock_s3
+from boto3 import client as boto3_client
+from botocore.exceptions import ClientError
+
+# Import local modules after adjusting the path
+maindir = os.path.dirname(__file__)
+SRCDIR = "../src"
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, SRCDIR)))
+
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # pylint: disable=wrong-import-position
+    lambda_success_headers,
+    MOCK_ENVIRONMENT_DICT,
+    AWS_REGION,
+)
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (  # pylint: disable=wrong-import-position
     create_mock_operation_outcome,
     response_body_id_and_version_found,
     generate_payload,
 )
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
-    lambda_success_headers,
-    MOCK_ENVIRONMENT_DICT,
-)
-import os
-import sys
-
-# Move the sys.path insertion to the top along with other imports
-maindir = os.path.dirname(__file__)
-srcdir = "../src"
-sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-
-# Import other modules after adjusting the path
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import AWS_REGION  # noqa: E402
-from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda  # noqa: E402
-from utils_for_record_forwarder import get_environment  # noqa: E402
-from update_ack_file import create_ack_data  # noqa: E402
+from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda  # pylint: disable=wrong-import-position
+from utils_for_record_forwarder import get_environment  # pylint: disable=wrong-import-position
+from update_ack_file import create_ack_data  # pylint: disable=wrong-import-position
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)

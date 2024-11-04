@@ -1,19 +1,22 @@
+"""E2e tests for forwarding lambda"""
+
 import unittest
 from unittest.mock import patch
 import base64
 import json
 from io import StringIO
-from boto3 import client as boto3_client
-from moto import mock_s3
 import os
 import sys
-import base64
+from boto3 import client as boto3_client
+from moto import mock_s3
 
+# Import local modules after adjusting the path
 maindir = os.path.dirname(__file__)
-srcdir = "../src"
-sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from forwarding_lambda import forward_lambda_handler  # noqa: E402
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # noqa: E402
+SRCDIR = "../src"
+sys.path.insert(0, os.path.abspath(os.path.join(maindir, SRCDIR)))
+
+from forwarding_lambda import forward_lambda_handler  # pylint:disable=wrong-import-position
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (  # pylint:disable=wrong-import-position
     test_fhir_json,
     AWS_REGION,
     SOURCE_BUCKET_NAME,
@@ -24,7 +27,7 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     lambda_success_headers,
     MOCK_ENVIRONMENT_DICT,
 )
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (  # pylint:disable=wrong-import-position
     response_body_id_and_version_found,
     response_body_id_and_version_not_found,
     create_mock_operation_outcome,
