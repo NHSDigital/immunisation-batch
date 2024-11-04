@@ -5,6 +5,7 @@ from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 from utils_for_record_forwarder import invoke_lambda
 from constants import IMMS_BATCH_APP_NAME
+from log_structure import forwarder_function_info
 
 
 def send_create_request(fhir_json: dict, supplier: str) -> str:
@@ -74,6 +75,7 @@ def get_operation_outcome_diagnostics(body: dict) -> str:
         return "Unable to obtain diagnostics from API response"
 
 
+@forwarder_function_info
 def send_request_to_lambda(message_body: dict) -> str:
     """
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.

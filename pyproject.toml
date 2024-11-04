@@ -5,6 +5,7 @@ python = "^3.8"
 name = "immunisation-batch"
 version = "0.0.1-alpha"
 description = "TODO"
+packages = [{include = "immunisation_batch"}]
 authors = [
     #TODO add authors
 ]
@@ -15,16 +16,21 @@ homepage = "https://digital.nhs.uk/developer/api-catalogue"
 keywords = ["healthcare", "uk", "nhs"] #TODO add additional keywords
 
 
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 pytest-nhsd-apim = "^3.3.2"
+pyyaml = "6.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.7.9"
 black = "^20.8b1"
 pip-licenses = "^2.0.1"
 jinja2 = "^2.11.1"
-pyyaml = "^5.2"
+pyyaml = "^6.0"
 docopt = "^0.6.2"
 jsonpath-rw = "^1.4.0"
 semver = "^2.9.0"

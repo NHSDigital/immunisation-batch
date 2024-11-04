@@ -9,6 +9,7 @@ TEST_VACCINE_TYPE = "flu"
 TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
 TEST_ROW_ID = "123456"
+TEST_IMMS_ID = "imms_6543219"
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"forwardedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_BusAck.csv"
@@ -114,3 +115,26 @@ test_fhir_json = {
         }
     ],
 }
+
+test_fixed_time_taken = [
+    1000000.0,
+    1000001.0,
+    1000001.0,
+    1000000.0,
+    1000001.0,
+    1000001.0,
+    1000000.0,
+    1000001.0,
+    1000001.0,
+]
+
+
+class Diagnostics:
+    """Diagnostics messages"""
+
+    INVALID_ACTION_FLAG = "Invalid ACTION_FLAG - ACTION_FLAG must be 'NEW', 'UPDATE' or 'DELETE'"
+    NO_PERMISSIONS = "No permissions for requested operation"
+    MISSING_UNIQUE_ID = "UNIQUE_ID or UNIQUE_ID_URI is missing"
+    UNABLE_TO_OBTAIN_IMMS_ID = "Unable to obtain imms event id"
+    UNABLE_TO_OBTAIN_VERSION = "Unable to obtain current imms event version"
+    INVALID_CONVERSION = "Unable to convert row to FHIR Immunization Resource JSON format"
