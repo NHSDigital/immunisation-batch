@@ -11,7 +11,7 @@ from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import
     generate_payload,
     response_body_id_and_version_found,
     response_body_id_and_version_not_found,
-    create_mock_operation_outcome,
+    generate_mock_operation_outcome,
 )
 
 
@@ -49,7 +49,7 @@ class TestGetImmsIdAndVersion(unittest.TestCase):
         """Test that an IdNotFoundError is raised for an unsuccessful search lambda response."""
         mock_lambda_response_payload = {
             "Payload": StringIO(
-                json.dumps(generate_payload(404, body=create_mock_operation_outcome("some_diagnostics")))
+                json.dumps(generate_payload(404, body=generate_mock_operation_outcome("some_diagnostics")))
             )
         }
         with patch("clients.lambda_client.invoke", return_value=mock_lambda_response_payload):

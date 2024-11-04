@@ -6,10 +6,7 @@ import unittest
 from unittest.mock import patch
 import os
 import sys
-import json
-from io import StringIO
 from datetime import datetime
-import base64
 from moto import mock_s3
 from boto3 import client as boto3_client
 from botocore.exceptions import ClientError
@@ -25,9 +22,11 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     AWS_REGION,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
-    create_mock_operation_outcome,
+    generate_mock_operation_outcome,
     response_body_id_and_version_found,
     generate_payload,
+    generate_kinesis_message,
+    generate_lambda_invocation_side_effect,
 )
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
 from utils_for_record_forwarder import get_environment
@@ -35,23 +34,6 @@ from update_ack_file import create_ack_data
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
-
-
-def generate_lambda_invocation_side_effect(message, mock_lambda_payloads):
-    # Mock the responses from the calls to the Imms FHIR API lambdas
-    # Note that a different response is mocked for each different lambda call
-    def lambda_invocation_side_effect(FunctionName, *_args, **_kwargs):  # pylint: disable=invalid-name
-        response_payload = None
-        # Mock the response for the relevant lambda for the operation
-        operation = message["operation_requested"]
-        if FunctionName == f"mock_{operation.lower()}_lambda_name":
-            response_payload = mock_lambda_payloads[operation]
-        # Mock the search lambda (for the get_imms_id_and_version lambda call)
-        elif FunctionName == "mock_search_lambda_name":
-            response_payload = mock_lambda_payloads["SEARCH"]
-        return {"Payload": StringIO(json.dumps(response_payload))}
-
-    return lambda_invocation_side_effect
 
 
 @mock_s3
@@ -143,7 +125,7 @@ class TestForwardingLambda(unittest.TestCase):
         mock_lambda_payloads = {"CREATE": generate_payload(status_code=201, headers=lambda_success_headers)}
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
             "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
         ):
             forward_request_to_lambda(message)
 
@@ -166,11 +148,11 @@ class TestForwardingLambda(unittest.TestCase):
         }
 
         mock_lambda_payloads = {
-            "CREATE": generate_payload(status_code=422, body=create_mock_operation_outcome(diagnostics))
+            "CREATE": generate_payload(status_code=422, body=generate_mock_operation_outcome(diagnostics))
         }
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
             "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
         ):
             forward_request_to_lambda(message)
 
@@ -195,12 +177,12 @@ class TestForwardingLambda(unittest.TestCase):
         }
 
         mock_lambda_payloads = {
-            "UPDATE": generate_payload(status_code=422, body=create_mock_operation_outcome(diagnostics)),
+            "UPDATE": generate_payload(status_code=422, body=generate_mock_operation_outcome(diagnostics)),
             "SEARCH": generate_payload(status_code=200, body=response_body_id_and_version_found),
         }
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
             "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
         ):
             forward_request_to_lambda(message)
 
@@ -246,7 +228,7 @@ class TestForwardingLambda(unittest.TestCase):
         }
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
             "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(message, mock_lambda_payloads),
+            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
         ):
             forward_request_to_lambda(message)
 
@@ -255,52 +237,37 @@ class TestForwardingLambda(unittest.TestCase):
         )
 
     @patch("forwarding_lambda.forward_request_to_lambda")
-    @patch("utils_for_record_forwarder.get_environment")
-    def test_forward_lambda_handler(self, mock_get_environment, mock_forward_request_to_api):
-        # Mock the environment to return 'internal-dev'
-        mock_get_environment.return_value = "internal-dev"
-
-        # Simulate the event data that Lambda would receive
+    def test_forward_lambda_handler(self, mock_forward_request_to_api):
         message_body = {
             "row_id": "test_7",
             "fhir_json": "{}",
             "operation_requested": "CREATE",
             "file_key": "test_file.csv",
         }
-        event = {
-            "Records": [
-                {"kinesis": {"data": base64.b64encode(json.dumps(message_body).encode("utf-8")).decode("utf-8")}}
-            ]
-        }
-        forward_lambda_handler(event, None)
+
+        forward_lambda_handler(generate_kinesis_message(message_body), None)
         mock_forward_request_to_api.assert_called_once_with(message_body)
 
     @patch("forwarding_lambda.forward_request_to_lambda")
-    @patch("utils_for_record_forwarder.get_environment")
-    def test_forward_lambda_handler_update(self, mock_get_environment, mock_forward_request_to_api):
-        mock_get_environment.return_value = "internal-dev"
+    def test_forward_lambda_handler_update(self, mock_forward_request_to_api):
         message_body = {
             "row_id": "test_8",
             "fhir_json": "{}",
             "operation_requested": "UPDATE",
             "file_key": "test_file.csv",
         }
-        event = {
-            "Records": [
-                {"kinesis": {"data": base64.b64encode(json.dumps(message_body).encode("utf-8")).decode("utf-8")}}
-            ]
-        }
-        forward_lambda_handler(event, None)
+        forward_lambda_handler(generate_kinesis_message(message_body), None)
         mock_forward_request_to_api.assert_called_once_with(message_body)
 
     @patch("forwarding_lambda.logger")
     def test_forward_lambda_handler_with_exception(self, mock_logger):
-        event = {
-            "Records": [
-                {"body": json.dumps({"fhir_json": "{}", "action_flag": "invalid_action", "file_key": "test_file.csv"})}
-            ]
+        message_body = {
+            "row_id": "test_9",
+            "fhir_json": "{}",
+            "operation_requested": "INVALID OPERATION",
+            "file_key": "test_file.csv",
         }
-        forward_lambda_handler(event, None)
+        forward_lambda_handler(generate_kinesis_message(message_body), None)
         mock_logger.error.assert_called()
 
 

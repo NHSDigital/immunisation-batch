@@ -116,18 +116,6 @@ test_fhir_json = {
     ],
 }
 
-test_fixed_time_taken = [
-    1000000.0,
-    1000001.0,
-    1000001.0,
-    1000000.0,
-    1000001.0,
-    1000001.0,
-    1000000.0,
-    1000001.0,
-    1000001.0,
-]
-
 
 class Diagnostics:
     """Diagnostics messages"""
