@@ -53,25 +53,3 @@ def generate_lambda_invocation_side_effect(mock_lambda_payloads):
                 return {"Payload": StringIO(json.dumps(response_payload))}
 
     return lambda_invocation_side_effect
-
-
-response_body_id_and_version_not_found = {
-    "resourceType": "Bundle",
-    "type": "searchset",
-    "link": [
-        {
-            "relation": "self",
-            "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization?"
-            + "immunization.identifier=None&_elements=None",
-        }
-    ],
-    "entry": [],
-    "total": 0,
-}
-
-response_body_id_and_version_found = {
-    "resourceType": "Bundle",
-    "type": "searchset",
-    "entry": [{"resource": {"id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": {"versionId": 2}}}],
-    "total": 1,
-}

@@ -20,10 +20,10 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     lambda_success_headers,
     MOCK_ENVIRONMENT_DICT,
     AWS_REGION,
+    ResponseBody,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
     generate_mock_operation_outcome,
-    response_body_id_and_version_found,
     generate_payload,
     generate_kinesis_message,
     generate_lambda_invocation_side_effect,
@@ -178,7 +178,7 @@ class TestForwardingLambda(unittest.TestCase):
 
         mock_lambda_payloads = {
             "UPDATE": generate_payload(status_code=422, body=generate_mock_operation_outcome(diagnostics)),
-            "SEARCH": generate_payload(status_code=200, body=response_body_id_and_version_found),
+            "SEARCH": generate_payload(status_code=200, body=ResponseBody.id_and_version_found),
         }
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
             "utils_for_record_forwarder.lambda_client.invoke",
@@ -224,7 +224,7 @@ class TestForwardingLambda(unittest.TestCase):
 
         mock_lambda_payloads = {
             "DELETE": generate_payload(status_code=204),
-            "SEARCH": generate_payload(status_code=200, body=response_body_id_and_version_found),
+            "SEARCH": generate_payload(status_code=200, body=ResponseBody.id_and_version_found),
         }
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
             "utils_for_record_forwarder.lambda_client.invoke",

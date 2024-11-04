@@ -6,7 +6,7 @@ import json
 from copy import deepcopy
 from datetime import datetime
 from send_request_to_lambda import send_request_to_lambda
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import TEST_IMMS_ID
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import Message
 from errors import MessageNotSuccessfulError
 
 
@@ -81,7 +81,7 @@ class TestSplunkLogging(unittest.TestCase):
                     patch("log_structure.firehose_logger") as mock_firehose_logger,
                     patch("time.time", side_effect=self.test_fixed_time_taken),
                     patch("log_structure.datetime") as mock_datetime,
-                    patch(f"send_request_to_lambda.send_{operation.lower()}_request", return_value=TEST_IMMS_ID),
+                    patch(f"send_request_to_lambda.send_{operation.lower()}_request", return_value=Message.IMMS_ID),
                 ):
                     mock_datetime.now.return_value = self.fixed_datetime
 
@@ -89,7 +89,7 @@ class TestSplunkLogging(unittest.TestCase):
                     message_body["operation_requested"] = operation
                     result = send_request_to_lambda(message_body)
 
-                self.assertEqual(result, TEST_IMMS_ID)
+                self.assertEqual(result, Message.IMMS_ID)
 
                 self.assertGreater(len(log.output), 0)
                 log_json = self.extract_log_json(log)
