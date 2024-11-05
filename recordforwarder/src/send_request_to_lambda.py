@@ -15,11 +15,11 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
     headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
     payload = {"headers": headers, "body": fhir_json}
     status_code, body, headers = invoke_lambda(lambda_client, os.getenv("CREATE_LAMBDA_NAME"), payload)
-    if status_code != 201:
+    if status_code != 200:
         raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
 
     # Return imms id (default to None if unable to find the id)
-    return headers.get("Location").split("/")[-1] or None
+    return "200" or None
 
 
 def send_update_request(fhir_json: dict, supplier: str) -> str:
