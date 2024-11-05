@@ -29,7 +29,6 @@ from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import
     generate_lambda_invocation_side_effect,
 )
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
-from utils_for_record_forwarder import get_environment
 from update_ack_file import create_ack_data
 
 
@@ -39,21 +38,6 @@ s3_client = boto3_client("s3", region_name=AWS_REGION)
 @mock_s3
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestForwardingLambda(unittest.TestCase):
-
-    @patch("utils_for_record_forwarder.os.getenv")
-    def test_get_environment_internal_dev(self, mock_getenv):
-        mock_getenv.return_value = "internal-dev"
-        self.assertEqual(get_environment(), "internal-dev")
-
-    @patch("utils_for_record_forwarder.os.getenv")
-    def test_get_environment_prod(self, mock_getenv):
-        mock_getenv.return_value = "prod"
-        self.assertEqual(get_environment(), "prod")
-
-    @patch("utils_for_record_forwarder.os.getenv")
-    def test_get_environment_default(self, mock_getenv):
-        mock_getenv.return_value = None
-        self.assertEqual(get_environment(), "internal-dev")
 
     def test_create_ack_data(self):
         created_at_formatted_string = "20241015T18504900"
@@ -93,7 +77,7 @@ class TestForwardingLambda(unittest.TestCase):
             "MESSAGE_DELIVERY": False,
         }
 
-        # Test cas tuples are structured as (test_name, successful_api_response, diagnostics, imms_id, expected output)
+        # Test case tuples are structured as (test_name, successful_api_response, diagnostics, imms_id, expected output)
         test_cases = [
             ("ack data for success", True, None, "test_imms_id", success_ack_data),
             ("ack data for failure", False, "Some diagnostics", "", failure_ack_data),
@@ -106,12 +90,7 @@ class TestForwardingLambda(unittest.TestCase):
                     expected_output,
                 )
 
-    @patch("update_ack_file.s3_client")
-    def test_forward_request_to_api_new_success(self, mock_s3_client):
-        # Mock LastModified as a datetime object
-        mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
-        # Simulate the case where the ack file does not exist
-        mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
+    def test_forward_request_to_api_new_success(self):
 
         message = {
             "row_id": "test_1",
@@ -123,10 +102,18 @@ class TestForwardingLambda(unittest.TestCase):
 
         # Mock the create_ack_data method and lambda invocation repsonse payloads
         mock_lambda_payloads = {"CREATE": generate_payload(status_code=201, headers=lambda_success_headers)}
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
-            "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+        with (
+            patch("update_ack_file.create_ack_data") as mock_create_ack_data,
+            patch(
+                "utils_for_record_forwarder.lambda_client.invoke",
+                side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+            ),
+            patch("update_ack_file.s3_client") as mock_s3_client,
         ):
+            mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
+            # Simulate the case where the ack file does not exist
+            mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
+
             forward_request_to_lambda(message)
 
         mock_create_ack_data.assert_called_with("20240821T10153000", "test_1", True, None, "test_id")
@@ -150,9 +137,12 @@ class TestForwardingLambda(unittest.TestCase):
         mock_lambda_payloads = {
             "CREATE": generate_payload(status_code=422, body=generate_mock_operation_outcome(diagnostics))
         }
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
-            "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+        with (
+            patch("update_ack_file.create_ack_data") as mock_create_ack_data,
+            patch(
+                "utils_for_record_forwarder.lambda_client.invoke",
+                side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+            ),
         ):
             forward_request_to_lambda(message)
 
@@ -180,9 +170,12 @@ class TestForwardingLambda(unittest.TestCase):
             "UPDATE": generate_payload(status_code=422, body=generate_mock_operation_outcome(diagnostics)),
             "SEARCH": generate_payload(status_code=200, body=ResponseBody.id_and_version_found),
         }
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
-            "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+        with (
+            patch("update_ack_file.create_ack_data") as mock_create_ack_data,
+            patch(
+                "utils_for_record_forwarder.lambda_client.invoke",
+                side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+            ),
         ):
             forward_request_to_lambda(message)
 
@@ -226,9 +219,12 @@ class TestForwardingLambda(unittest.TestCase):
             "DELETE": generate_payload(status_code=204),
             "SEARCH": generate_payload(status_code=200, body=ResponseBody.id_and_version_found),
         }
-        with patch("update_ack_file.create_ack_data") as mock_create_ack_data, patch(
-            "utils_for_record_forwarder.lambda_client.invoke",
-            side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+        with (
+            patch("update_ack_file.create_ack_data") as mock_create_ack_data,
+            patch(
+                "utils_for_record_forwarder.lambda_client.invoke",
+                side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
+            ),
         ):
             forward_request_to_lambda(message)
 

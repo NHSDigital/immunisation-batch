@@ -40,11 +40,18 @@ kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestForwardingLambdaE2E(unittest.TestCase):
 
-    def setup_s3(self):
-        """Helper to setup mock S3 buckets and upload test file"""
+    def setUp(self) -> None:
+        """Set up the SOURCE and DESTINATION buckets, and upload the TestFile to the SOURCE bucket"""
         for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
             s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TestFile.FILE_KEY, Body="test_data")
+
+    def tearDown(self) -> None:
+        """Deletes the buckets and their contents"""
+        for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
+            for obj in s3_client.list_objects_v2(Bucket=bucket_name).get("Contents", []):
+                s3_client.delete_object(Bucket=bucket_name, Key=obj["Key"])
+            s3_client.delete_bucket(Bucket=bucket_name)
 
     def check_ack_file(self, expected_content):
         """Helper to check the acknowledgment file content"""
@@ -53,13 +60,11 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.assertIn(expected_content, ack_file_content)
 
     def execute_test(self, message, expected_content, mock_lambda_payloads: dict):
-        self.setup_s3()
-
         with patch(
             "utils_for_record_forwarder.lambda_client.invoke",
             side_effect=generate_lambda_invocation_side_effect(mock_lambda_payloads),
         ):
-            forward_lambda_handler(event=generate_kinesis_message(message), _=None)
+            forward_lambda_handler(generate_kinesis_message(message), None)
 
         self.check_ack_file(expected_content)
 
@@ -130,21 +135,15 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
     @patch("utils_for_record_forwarder.lambda_client.invoke")
     def test_forward_lambda_e2e_none_request(self, mock_api):
-        self.setup_s3()
         message = {**Message.base_message_fields, "diagnostics": "Unsupported file type received as an attachment"}
-
-        forward_lambda_handler(generate_kinesis_message(message), None)
-
-        self.check_ack_file("Fatal Error")
+        mock_lambda_payloads = {}
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads)
         mock_api.create_immunization.assert_not_called()
 
     def test_forward_lambda_e2e_no_permissions(self):
-        self.setup_s3()
         message = {**Message.base_message_fields, "diagnostics": "No permissions for operation"}
-
-        forward_lambda_handler(generate_kinesis_message(message), None)
-
-        self.check_ack_file("Fatal Error")
+        mock_lambda_payloads = {}
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads)
 
 
 if __name__ == "__main__":
