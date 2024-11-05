@@ -30,7 +30,9 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     # Get details needed to process file
     file_id = incoming_message_body.get("message_id")
     vaccine: Vaccine = next(  # Convert vaccine_type to Vaccine enum
-        vaccine for vaccine in Vaccine if vaccine.value == incoming_message_body.get("vaccine_type").upper()
+        vaccine
+        for vaccine in Vaccine
+        if vaccine.value == incoming_message_body.get("vaccine_type").upper()
     )
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
@@ -38,20 +40,24 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     allowed_operations = get_operation_permissions(vaccine, permission)
 
     # Fetch the data
-    bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
+    bucket_name = os.getenv(
+        "SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources"
+    )
     csv_reader = get_csv_content_dict_reader(bucket_name, file_key)
 
     is_valid_headers = validate_content_headers(csv_reader)
-
+    print(f"vaccine:{vaccine}")
     # Validate has permission to perform at least one of the requested actions
-    action_flag_check = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine, permission)
-    print(f"is_valid_headers : {is_valid_headers}")
-    print(f"action_flag_check: {action_flag_check}")
+    action_flag_check = validate_action_flag_permissions(
+        bucket_name, file_key, supplier, vaccine, permission
+    )
 
     if not action_flag_check or not is_valid_headers:
         print("failed")
         response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-        created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
+        created_at_formatted_string = response["LastModified"].strftime(
+            "%Y%m%dT%H%M%S00"
+        )
         make_and_upload_ack_file(file_id, file_key, created_at_formatted_string)
     else:
         # Initialise the accumulated_ack_file_content with the headers
@@ -76,7 +82,9 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
             # Send to kinesis. Add diagnostics if send fails.
             message_delivered = send_to_kinesis(supplier, outgoing_message_body)
-            if (diagnostics := details_from_processing.get("diagnostics")) is None and message_delivered is False:
+            if (
+                diagnostics := details_from_processing.get("diagnostics")
+            ) is None and message_delivered is False:
                 diagnostics = "Unsupported file type received as an attachment"
 
             # Update the ack file
@@ -98,7 +106,9 @@ def validate_content_headers(csv_content_reader):
     return csv_content_reader.fieldnames == Constants.expected_csv_headers
 
 
-def validate_action_flag_permissions(bucket_name, key, supplier: str, vaccine_type: str, permission) -> bool:
+def validate_action_flag_permissions(
+    bucket_name, key, supplier: str, vaccine_type: str, permission
+) -> bool:
     """
     Returns True if the supplier has permission to perform ANY of the requested actions for the given vaccine type,
     else False.
@@ -106,10 +116,9 @@ def validate_action_flag_permissions(bucket_name, key, supplier: str, vaccine_ty
     # Obtain the allowed permissions for the supplier
     allowed_permissions_set = permission
     print(f"allowed_permissions_set: {allowed_permissions_set}")
-
+    print(f"{vaccine_type}_FULL")
     # If the supplier has full permissions for the vaccine type, return True
     if f"{vaccine_type}_FULL" in allowed_permissions_set:
-        logger.info("%s has FULL permissions to create, update, and delete", supplier)
         return True
 
     # Get unique ACTION_FLAG values from the S3 file
@@ -117,7 +126,8 @@ def validate_action_flag_permissions(bucket_name, key, supplier: str, vaccine_ty
 
     # Convert action flags into the expected operation names
     operation_requests_set = {
-        f"{vaccine_type}_{'CREATE' if action == 'NEW' else action}" for action in operations_requested
+        f"{vaccine_type}_{'CREATE' if action == 'NEW' else action}"
+        for action in operations_requested
     }
 
     # Check if any of the CSV permissions match the allowed permissions
