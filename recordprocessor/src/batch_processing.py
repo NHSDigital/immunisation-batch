@@ -104,7 +104,8 @@ def validate_action_flag_permissions(bucket_name, key, supplier: str, vaccine_ty
     else False.
     """
     # Obtain the allowed permissions for the supplier
-    allowed_permissions_set = set(permission)
+    allowed_permissions_set = permission
+    print(f"allowed_permissions_set: {allowed_permissions_set}")
 
     # If the supplier has full permissions for the vaccine type, return True
     if f"{vaccine_type}_FULL" in allowed_permissions_set:
