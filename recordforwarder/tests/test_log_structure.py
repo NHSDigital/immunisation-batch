@@ -35,7 +35,7 @@ class TestSplunkLogging(unittest.TestCase):
         log_entry = log.output[0]
         json_start = log_entry.find("{")
         json_end = log_entry.find("}")
-        json_str = log_entry[json_start : json_end + 1]
+        json_str = log_entry[json_start : json_end + 1]  # noqa: E203
         return json.loads(json_str)
 
     def make_log_assertions(self, log, mock_firehose_logger, operation: str, expected_error=None):
