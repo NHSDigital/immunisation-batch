@@ -46,7 +46,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     # Validate has permission to perform at least one of the requested actions
     action_flag_check = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine, permission)
 
-    if not action_flag_check or is_valid_headers:
+    if not action_flag_check or not is_valid_headers:
         print("failed")
         response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
         created_at_formatted_string = response["LastModified"].strftime("%Y%m%dT%H%M%S00")
