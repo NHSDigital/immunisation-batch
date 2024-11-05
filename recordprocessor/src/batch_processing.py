@@ -3,6 +3,7 @@
 import json
 from io import StringIO
 import os
+import time
 import logging
 from constants import Constants
 from utils_for_recordprocessor import get_environment, get_csv_content_dict_reader
@@ -46,7 +47,6 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     csv_reader = get_csv_content_dict_reader(bucket_name, file_key)
 
     is_valid_headers = validate_content_headers(csv_reader)
-    print(f"vaccine:{vaccine.value}")
     # Validate has permission to perform at least one of the requested actions
     action_flag_check = validate_action_flag_permissions(
         bucket_name, file_key, supplier, vaccine.value, permission
@@ -115,8 +115,6 @@ def validate_action_flag_permissions(
     """
     # Obtain the allowed permissions for the supplier
     allowed_permissions_set = permission
-    print(f"allowed_permissions_set: {allowed_permissions_set}")
-    print(f"{vaccine_type}_FULL")
     # If the supplier has full permissions for the vaccine type, return True
     if f"{vaccine_type}_FULL" in allowed_permissions_set:
         return True
@@ -146,10 +144,13 @@ def validate_action_flag_permissions(
 def main(event: str) -> None:
     """Process each row of the file"""
     logger.info("task started")
+    start = time.time()
     try:
         process_csv_to_fhir(incoming_message_body=json.loads(event))
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.error("Error processing message: %s", error)
+    end = time.time()
+    print(f"Total time for completion:{round(end - start, 5)}s")
 
 
 if __name__ == "__main__":
