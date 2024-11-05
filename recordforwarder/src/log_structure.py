@@ -42,7 +42,7 @@ def forwarder_function_info(func):
         try:
             result = func(*args, **kwargs)
             end_time = time.time()
-            log_data["time_taken"] = round(end_time - start_time, 5)
+            log_data["time_taken"] = f"{round(end_time - start_time, 5)}s"
             logger.info(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.forwarder_send_log(firehose_log)
@@ -53,8 +53,8 @@ def forwarder_function_info(func):
             log_data["error"] = str(e)
             log_data["status"] = "Fail"
             log_data.pop("message", None)
-            end = time.time()
-            log_data["time_taken"] = f"{round(end - start_time, 5)}s"
+            end_time = time.time()
+            log_data["time_taken"] = f"{round(end_time - start_time, 5)}s"
             logger.exception(json.dumps(log_data))
             firehose_log["event"] = log_data
             firehose_logger.forwarder_send_log(firehose_log)
