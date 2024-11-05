@@ -29,7 +29,11 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
 
     # Get details needed to process file
     file_id = incoming_message_body.get("message_id")
-    vaccine = incoming_message_body.get("vaccine_type").upper()
+    vaccine: Vaccine = next(  # Convert vaccine_type to Vaccine enum
+        vaccine
+        for vaccine in Vaccine
+        if vaccine.value == incoming_message_body.get("vaccine_type").upper()
+    )
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
     permission = incoming_message_body.get("permission")
@@ -42,10 +46,10 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     csv_reader = get_csv_content_dict_reader(bucket_name, file_key)
 
     is_valid_headers = validate_content_headers(csv_reader)
-    print(f"vaccine:{vaccine}")
+    print(f"vaccine:{vaccine.value}")
     # Validate has permission to perform at least one of the requested actions
     action_flag_check = validate_action_flag_permissions(
-        bucket_name, file_key, supplier, vaccine, permission
+        bucket_name, file_key, supplier, vaccine.value, permission
     )
 
     if not action_flag_check or not is_valid_headers:
