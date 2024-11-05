@@ -44,7 +44,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     is_valid_headers = validate_content_headers(csv_reader)
 
     # Validate has permission to perform at least one of the requested actions
-    action_flag_check = validate_action_flag_permissions(bucket_name, file_key)
+    action_flag_check = validate_action_flag_permissions(bucket_name, file_key, supplier, vaccine, permission)
 
     if not action_flag_check or is_valid_headers:
         print("failed")
