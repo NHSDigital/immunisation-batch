@@ -75,7 +75,7 @@ class TestSplunkLogging(unittest.TestCase):
         for operation in ["CREATE", "UPDATE", "DELETE"]:
             with self.subTest(operation):
                 with (
-                    self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),
+                    self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
                     patch(f"send_request_to_lambda.send_{operation.lower()}_request", return_value=Message.IMMS_ID),
                 ):
                     message_body = {**Message.base_message_fields, "operation_requested": operation, "fhir_json": {}}
@@ -89,7 +89,7 @@ class TestSplunkLogging(unittest.TestCase):
         diagnostics = "Unable to obtain IMMS ID"
         operation = "UPDATE"
         with (
-            self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),
+            self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
             self.assertRaises(MessageNotSuccessfulError) as context,
         ):
             message_body = {**Message.base_message_fields, "operation_requested": operation, "diagnostics": diagnostics}
@@ -105,7 +105,7 @@ class TestSplunkLogging(unittest.TestCase):
             error_message = f"API Error: Unable to {operation.lower()} resource"
             with self.subTest(operation):
                 with (
-                    self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),
+                    self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
                     self.assertRaises(MessageNotSuccessfulError) as context,
                     patch(
                         f"send_request_to_lambda.send_{operation.lower()}_request",
