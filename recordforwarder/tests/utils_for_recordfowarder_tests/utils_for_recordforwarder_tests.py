@@ -12,7 +12,7 @@ def generate_kinesis_message(message: dict) -> str:
     return {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
 
 
-def generate_mock_operation_outcome(diagnostics: str, code: str = "duplicate") -> dict:
+def generate_operation_outcome(diagnostics: str, code: str = "duplicate") -> dict:
     """Generates an Operation Outcome, with the given diagnostics and code"""
     return {
         "resourceType": "OperationOutcome",
@@ -31,12 +31,20 @@ def generate_mock_operation_outcome(diagnostics: str, code: str = "duplicate") -
     }
 
 
-def generate_payload(status_code: int, headers: Union[dict, None] = None, body: dict = None):
+def generate_payload(status_code: int, headers: Union[dict, None] = None, body: dict = None) -> dict:
     """
     Generates a payload with the given status code, headers and body
-    (body is converted to json string, and the key-value pair is omitted if there is no body)
+    (body is converted to json string, and the key-value pair is omitted if there is no body).
     """
     return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
+
+
+def generate_lambda_payload(status_code: int, headers: Union[dict, None] = None, body: dict = None) -> dict:
+    """
+    Generates a mocked lambda return value, with the given status code, headers and body.
+    The body key-value pair is omitted if there is no body argument is given.
+    """
+    return {"Payload": StringIO(json.dumps(generate_payload(status_code, headers, body)))}
 
 
 def generate_lambda_invocation_side_effect(mock_lambda_payloads):
@@ -48,6 +56,6 @@ def generate_lambda_invocation_side_effect(mock_lambda_payloads):
 
     def lambda_invocation_side_effect(FunctionName, *_args, **_kwargs):  # pylint: disable=invalid-name
         lambda_type = FunctionName.split("_")[1]  # Tests mock FunctionNames as mock_lambdatype_lambda_name
-        return {"Payload": StringIO(json.dumps(mock_lambda_payloads[lambda_type.upper()]))}
+        return mock_lambda_payloads[lambda_type.upper()]
 
     return lambda_invocation_side_effect

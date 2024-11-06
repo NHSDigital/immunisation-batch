@@ -26,8 +26,8 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     ResponseBody,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
-    generate_mock_operation_outcome,
-    generate_payload,
+    generate_operation_outcome,
+    generate_lambda_payload,
     generate_kinesis_message,
     generate_lambda_invocation_side_effect,
 )
@@ -69,29 +69,29 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.check_ack_file(expected_content)
 
     def test_forward_lambda_e2e_create_success(self):
-        mock_lambda_payloads = {"CREATE": generate_payload(status_code=201, headers=lambda_success_headers)}
+        mock_lambda_payloads = {"CREATE": generate_lambda_payload(status_code=201, headers=lambda_success_headers)}
         self.execute_test(Message.create_message, "OK", mock_lambda_payloads=mock_lambda_payloads)
 
     def test_forward_lambda_e2e_create_duplicate(self):
         mock_diagnostics = (
             "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
         )
-        mock_body = generate_mock_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
-        mock_lambda_payloads = {"CREATE": generate_payload(status_code=422, body=mock_body)}
+        mock_body = generate_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
+        mock_lambda_payloads = {"CREATE": generate_lambda_payload(status_code=422, body=mock_body)}
         self.execute_test(Message.create_message, "Fatal Error", mock_lambda_payloads=mock_lambda_payloads)
 
     def test_forward_lambda_e2e_create_failed(self):
         mock_diagnostics = "the provided event ID is either missing or not in the expected format."
-        mock_body = generate_mock_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
-        mock_lambda_payloads = {"CREATE": generate_payload(status_code=400, body=mock_body)}
+        mock_body = generate_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
+        mock_lambda_payloads = {"CREATE": generate_lambda_payload(status_code=400, body=mock_body)}
         self.execute_test(Message.create_message, "Fatal Error", mock_lambda_payloads=mock_lambda_payloads)
 
     def test_forward_lambda_e2e_create_multi_line_diagnostics(self):
         mock_diagnostics = """This a string
                     of diagnostics which spans multiple lines
             and has some carriage returns\n\nand random space"""
-        mock_body = generate_mock_operation_outcome(diagnostics=mock_diagnostics)
-        mock_lambda_payloads = {"CREATE": generate_payload(status_code=404, body=mock_body)}
+        mock_body = generate_operation_outcome(diagnostics=mock_diagnostics)
+        mock_lambda_payloads = {"CREATE": generate_lambda_payload(status_code=404, body=mock_body)}
         expected_single_line_diagnostics = (
             "This a string of diagnostics which spans multiple lines and has some carriage returns and random space"
         )
@@ -99,37 +99,37 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
     def test_forward_lambda_e2e_update_success(self):
         mock_lambda_payloads = {
-            "UPDATE": generate_payload(200),
-            "SEARCH": generate_payload(200, body=ResponseBody.id_and_version_found),
+            "UPDATE": generate_lambda_payload(200),
+            "SEARCH": generate_lambda_payload(200, body=ResponseBody.id_and_version_found),
         }
         self.execute_test(Message.update_message, "OK", mock_lambda_payloads)
 
     def test_forward_lambda_e2e_update_failed_unable_to_get_id(self):
         mock_lambda_payloads = {
-            "SEARCH": generate_payload(status_code=200, body=ResponseBody.id_and_version_not_found),
+            "SEARCH": generate_lambda_payload(status_code=200, body=ResponseBody.id_and_version_not_found),
         }
         self.execute_test(Message.update_message, "Fatal", mock_lambda_payloads)
 
     def test_forward_lambda_e2e_update_failed(self):
         mock_diagnstics = "the provided event ID is either missing or not in the expected format."
         mock_lambda_payloads = {
-            "UPDATE": generate_payload(400, body=generate_mock_operation_outcome(mock_diagnstics)),
-            "SEARCH": generate_payload(200, body=ResponseBody.id_and_version_found),
+            "UPDATE": generate_lambda_payload(400, body=generate_operation_outcome(mock_diagnstics)),
+            "SEARCH": generate_lambda_payload(200, body=ResponseBody.id_and_version_found),
         }
         self.execute_test(Message.update_message, "Fatal Error", mock_lambda_payloads)
 
     def test_forward_lambda_e2e_delete_success(self):
         mock_lambda_payloads = {
-            "DELETE": generate_payload(204),
-            "SEARCH": generate_payload(200, body=ResponseBody.id_and_version_found),
+            "DELETE": generate_lambda_payload(204),
+            "SEARCH": generate_lambda_payload(200, body=ResponseBody.id_and_version_found),
         }
         self.execute_test(Message.delete_message, "OK", mock_lambda_payloads)
 
     def test_forward_lambda_e2e_delete_failed(self):
         mock_diagnstics = "the provided event ID is either missing or not in the expected format."
         mock_lambda_payloads = {
-            "UPDATE": generate_payload(404, body=generate_mock_operation_outcome(mock_diagnstics, code="not-found")),
-            "SEARCH": generate_payload(200, body=ResponseBody.id_and_version_not_found),
+            "UPDATE": generate_lambda_payload(404, body=generate_operation_outcome(mock_diagnstics, code="not-found")),
+            "SEARCH": generate_lambda_payload(200, body=ResponseBody.id_and_version_not_found),
         }
         self.execute_test(Message.delete_message, "Fatal Error", mock_lambda_payloads)
 
