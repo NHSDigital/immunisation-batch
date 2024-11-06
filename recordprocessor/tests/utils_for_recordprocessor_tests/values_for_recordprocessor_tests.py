@@ -211,7 +211,15 @@ TEST_EVENT = {
     "vaccine_type": TEST_VACCINE_TYPE,
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,
-    "permission": {"RSV_FULL"}
+    "permission": TEST_PERMISSION
+}
+
+TEST_EVENT_PERMISSION = {
+    "message_id": TEST_FILE_ID,
+    "vaccine_type": TEST_VACCINE_TYPE,
+    "supplier": TEST_SUPPLIER,
+    "filename": TEST_FILE_KEY,
+    "permission": ["RSV_DELETE"]
 }
 
 MOCK_ENVIRONMENT_DICT = {

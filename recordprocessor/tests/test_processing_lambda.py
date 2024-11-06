@@ -22,6 +22,9 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     TEST_ACK_FILE_KEY,
     TEST_EVENT,
     VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE,
+    VALID_FILE_CONTENT_WITH_UPDATE,
+    TEST_EVENT_PERMISSION,
+    VALID_FILE_CONTENT_WITH_DELETE,
     TestValues,
 )
 
@@ -128,87 +131,97 @@ class TestProcessLambdaFunction(unittest.TestCase):
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_positive_string_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    def test_process_csv_to_fhir_(self, mock_send_to_kinesis):
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_DELETE)
+
+        process_csv_to_fhir(TEST_EVENT_PERMISSION)
+
+        self.assert_value_in_ack_file("Success")
+        mock_send_to_kinesis.assert_called()
+
+    @patch("batch_processing.send_to_kinesis")
+    def test_process_csv_to_fhir_positive_string_provided(self, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
-            mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_string)
-            print(TestValues.mock_request_dose_sequence_string)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("Success")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_only_mandatory(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    def test_process_csv_to_fhir_only_mandatory(self, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
-            mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_only_mandatory)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("Success")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_csv_dict_reader, mock_send_to_kinesis):
+    def test_process_csv_to_fhir_positive_string_not_provided(self, mock_send_to_kinesis):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
 
         with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
-            mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_dose_sequence_missing)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("Success")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_paramter_missing(self, mock_csv_dict_reader, mock_send_to_kinesis):
-        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
+    def test_process_csv_to_fhir_paramter_missing(self, mock_send_to_kinesis):
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY,
+                             Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace("new", ""))
 
         with patch("process_row.convert_to_fhir_imms_resource", return_value=({}, True)), patch(
             "batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}
         ):
-            mock_csv_reader_instance = MagicMock()
-            mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_request_params_missing)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("Fatal")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_successful(self, mock_csv_dict_reader, mock_send_to_kinesis):
-        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
+    def test_process_csv_to_fhir_invalid_headers(self, mock_send_to_kinesis):
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY,
+                             Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace("NHS_NUMBER", "NHS_NUMBERS"))
+        process_csv_to_fhir(TEST_EVENT)
+        self.assert_value_in_ack_file("Fatal")
+        mock_send_to_kinesis.assert_not_called()
+
+    @patch("batch_processing.send_to_kinesis")
+    def test_process_csv_to_fhir_wrong_file_invalid_action_flag_permissions(self, mock_send_to_kinesis):
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY,
+                             Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
+
+        with patch("process_row.convert_to_fhir_imms_resource", return_value=({}, True)), patch(
+             "batch_processing.get_operation_permissions", return_value={"DELETE"}):
+
+            process_csv_to_fhir(TEST_EVENT_PERMISSION)
+
+        self.assert_value_in_ack_file("Fatal")
+        mock_send_to_kinesis.assert_not_called()
+
+    @patch("batch_processing.send_to_kinesis")
+    def test_process_csv_to_fhir_successful(self, mock_send_to_kinesis):
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_UPDATE)
 
         with patch("batch_processing.get_operation_permissions", return_value={"CREATE", "UPDATE", "DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("Success")
         mock_send_to_kinesis.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
-    @patch("utils_for_recordprocessor.DictReader")
-    def test_process_csv_to_fhir_incorrect_permissions(self, mock_csv_dict_reader, mock_send_to_kinesis):
-        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="")
+    def test_process_csv_to_fhir_incorrect_permissions(self, mock_send_to_kinesis):
+        s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_UPDATE)
 
         with patch("batch_processing.get_operation_permissions", return_value={"DELETE"}):
             mock_csv_reader_instance = MagicMock()
             mock_csv_reader_instance.__iter__.return_value = iter(TestValues.mock_update_request)
-            mock_csv_dict_reader.return_value = mock_csv_reader_instance
             process_csv_to_fhir(TEST_EVENT)
 
         self.assert_value_in_ack_file("No permissions for requested operation")
