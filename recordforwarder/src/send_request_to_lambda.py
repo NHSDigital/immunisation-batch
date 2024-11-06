@@ -8,10 +8,11 @@ from utils_for_record_forwarder import invoke_lambda
 from constants import Constants
 
 
-def send_create_request(fhir_json: dict, supplier: str) -> str:
+def send_create_request(fhir_json: dict, supplier: str, file_key: str, row_id: str) -> str:
     """Sends the create request and handles the response. Returns the imms_id."""
     # Send create request
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "Filename": file_key,
+               "MessageId": row_id}
     payload = {"headers": headers, "body": fhir_json}
     status_code, body, headers = invoke_lambda(lambda_client, os.getenv("CREATE_LAMBDA_NAME"), payload)
     if status_code != 200:
@@ -21,7 +22,7 @@ def send_create_request(fhir_json: dict, supplier: str) -> str:
     return "200" or None
 
 
-def send_update_request(fhir_json: dict, supplier: str) -> str:
+def send_update_request(fhir_json: dict, supplier: str, file_key: str, row_id: str) -> str:
     """Obtains the imms_id, sends the update request and handles the response. Returns the imms_id."""
     # Obtain imms_id and version
     try:
@@ -35,7 +36,8 @@ def send_update_request(fhir_json: dict, supplier: str) -> str:
 
     # Send update request
     fhir_json["id"] = imms_id
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version}
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version,
+               "Filename": file_key, "MessageId": row_id}
     payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
     status_code, body, _ = invoke_lambda(lambda_client, os.getenv("UPDATE_LAMBDA_NAME"), payload)
     if status_code != 200:
@@ -44,7 +46,7 @@ def send_update_request(fhir_json: dict, supplier: str) -> str:
     return imms_id
 
 
-def send_delete_request(fhir_json: dict, supplier: str) -> str:
+def send_delete_request(fhir_json: dict, supplier: str, file_key: str, row_id: str) -> str:
     """Sends the delete request and handles the response. Returns the imms_id."""
     # Obtain imms_id
     try:
@@ -55,7 +57,8 @@ def send_delete_request(fhir_json: dict, supplier: str) -> str:
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
 
     # Send delete request
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "Filename": file_key,
+               "MessageId": row_id}
     payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
     status_code, body, _ = invoke_lambda(lambda_client, os.getenv("DELETE_LAMBDA_NAME"), payload)
     if status_code != 204:
@@ -85,8 +88,10 @@ def send_request_to_lambda(message_body: dict) -> str:
 
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
+    file_key = message_body.get("file_key")
+    row_id = message_body.get("row_id")
     operation_requested = message_body.get("operation_requested")
 
     # Send request to Imms FHIR API and return the imms_id
     function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
-    return function_map[operation_requested](fhir_json=fhir_json, supplier=supplier)
+    return function_map[operation_requested](fhir_json=fhir_json, supplier=supplier, file_key=file_key, row_id=row_id)
