@@ -114,20 +114,6 @@ test_fhir_json = {
 }
 
 
-class Message:
-    """Class containing example kinesis messages"""
-
-    ROW_ID = "123456"
-    IMMS_ID = "277befd9-574e-47fe-a6ee-189858af3bb0"
-    base_message_fields = {"row_id": ROW_ID, "file_key": TestFile.FILE_KEY, "supplier": TestFile.SUPPLIER}
-    create_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
-    update_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
-    delete_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "DELETE"}
-
-
-lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
-
-
 class Diagnostics:
     """Diagnostics messages"""
 
@@ -139,8 +125,25 @@ class Diagnostics:
     INVALID_CONVERSION = "Unable to convert row to FHIR Immunization Resource JSON format"
 
 
+class Message:
+    """Class containing example kinesis messages"""
+
+    ROW_ID = "123456"
+    IMMS_ID = "277befd9-574e-47fe-a6ee-189858af3bb0"
+    DIAGNOSTICS = Diagnostics.MISSING_UNIQUE_ID
+    base_message_fields = {"row_id": ROW_ID, "file_key": TestFile.FILE_KEY, "supplier": TestFile.SUPPLIER}
+    create_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
+    update_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
+    delete_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "DELETE"}
+    diagnostics_message = {**base_message_fields, "diagnostics": DIAGNOSTICS}
+
+
+lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
+
+
 class ResponseBody:
     """Examples of response body for get_imms_id_and_version"""
+
     id_and_version_not_found = {
         "resourceType": "Bundle",
         "type": "searchset",

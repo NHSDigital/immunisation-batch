@@ -8,17 +8,24 @@ from constants import IMMS_BATCH_APP_NAME
 from log_structure import forwarder_function_info
 
 
+def generate_base_request_headers(supplier: str) -> dict:
+    """Generate request headers with SupplierSystem and BatchSupplierSystem populated."""
+    return {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
+
+
 def send_create_request(fhir_json: dict, supplier: str) -> str:
     """Sends the create request and handles the response. Returns the imms_id."""
     # Send create request
-    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
-    payload = {"headers": headers, "body": fhir_json}
-    status_code, body, headers = invoke_lambda(os.getenv("CREATE_LAMBDA_NAME"), payload)
-    if status_code != 201:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
+    request_headers = generate_base_request_headers(supplier)
+    request_payload = {"headers": request_headers, "body": fhir_json}
+    response_status_code, response_body, response_headers = invoke_lambda(
+        os.getenv("CREATE_LAMBDA_NAME"), request_payload
+    )
+    if response_status_code != 201:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_body))
 
     # Return imms id (default to None if unable to find the id)
-    return headers.get("Location", "").split("/")[-1] or None
+    return response_headers.get("Location", "").split("/")[-1] or None
 
 
 def send_update_request(fhir_json: dict, supplier: str) -> str:
@@ -29,17 +36,17 @@ def send_update_request(fhir_json: dict, supplier: str) -> str:
     except IdNotFoundError as error:
         raise MessageNotSuccessfulError(error) from error
     if not imms_id:
-        raise MessageNotSuccessfulError("Unable to obtain Imms ID")
+        raise MessageNotSuccessfulError("Unable to obtain Imms id")
     if not version:
         raise MessageNotSuccessfulError("Unable to obtain Imms version")
 
     # Send update request
     fhir_json["id"] = imms_id
-    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version}
-    payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
-    status_code, body, _ = invoke_lambda(os.getenv("UPDATE_LAMBDA_NAME"), payload)
-    if status_code != 200:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
+    request_headers = {**generate_base_request_headers(supplier), "E-Tag": version}
+    request_payload = {"headers": request_headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
+    response_status_code, response_body, _ = invoke_lambda(os.getenv("UPDATE_LAMBDA_NAME"), request_payload)
+    if response_status_code != 200:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_body))
 
     return imms_id
 
@@ -55,22 +62,22 @@ def send_delete_request(fhir_json: dict, supplier: str) -> str:
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
 
     # Send delete request
-    headers = {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
-    payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
-    status_code, body, _ = invoke_lambda(os.getenv("DELETE_LAMBDA_NAME"), payload)
-    if status_code != 204:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(body))
+    request_headers = generate_base_request_headers(supplier)
+    request_payload = {"headers": request_headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
+    response_status_code, response_body, _ = invoke_lambda(os.getenv("DELETE_LAMBDA_NAME"), request_payload)
+    if response_status_code != 204:
+        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_body))
 
     return imms_id
 
 
-def get_operation_outcome_diagnostics(body: dict) -> str:
+def get_operation_outcome_diagnostics(response_body: dict) -> str:
     """
     Returns the diagnostics from the API response. If the diagnostics can't be found in the API response,
-    returns a default diagnostics string
+    returns a default diagnostics string.
     """
     try:
-        return body.get("issue")[0].get("diagnostics")
+        return response_body.get("issue")[0].get("diagnostics")
     except (AttributeError, IndexError):
         return "Unable to obtain diagnostics from API response"
 
