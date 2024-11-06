@@ -1,31 +1,22 @@
-import boto3
 import logging
 import json
 import os
-from botocore.config import Config
+from clients import firehose_client
 
 logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
+DELIVERY_STREAM_NAME = os.getenv("SPLUNK_FIREHOSE_NAME")
+
 
 class Forwarder_FirehoseLogger:
-    def __init__(
-        self,
-        stream_name: str = os.getenv("SPLUNK_FIREHOSE_NAME"),
-        boto_client=boto3.client("firehose", config=Config(region_name="eu-west-2")),
-    ):
-        self.firehose_client = boto_client
-        self.delivery_stream_name = stream_name
 
     def forwarder_send_log(self, log_message):
-        log_to_splunk = log_message
-        encoded_log_data = json.dumps(log_to_splunk).encode("utf-8")
         try:
-            response = self.firehose_client.put_record(
-                DeliveryStreamName=self.delivery_stream_name,
-                Record={"Data": encoded_log_data},
+            response = firehose_client.put_record(
+                DeliveryStreamName=DELIVERY_STREAM_NAME, Record={"Data": json.dumps(log_message).encode("utf-8")}
             )
-            logger.info(f"Log sent to Firehose: {response}")
-        except Exception as e:
-            logger.exception(f"Error sending log to Firehose: {e}")
+            logger.info("Log sent to Firehose: %s", response)
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            logger.exception("Error sending log to Firehose: %s", error)
