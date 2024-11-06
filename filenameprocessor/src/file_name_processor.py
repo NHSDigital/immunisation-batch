@@ -42,7 +42,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             # Process the file
             if "data-sources" in bucket_name:
                 # Process file from batch_data_source_bucket with validation
-                validation_passed, permission = initial_file_validation(file_key, bucket_name)
+                validation_passed, permission = initial_file_validation(file_key)
                 message_delivered = (
                     make_and_send_sqs_message(file_key, message_id, permission) if validation_passed else False
                 )

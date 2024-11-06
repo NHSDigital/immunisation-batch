@@ -211,6 +211,7 @@ TEST_EVENT = {
     "vaccine_type": TEST_VACCINE_TYPE,
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,
+    "permission": {"RSV_FULL"}
 }
 
 MOCK_ENVIRONMENT_DICT = {
@@ -272,6 +273,7 @@ TEST_PERMISSIONS_CONFIG = {
 # ---------------------------------------------------------------------------------------------------------------------
 # Prepare mock requests
 
+# Given dictionaries
 mandatory_fields = {
     "PERSON_FORENAME": "PHYLIS",
     "PERSON_SURNAME": "PEEL",
@@ -314,9 +316,21 @@ non_mandatory_fields = {
 
 critical_fields = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": "a_unique_id_uri"}
 
-all_fields = {**mandatory_fields, **non_mandatory_fields}
-mandatory_fields_only = {**mandatory_fields, **{key: "" for key in non_mandatory_fields}}
-critical_fields_only = {key: critical_fields.get(key, "") for key in all_fields}
+# Required field order
+field_order = [
+ "NHS_NUMBER", "PERSON_FORENAME", "PERSON_SURNAME", "PERSON_DOB", "PERSON_GENDER_CODE", "PERSON_POSTCODE",
+ "DATE_AND_TIME", "SITE_CODE", "SITE_CODE_TYPE_URI", "UNIQUE_ID", "UNIQUE_ID_URI", "ACTION_FLAG",
+ "PERFORMING_PROFESSIONAL_FORENAME", "PERFORMING_PROFESSIONAL_SURNAME", "RECORDED_DATE", "PRIMARY_SOURCE",
+ "VACCINATION_PROCEDURE_CODE", "VACCINATION_PROCEDURE_TERM", "DOSE_SEQUENCE", "VACCINE_PRODUCT_CODE",
+ "VACCINE_PRODUCT_TERM", "VACCINE_MANUFACTURER", "BATCH_NUMBER", "EXPIRY_DATE", "SITE_OF_VACCINATION_CODE",
+ "SITE_OF_VACCINATION_TERM", "ROUTE_OF_VACCINATION_CODE", "ROUTE_OF_VACCINATION_TERM", "DOSE_AMOUNT",
+ "DOSE_UNIT_CODE", "DOSE_UNIT_TERM", "INDICATION_CODE", "LOCATION_CODE", "LOCATION_CODE_TYPE_URI"
+ ]
+
+# Creating the required dictionaries in the specified order
+all_fields = {key: (mandatory_fields.get(key) or non_mandatory_fields.get(key) or "") for key in field_order}
+mandatory_fields_only = {key: (mandatory_fields.get(key) or "") for key in field_order}
+critical_fields_only = {key: (critical_fields.get(key) or "") for key in field_order}
 
 # Requests (format is dictionary)
 update_request = deepcopy(all_fields)
