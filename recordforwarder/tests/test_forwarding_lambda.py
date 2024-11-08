@@ -23,7 +23,7 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     lambda_success_headers,
     MOCK_ENVIRONMENT_DICT,
     AWS_REGION,
-    ResponseBody,
+    SearchLambdaResponseBody,
     Message,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
@@ -33,6 +33,7 @@ from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import
     generate_lambda_invocation_side_effect,
 )
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
+from constants import Operations
 from update_ack_file import create_ack_data
 
 
@@ -134,7 +135,7 @@ class TestForwardingLambda(unittest.TestCase):
                 )
 
     def test_forward_request_to_api_new_success(self):
-        mock_lambda_payloads = {"CREATE": generate_lambda_payload(status_code=201, headers=lambda_success_headers)}
+        mock_lambda_payloads = {Operations.CREATE: generate_lambda_payload(status_code=201, headers=lambda_success_headers)}
         with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.create_message))
 
@@ -144,7 +145,7 @@ class TestForwardingLambda(unittest.TestCase):
     def test_forward_request_to_api_new_duplicate(self):
         diagnostics = "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
         mock_lambda_payloads = {
-            "CREATE": generate_lambda_payload(status_code=422, body=generate_operation_outcome(diagnostics))
+            Operations.CREATE: generate_lambda_payload(status_code=422, body=generate_operation_outcome(diagnostics))
         }
         with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.create_message))
@@ -157,8 +158,8 @@ class TestForwardingLambda(unittest.TestCase):
             "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
         )
         mock_lambda_payloads = {
-            "UPDATE": generate_lambda_payload(status_code=422, body=generate_operation_outcome(diagnostics)),
-            "SEARCH": generate_lambda_payload(status_code=200, body=ResponseBody.id_and_version_found),
+            Operations.UPDATE: generate_lambda_payload(status_code=422, body=generate_operation_outcome(diagnostics)),
+            "SEARCH": generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_found),
         }
         with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.update_message))
@@ -179,8 +180,8 @@ class TestForwardingLambda(unittest.TestCase):
 
     def test_forward_request_to_api_delete_success(self):
         mock_lambda_payloads = {
-            "DELETE": generate_lambda_payload(status_code=204),
-            "SEARCH": generate_lambda_payload(status_code=200, body=ResponseBody.id_and_version_found),
+            Operations.DELETE: generate_lambda_payload(status_code=204),
+            "SEARCH": generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_found),
         }
         with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.delete_message))

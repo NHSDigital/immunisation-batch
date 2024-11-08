@@ -4,7 +4,7 @@ import os
 from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 from utils_for_record_forwarder import invoke_lambda
-from constants import IMMS_BATCH_APP_NAME
+from constants import IMMS_BATCH_APP_NAME, Operations
 from log_structure import forwarder_function_info
 
 
@@ -96,5 +96,9 @@ def send_request_to_lambda(message_body: dict) -> str:
     operation_requested = message_body.get("operation_requested")
 
     # Send request to Imms FHIR API and return the imms_id
-    function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
+    function_map = {
+        Operations.CREATE: send_create_request,
+        Operations.UPDATE: send_update_request,
+        Operations.DELETE: send_delete_request,
+    }
     return function_map[operation_requested](fhir_json=fhir_json, supplier=supplier)

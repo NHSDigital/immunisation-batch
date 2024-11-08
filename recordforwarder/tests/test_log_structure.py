@@ -7,7 +7,8 @@ from copy import deepcopy
 from datetime import datetime
 from contextlib import contextmanager, ExitStack
 from send_request_to_lambda import send_request_to_lambda
-from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import Message
+from constants import Operations
+from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import Message, Diagnostics
 from errors import MessageNotSuccessfulError
 
 FIXED_DATETIME = datetime(2024, 10, 30, 12, 0, 0)
@@ -72,7 +73,7 @@ class TestSplunkLogging(unittest.TestCase):
 
     def test_splunk_logging_success(self):
         """Tests successful rows"""
-        for operation in ["CREATE", "UPDATE", "DELETE"]:
+        for operation in [Operations.CREATE, Operations.UPDATE, Operations.DELETE]:
             with self.subTest(operation):
                 with (
                     self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
@@ -86,8 +87,8 @@ class TestSplunkLogging(unittest.TestCase):
 
     def test_splunk_logging_failure_during_processing(self):
         """Tests a row which failed processing (and therefore has diagnostics in the message recevied from kinesis)"""
-        diagnostics = "Unable to obtain IMMS ID"
-        operation = "UPDATE"
+        diagnostics = Diagnostics.INVALID_ACTION_FLAG
+        operation = Operations.UPDATE
         with (
             self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
             self.assertRaises(MessageNotSuccessfulError) as context,
@@ -101,7 +102,7 @@ class TestSplunkLogging(unittest.TestCase):
     def test_splunk_logging_failure_during_forwarding(self):
         """Tests rows which fail during forwarding"""
 
-        for operation in ["CREATE", "UPDATE", "DELETE"]:
+        for operation in [Operations.CREATE, Operations.UPDATE, Operations.DELETE]:
             error_message = f"API Error: Unable to {operation.lower()} resource"
             with self.subTest(operation):
                 with (

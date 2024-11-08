@@ -1,5 +1,8 @@
 """Values for use in recordforwarder tests"""
 
+from constants import Operations
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import generate_lambda_payload
+
 MOCK_ENVIRONMENT_DICT = {
     "SOURCE_BUCKET_NAME": "immunisation-batch-internal-dev-data-sources",
     "ACK_BUCKET_NAME": "immunisation-batch-internal-dev-data-destinations",
@@ -39,7 +42,7 @@ class Urls:
     ODS = "https://fhir.nhs.uk/Id/ods-organization-code"
 
 
-test_fhir_json = {
+test_imms_fhir_json = {
     "resourceType": "Immunization",
     "contained": [
         {"resourceType": "Practitioner", "id": "Pract1", "name": [{"family": "Doe", "given": ["Jane"]}]},
@@ -132,16 +135,16 @@ class Message:
     IMMS_ID = "277befd9-574e-47fe-a6ee-189858af3bb0"
     DIAGNOSTICS = Diagnostics.MISSING_UNIQUE_ID
     base_message_fields = {"row_id": ROW_ID, "file_key": TestFile.FILE_KEY, "supplier": TestFile.SUPPLIER}
-    create_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "CREATE"}
-    update_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "UPDATE"}
-    delete_message = {**base_message_fields, "fhir_json": test_fhir_json, "operation_requested": "DELETE"}
+    create_message = {**base_message_fields, "fhir_json": test_imms_fhir_json, "operation_requested": Operations.CREATE}
+    update_message = {**base_message_fields, "fhir_json": test_imms_fhir_json, "operation_requested": Operations.UPDATE}
+    delete_message = {**base_message_fields, "fhir_json": test_imms_fhir_json, "operation_requested": Operations.DELETE}
     diagnostics_message = {**base_message_fields, "diagnostics": DIAGNOSTICS}
 
 
 lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}
 
 
-class ResponseBody:
+class SearchLambdaResponseBody:
     """Examples of response body for get_imms_id_and_version"""
 
     id_and_version_not_found = {
@@ -163,4 +166,18 @@ class ResponseBody:
         "type": "searchset",
         "entry": [{"resource": {"id": Message.IMMS_ID, "meta": {"versionId": 2}}}],
         "total": 1,
+    }
+
+
+class LambdaPayloads:
+    """
+    Class containing dictionaries of mock lambda payloads, to be used as inputs for the
+    generate_lambda_invocation_side_effect fucntion
+    """
+
+    SUCCESS = {
+        Operations.CREATE: generate_lambda_payload(status_code=201, headers=lambda_success_headers),
+        Operations.UPDATE: generate_lambda_payload(status_code=200),
+        Operations.DELETE: generate_lambda_payload(status_code=204),
+        Operations.SEARCH: generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_found),
     }
