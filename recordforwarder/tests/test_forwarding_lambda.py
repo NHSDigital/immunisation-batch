@@ -20,24 +20,23 @@ SRCDIR = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, SRCDIR)))
 
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
-    lambda_success_headers,
     MOCK_ENVIRONMENT_DICT,
     AWS_REGION,
-    SearchLambdaResponseBody,
     Message,
+    LambdaPayloads,
+    Diagnostics,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
-    generate_operation_outcome,
-    generate_lambda_payload,
     generate_kinesis_message,
     generate_lambda_invocation_side_effect,
 )
 from forwarding_lambda import forward_lambda_handler, forward_request_to_lambda
-from constants import Operations
 from update_ack_file import create_ack_data
 
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
+
+LAMBDA_PAYLOADS = LambdaPayloads()
 
 
 @mock_s3
@@ -135,37 +134,35 @@ class TestForwardingLambda(unittest.TestCase):
                 )
 
     def test_forward_request_to_api_new_success(self):
-        mock_lambda_payloads = {Operations.CREATE: generate_lambda_payload(status_code=201, headers=lambda_success_headers)}
-        with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
+        with self.common_contexts_for_forwarding_lambda_tests(
+            deepcopy(LAMBDA_PAYLOADS.SUCCESS)
+        ) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.create_message))
 
         # pylint: disable=no-member
         mock_create_ack_data.assert_called_with("20240821T10153000", Message.ROW_ID, True, None, "test_id")
 
     def test_forward_request_to_api_new_duplicate(self):
-        diagnostics = "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
-        mock_lambda_payloads = {
-            Operations.CREATE: generate_lambda_payload(status_code=422, body=generate_operation_outcome(diagnostics))
-        }
-        with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
+        with self.common_contexts_for_forwarding_lambda_tests(
+            deepcopy(LAMBDA_PAYLOADS.CREATE.DUPLICATE)
+        ) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.create_message))
 
         # pylint: disable=no-member
-        mock_create_ack_data.assert_called_with("20240821T10153000", Message.ROW_ID, False, diagnostics, None)
+        mock_create_ack_data.assert_called_with("20240821T10153000", Message.ROW_ID, False, Diagnostics.DUPLICATE, None)
 
     def test_forward_request_to_api_update_failure(self):
-        diagnostics = (
-            "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
-        )
         mock_lambda_payloads = {
-            Operations.UPDATE: generate_lambda_payload(status_code=422, body=generate_operation_outcome(diagnostics)),
-            "SEARCH": generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_found),
+            **deepcopy(LAMBDA_PAYLOADS.UPDATE.VALIDATION_ERROR),
+            **deepcopy(LAMBDA_PAYLOADS.SEARCH.ID_AND_VERSION_FOUND),
         }
         with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.update_message))
 
         # pylint: disable=no-member
-        mock_create_ack_data.assert_called_with("20240821T10153000", Message.ROW_ID, False, diagnostics, None)
+        mock_create_ack_data.assert_called_with(
+            "20240821T10153000", Message.ROW_ID, False, Diagnostics.VALIDATION_ERROR, None
+        )
 
     def test_forward_request_to_api_update_failure_imms_id_none(self):
         with (
@@ -179,11 +176,9 @@ class TestForwardingLambda(unittest.TestCase):
         mock_lambda_client.assert_not_called()
 
     def test_forward_request_to_api_delete_success(self):
-        mock_lambda_payloads = {
-            Operations.DELETE: generate_lambda_payload(status_code=204),
-            "SEARCH": generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_found),
-        }
-        with self.common_contexts_for_forwarding_lambda_tests(mock_lambda_payloads) as mock_create_ack_data:
+        with self.common_contexts_for_forwarding_lambda_tests(
+            deepcopy(LAMBDA_PAYLOADS.SUCCESS)
+        ) as mock_create_ack_data:
             forward_request_to_lambda(deepcopy(Message.delete_message))
 
         # pylint: disable=no-member
@@ -191,23 +186,20 @@ class TestForwardingLambda(unittest.TestCase):
             "20240821T10153000", Message.ROW_ID, True, None, "277befd9-574e-47fe-a6ee-189858af3bb0"
         )
 
-    @patch("forwarding_lambda.forward_request_to_lambda")
-    def test_forward_lambda_handler(self, mock_forward_request_to_api):
-        message_body = deepcopy(Message.create_message)
-        forward_lambda_handler(generate_kinesis_message(message_body), None)
-        mock_forward_request_to_api.assert_called_once_with(message_body)
+    def test_forward_lambda_handler(self):
+        for message in [
+            deepcopy(Message.create_message),
+            deepcopy(Message.update_message),
+            deepcopy(Message.delete_message),
+        ]:
+            with patch("forwarding_lambda.forward_request_to_lambda") as mock_forward_request_to_api:
+                forward_lambda_handler(generate_kinesis_message(message), None)
+            mock_forward_request_to_api.assert_called_once_with(message)
 
-    @patch("forwarding_lambda.forward_request_to_lambda")
-    def test_forward_lambda_handler_update(self, mock_forward_request_to_api):
-        message_body = deepcopy(Message.update_message)
-        forward_lambda_handler(generate_kinesis_message(message_body), None)
-        mock_forward_request_to_api.assert_called_once_with(message_body)
-
-    @patch("forwarding_lambda.logger")
-    def test_forward_lambda_handler_with_exception(self, mock_logger):
-        message_body = deepcopy(Message.create_message)
-        message_body["operation_requested"] = "INVALID_OPERATION"
-        forward_lambda_handler(generate_kinesis_message(message_body), None)
+    def test_forward_lambda_handler_with_exception(self):
+        message_body = {**deepcopy(Message.create_message), "operation_request": "INVALID_OPERATION"}
+        with patch("forwarding_lambda.logger") as mock_logger:
+            forward_lambda_handler(generate_kinesis_message(message_body), None)
         mock_logger.error.assert_called()
 
 

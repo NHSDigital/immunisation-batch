@@ -55,7 +55,7 @@ def generate_lambda_invocation_side_effect(mock_lambda_payloads):
     """
 
     def lambda_invocation_side_effect(FunctionName, *_args, **_kwargs):  # pylint: disable=invalid-name
-        lambda_type = FunctionName.split("_")[1]  # Tests mock FunctionNames as mock_lambdatype_lambda_name
-        return mock_lambda_payloads[lambda_type.upper()]
+        lambda_type = FunctionName.split("_")[1].upper()  # Tests mock FunctionNames as mock_lambdatype_lambda_name
+        return mock_lambda_payloads[lambda_type]
 
     return lambda_invocation_side_effect

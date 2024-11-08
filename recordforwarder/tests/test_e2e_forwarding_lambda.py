@@ -36,6 +36,8 @@ from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
 
+LAMBDA_PAYLOADS = LambdaPayloads()
+
 
 @mock_s3
 @patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
@@ -87,7 +89,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         ):
 
             for message in messages:
-                mock_invoke.side_effect = generate_lambda_invocation_side_effect(deepcopy(LambdaPayloads.SUCCESS))
+                mock_invoke.side_effect = generate_lambda_invocation_side_effect(deepcopy(LAMBDA_PAYLOADS.SUCCESS))
                 forward_lambda_handler(generate_kinesis_message(message), None)
 
         ack_file_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TestFile.ACK_FILE_KEY)
@@ -99,7 +101,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
 
     def test_forward_lambda_e2e_create_duplicate(self):
         self.execute_test(
-            Message.create_message, "Fatal Error", mock_lambda_payloads=deepcopy(LambdaPayloads.CREATE.DUPLICATE)
+            Message.create_message, "Fatal Error", mock_lambda_payloads=deepcopy(LAMBDA_PAYLOADS.CREATE.DUPLICATE)
         )
 
     def test_forward_lambda_e2e_create_multi_line_diagnostics(self):
@@ -117,7 +119,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.execute_test(
             Message.update_message,
             "Fatal",
-            mock_lambda_payloads=deepcopy(LambdaPayloads.SEARCH.ID_AND_VERSION_NOT_FOUND),
+            mock_lambda_payloads=deepcopy(LAMBDA_PAYLOADS.SEARCH.ID_AND_VERSION_NOT_FOUND),
         )
 
     def test_forward_lambda_e2e_update_failed(self):
@@ -125,8 +127,8 @@ class TestForwardingLambdaE2E(unittest.TestCase):
             Message.update_message,
             "Fatal Error",
             mock_lambda_payloads={
-                **LambdaPayloads.UPDATE.MISSING_EVENT_ID,
-                **LambdaPayloads.SEARCH.ID_AND_VERSION_FOUND,
+                **deepcopy(LAMBDA_PAYLOADS.UPDATE.MISSING_EVENT_ID),
+                **deepcopy(LAMBDA_PAYLOADS.SEARCH.ID_AND_VERSION_FOUND),
             },
         )
 
@@ -134,7 +136,7 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.execute_test(
             Message.delete_message,
             "Fatal Error",
-            mock_lambda_payloads=deepcopy(LambdaPayloads.SEARCH.ID_AND_VERSION_NOT_FOUND),
+            mock_lambda_payloads=deepcopy(LAMBDA_PAYLOADS.SEARCH.ID_AND_VERSION_NOT_FOUND),
         )
 
     @patch("utils_for_record_forwarder.lambda_client.invoke")

@@ -6,15 +6,16 @@ from copy import deepcopy
 from get_imms_id_and_version import get_imms_id_and_version
 from errors import IdNotFoundError
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
-    generate_operation_outcome,
-    generate_lambda_payload,
+    generate_lambda_invocation_side_effect,
 )
 from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
-    SearchLambdaResponseBody,
     test_imms_fhir_json,
+    LambdaPayloads,
+    MOCK_ENVIRONMENT_DICT,
 )
 
 
+@patch.dict("os.environ", MOCK_ENVIRONMENT_DICT)
 class TestGetImmsIdAndVersion(unittest.TestCase):
     """
     Tests for get_imms_id_and_version.
@@ -25,9 +26,7 @@ class TestGetImmsIdAndVersion(unittest.TestCase):
         """Test that imms_id and version are correctly identified from a successful search lambda response."""
         with patch(
             "clients.lambda_client.invoke",
-            return_value=generate_lambda_payload(
-                status_code=200, body=deepcopy(SearchLambdaResponseBody.id_and_version_found)
-            ),
+            side_effect=generate_lambda_invocation_side_effect(deepcopy(LambdaPayloads.SEARCH.ID_AND_VERSION_FOUND)),
         ):
             imms_id, version = get_imms_id_and_version(test_imms_fhir_json)
 
@@ -38,8 +37,8 @@ class TestGetImmsIdAndVersion(unittest.TestCase):
         """Test that an IdNotFoundError is raised for a successful search lambda response which contains no entries."""
         with patch(
             "clients.lambda_client.invoke",
-            return_value=generate_lambda_payload(
-                status_code=200, body=deepcopy(SearchLambdaResponseBody.id_and_version_not_found)
+            side_effect=generate_lambda_invocation_side_effect(
+                deepcopy(LambdaPayloads.SEARCH.ID_AND_VERSION_NOT_FOUND)
             ),
         ):
             with self.assertRaises(IdNotFoundError):
@@ -49,7 +48,7 @@ class TestGetImmsIdAndVersion(unittest.TestCase):
         """Test that an IdNotFoundError is raised for an unsuccessful search lambda response."""
         with patch(
             "clients.lambda_client.invoke",
-            return_value=generate_lambda_payload(status_code=404, body=generate_operation_outcome("some_diagnostics")),
+            side_effect=generate_lambda_invocation_side_effect(deepcopy(LambdaPayloads.SEARCH.FAILURE)),
         ):
             with self.assertRaises(IdNotFoundError):
                 get_imms_id_and_version(test_imms_fhir_json)
