@@ -1,7 +1,10 @@
 """Values for use in recordforwarder tests"""
 
 from constants import Operations
-from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import generate_lambda_payload
+from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
+    generate_lambda_payload,
+    generate_operation_outcome,
+)
 
 MOCK_ENVIRONMENT_DICT = {
     "SOURCE_BUCKET_NAME": "immunisation-batch-internal-dev-data-sources",
@@ -42,6 +45,10 @@ class Urls:
     ODS = "https://fhir.nhs.uk/Id/ods-organization-code"
 
 
+MOCK_IDENTIFIER_SYSTEM = Urls.RAVS
+MOCK_IDENTIFIER_VALUE = "Vacc1"
+
+
 test_imms_fhir_json = {
     "resourceType": "Immunization",
     "contained": [
@@ -70,7 +77,7 @@ test_imms_fhir_json = {
             },
         }
     ],
-    "identifier": [{"system": Urls.RAVS, "value": "0001_TEST_v1_RUN_1_ABCD-123_Dose_seq_01"}],
+    "identifier": [{"system": MOCK_IDENTIFIER_SYSTEM, "value": MOCK_IDENTIFIER_VALUE}],
     "status": "completed",
     "vaccineCode": {
         "coding": [
@@ -126,6 +133,11 @@ class Diagnostics:
     UNABLE_TO_OBTAIN_IMMS_ID = "Unable to obtain imms event id"
     UNABLE_TO_OBTAIN_VERSION = "Unable to obtain current imms event version"
     INVALID_CONVERSION = "Unable to convert row to FHIR Immunization Resource JSON format"
+    DUPLICATE = f"The provided identifier: {MOCK_IDENTIFIER_SYSTEM}#{MOCK_IDENTIFIER_VALUE} is duplicated"
+    MISSING_EVENT_ID = "the provided event ID is either missing or not in the expected format."
+    VALIDATION_ERROR = (
+        "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
+    )
 
 
 class Message:
@@ -175,9 +187,58 @@ class LambdaPayloads:
     generate_lambda_invocation_side_effect fucntion
     """
 
-    SUCCESS = {
-        Operations.CREATE: generate_lambda_payload(status_code=201, headers=lambda_success_headers),
-        Operations.UPDATE: generate_lambda_payload(status_code=200),
-        Operations.DELETE: generate_lambda_payload(status_code=204),
-        Operations.SEARCH: generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_found),
-    }
+    class CREATE:
+        """LambdaPayloads for the CREATE lambda"""
+
+        SUCCESS = {Operations.CREATE: generate_lambda_payload(status_code=201, headers=lambda_success_headers)}
+
+        DUPLICATE = {
+            Operations.CREATE: generate_lambda_payload(
+                status_code=422, body=generate_operation_outcome(diagnostics=Diagnostics.DUPLICATE, code="duplicate")
+            )
+        }
+
+    class UPDATE:
+        """LambdaPayloads for the UPDATE lambda"""
+
+        SUCCESS = {Operations.UPDATE: generate_lambda_payload(status_code=200)}
+
+        MISSING_EVENT_ID = {
+            Operations.UPDATE: generate_lambda_payload(
+                400, body=generate_operation_outcome(Diagnostics.MISSING_EVENT_ID)
+            )
+        }
+
+        VALIDATION_ERROR = {
+            Operations.UPDATE: generate_lambda_payload(
+                status_code=422, body=generate_operation_outcome(Diagnostics.VALIDATION_ERROR)
+            )
+        }
+
+    class DELETE:
+        """LambdaPayloads for the DELETE lambda"""
+
+        SUCCESS = {Operations.DELETE: generate_lambda_payload(status_code=204)}
+
+    class SEARCH:
+        """LambdaPayloads for the SEARCH lambda"""
+
+        ID_AND_VERSION_FOUND = {
+            Operations.SEARCH: generate_lambda_payload(
+                status_code=200, body=SearchLambdaResponseBody.id_and_version_found
+            )
+        }
+
+        ID_AND_VERSION_NOT_FOUND = {
+            Operations.SEARCH: generate_lambda_payload(
+                status_code=200, body=SearchLambdaResponseBody.id_and_version_not_found
+            )
+        }
+
+        FAILURE = {
+            Operations.SEARCH: generate_lambda_payload(
+                status_code=404, body=generate_operation_outcome("some_diagnostics")
+            )
+        }
+
+    SUCCESS = {**CREATE.SUCCESS, **UPDATE.SUCCESS, **DELETE.SUCCESS, **SEARCH.ID_AND_VERSION_FOUND}

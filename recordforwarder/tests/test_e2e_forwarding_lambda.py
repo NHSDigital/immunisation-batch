@@ -24,7 +24,6 @@ from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests impor
     MOCK_ENVIRONMENT_DICT,
     TestFile,
     Message,
-    SearchLambdaResponseBody,
     LambdaPayloads,
 )
 from tests.utils_for_recordfowarder_tests.utils_for_recordforwarder_tests import (
@@ -99,18 +98,9 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.assertIn("test#4|OK", ack_file_content)
 
     def test_forward_lambda_e2e_create_duplicate(self):
-        mock_diagnostics = (
-            "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
+        self.execute_test(
+            Message.create_message, "Fatal Error", mock_lambda_payloads=deepcopy(LambdaPayloads.CREATE.DUPLICATE)
         )
-        mock_body = generate_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
-        mock_lambda_payloads = {Operations.CREATE: generate_lambda_payload(status_code=422, body=mock_body)}
-        self.execute_test(Message.create_message, "Fatal Error", mock_lambda_payloads=mock_lambda_payloads)
-
-    def test_forward_lambda_e2e_create_failed(self):
-        mock_diagnostics = "the provided event ID is either missing or not in the expected format."
-        mock_body = generate_operation_outcome(diagnostics=mock_diagnostics, code="duplicate")
-        mock_lambda_payloads = {Operations.CREATE: generate_lambda_payload(status_code=400, body=mock_body)}
-        self.execute_test(Message.create_message, "Fatal Error", mock_lambda_payloads=mock_lambda_payloads)
 
     def test_forward_lambda_e2e_create_multi_line_diagnostics(self):
         mock_diagnostics = """This a string
@@ -124,40 +114,38 @@ class TestForwardingLambdaE2E(unittest.TestCase):
         self.execute_test(Message.create_message, expected_single_line_diagnostics, mock_lambda_payloads)
 
     def test_forward_lambda_e2e_update_failed_unable_to_get_id(self):
-        mock_lambda_payloads = {
-            "SEARCH": generate_lambda_payload(status_code=200, body=SearchLambdaResponseBody.id_and_version_not_found),
-        }
-        self.execute_test(Message.update_message, "Fatal", mock_lambda_payloads)
+        self.execute_test(
+            Message.update_message,
+            "Fatal",
+            mock_lambda_payloads=deepcopy(LambdaPayloads.SEARCH.ID_AND_VERSION_NOT_FOUND),
+        )
 
     def test_forward_lambda_e2e_update_failed(self):
-        mock_diagnstics = "the provided event ID is either missing or not in the expected format."
-        mock_lambda_payloads = {
-            Operations.UPDATE: generate_lambda_payload(400, body=generate_operation_outcome(mock_diagnstics)),
-            "SEARCH": generate_lambda_payload(200, body=SearchLambdaResponseBody.id_and_version_found),
-        }
-        self.execute_test(Message.update_message, "Fatal Error", mock_lambda_payloads)
+        self.execute_test(
+            Message.update_message,
+            "Fatal Error",
+            mock_lambda_payloads={
+                **LambdaPayloads.UPDATE.MISSING_EVENT_ID,
+                **LambdaPayloads.SEARCH.ID_AND_VERSION_FOUND,
+            },
+        )
 
     def test_forward_lambda_e2e_delete_failed(self):
-        mock_diagnstics = "the provided event ID is either missing or not in the expected format."
-        mock_lambda_payloads = {
-            Operations.UPDATE: generate_lambda_payload(
-                404, body=generate_operation_outcome(mock_diagnstics, code="not-found")
-            ),
-            "SEARCH": generate_lambda_payload(200, body=SearchLambdaResponseBody.id_and_version_not_found),
-        }
-        self.execute_test(Message.delete_message, "Fatal Error", mock_lambda_payloads)
+        self.execute_test(
+            Message.delete_message,
+            "Fatal Error",
+            mock_lambda_payloads=deepcopy(LambdaPayloads.SEARCH.ID_AND_VERSION_NOT_FOUND),
+        )
 
     @patch("utils_for_record_forwarder.lambda_client.invoke")
     def test_forward_lambda_e2e_none_request(self, mock_api):
         message = {**Message.base_message_fields, "diagnostics": "Unsupported file type received as an attachment"}
-        mock_lambda_payloads = {}
-        self.execute_test(message, "Fatal Error", mock_lambda_payloads)
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads={})
         mock_api.create_immunization.assert_not_called()
 
     def test_forward_lambda_e2e_no_permissions(self):
         message = {**Message.base_message_fields, "diagnostics": "No permissions for operation"}
-        mock_lambda_payloads = {}
-        self.execute_test(message, "Fatal Error", mock_lambda_payloads)
+        self.execute_test(message, "Fatal Error", mock_lambda_payloads={})
 
 
 if __name__ == "__main__":
