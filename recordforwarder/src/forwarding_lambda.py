@@ -25,16 +25,22 @@ def forward_request_to_lambda(message_body):
 
 
 def forward_lambda_handler(event, _):
-    """Forward each row to the Imms API"""
+    """Forward each row in a batch to the Imms API"""
     logger.info("Processing started")
     for record in event["Records"]:
         try:
+            # Decode Kinesis payload
             kinesis_payload = record["kinesis"]["data"]
             decoded_payload = base64.b64decode(kinesis_payload).decode("utf-8")
             message_body = json.loads(decoded_payload)
-            forward_request_to_lambda(message_body)
+            
+            # Extract and process each row in the batch
+            batch_rows = message_body.get("batch_rows", [])
+            for row_data in batch_rows:
+                forward_request_to_lambda(row_data)
+                
         except Exception as error:  # pylint:disable=broad-exception-caught
-            logger.error("Error processing message: %s", error)
+            logger.error("Error processing batch message: %s", error)
     logger.info("Processing ended")
 
 

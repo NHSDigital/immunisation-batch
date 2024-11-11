@@ -12,7 +12,6 @@ from mappings import Vaccine
 from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
 
-
 logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 
@@ -38,41 +37,87 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     bucket_name = os.getenv("SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources")
     csv_reader = get_csv_content_dict_reader(bucket_name, file_key)
 
-    # Initialise the accumulated_ack_file_content with the headers
+    # Initialize the accumulated_ack_file_content with the headers
     accumulated_ack_file_content = StringIO()
     accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")
 
     row_count = 0  # Initialize a counter for rows
+    batch = []  
+    batch_size = 10 
+
     for row in csv_reader:
         row_count += 1
         row_id = f"{file_id}#{row_count}"
         logger.info("MESSAGE ID : %s", row_id)
-        # Process the row to obtain the details needed for the message_body and ack file
+
+        # Process the row to obtain the details needed for the message body and ack file
         details_from_processing = process_row(vaccine, allowed_operations, row)
 
         # Create the message body for sending
-        outgoing_message_body = {
+        outgoing_row_data = {
             "row_id": row_id,
             "file_key": file_key,
             "supplier": supplier,
             **details_from_processing,
         }
 
-        # Send to kinesis. Add diagnostics if send fails.
-        message_delivered = send_to_kinesis(supplier, outgoing_message_body)
-        if (diagnostics := details_from_processing.get("diagnostics")) is None and message_delivered is False:
-            diagnostics = "Unsupported file type received as an attachment"
+        # Add the row data to the batch
+        batch.append(outgoing_row_data)
 
-        # Update the ack file
-        accumulated_ack_file_content = update_ack_file(
-            file_key,
-            bucket_name,
-            accumulated_ack_file_content,
-            row_id,
-            message_delivered,
-            diagnostics,
-            outgoing_message_body.get("imms_id"),
-        )
+        # When the batch reaches the batch size, send it as a single message to Kinesis
+        if len(batch) == batch_size:
+            outgoing_message_body = {
+                "file_key": file_key,
+                "supplier": supplier,
+                "batch_rows": batch  # Add the batch of 30 rows to the message
+            }
+
+            # Send to Kinesis and handle diagnostics if send fails
+            message_delivered = send_to_kinesis(supplier, outgoing_message_body)
+            if not message_delivered:
+                for row_data in batch:
+                    row_data.setdefault("diagnostics", "Failed to send batch message to Kinesis")
+
+            # Update the ack file for each row in the batch
+            # for row_data in batch:
+            #     accumulated_ack_file_content = update_ack_file(
+            #         file_key,
+            #         bucket_name,
+            #         accumulated_ack_file_content,
+            #         row_data["row_id"],
+            #         message_delivered,
+            #         row_data.get("diagnostics"),
+            #         row_data.get("imms_id"),
+            #     )
+
+            # Clear the batch after sending
+            batch.clear()
+
+    # If there are any remaining rows after the loop, send them as a final message
+    if batch:
+        print("started")
+        outgoing_message_body = {
+            "file_key": file_key,
+            "supplier": supplier,
+            "batch_rows": batch  # Remaining rows as the final batch
+        }
+
+        message_delivered = send_to_kinesis(supplier, outgoing_message_body)
+        if not message_delivered:
+            for row_data in batch:
+                row_data.setdefault("diagnostics", "Failed to send final batch message to Kinesis")
+
+        # Update the ack file for each remaining row
+        # for row_data in batch:
+        #     accumulated_ack_file_content = update_ack_file(
+        #         file_key,
+        #         bucket_name,
+        #         accumulated_ack_file_content,
+        #         row_data["row_id"],
+        #         message_delivered,
+        #         row_data.get("diagnostics"),
+        #         row_data.get("imms_id"),
+        #     )
 
     logger.info("Total rows processed: %s", row_count)
 
