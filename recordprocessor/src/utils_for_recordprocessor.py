@@ -23,4 +23,3 @@ def get_csv_content_dict_reader(bucket_name: str, file_key: str) -> DictReader:
 def convert_string_to_dict_reader(data_string: str):
     """Take a data string and convert it to a csv DictReader"""
     return DictReader(StringIO(data_string), delimiter="|")
-
