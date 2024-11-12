@@ -1,7 +1,7 @@
 """Functions for processing the file on a row-by-row basis"""
 
 import json
-from io import StringIO
+# from io import StringIO
 import os
 import time
 import logging
@@ -12,7 +12,7 @@ from make_and_upload_ack_file import make_and_upload_ack_file
 from get_operation_permissions import get_operation_permissions
 from process_row import process_row
 from mappings import Vaccine
-from update_ack_file import update_ack_file
+# from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
 
 
@@ -61,8 +61,8 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
         make_and_upload_ack_file(
                     file_id, file_key, True, True, created_at_formatted_string
                 )
-        accumulated_ack_file_content = StringIO()
-        accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")
+        # accumulated_ack_file_content = StringIO()
+        # accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")
 
         row_count = 0  # Initialize a counter for rows
         for row in csv_reader:
@@ -81,22 +81,22 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
             }
 
             # Send to kinesis. Add diagnostics if send fails.
-            message_delivered = send_to_kinesis(supplier, outgoing_message_body)
-            if (
-                diagnostics := details_from_processing.get("diagnostics")
-            ) is None and message_delivered is False:
-                diagnostics = "Unsupported file type received as an attachment"
+            send_to_kinesis(supplier, outgoing_message_body)
+            # if (
+            #     diagnostics := details_from_processing.get("diagnostics")
+            # ) is None and message_delivered is False:
+            #     diagnostics = "Unsupported file type received as an attachment"
 
             # Update the ack file
-            accumulated_ack_file_content = update_ack_file(
-                file_key,
-                bucket_name,
-                accumulated_ack_file_content,
-                row_id,
-                message_delivered,
-                diagnostics,
-                outgoing_message_body.get("imms_id"),
-            )
+            # accumulated_ack_file_content = update_ack_file(
+            #     file_key,
+            #     bucket_name,
+            #     accumulated_ack_file_content,
+            #     row_id,
+            #     message_delivered,
+            #     diagnostics,
+            #     outgoing_message_body.get("imms_id"),
+            # )
 
         logger.info("Total rows processed: %s", row_count)
 

@@ -122,7 +122,7 @@ class TestRecordProcessor(unittest.TestCase):
             - "{TEST_FILE_ID}#{index+1}|fatal-error" is found in the ack file
         """
 
-        ack_file_content = self.get_ack_file_content()
+        # ack_file_content = self.get_ack_file_content()
         kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         previous_approximate_arrival_time_stamp = yesterday  # Initialise with a time prior to the running of the test
 
@@ -152,10 +152,10 @@ class TestRecordProcessor(unittest.TestCase):
                         self.assertIn(key_to_ignore, kinesis_data)
                         kinesis_data.pop(key_to_ignore)
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
+                    # self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
                 else:
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
+                    # self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
 
     def test_e2e_success(self):
         """
@@ -304,7 +304,7 @@ class TestRecordProcessor(unittest.TestCase):
 
         main(TEST_EVENT_DUMPED)
 
-        self.assertIn("Fatal", self.get_ack_file_content())
+        # self.assertIn("Fatal", self.get_ack_file_content())
 
 
 if __name__ == "__main__":
