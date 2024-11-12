@@ -30,40 +30,23 @@ class TestMakeAndUploadAckFile(TestCase):
         """Set up test values to be used for the tests"""
         self.message_id = str(uuid4())
         self.created_at_formatted_string = "20200101T12345600"
-        self.ack_data_validation_passed_and_message_not_delivered = {
-            "MESSAGE_HEADER_ID": self.message_id,
-            "HEADER_RESPONSE_CODE": "Failure",
-            "ISSUE_SEVERITY": "Information",
-            "ISSUE_CODE": "OK",
-            "ISSUE_DETAILS_CODE": "20013",
-            "RESPONSE_TYPE": "Technical",
-            "RESPONSE_CODE": "10002",
-            "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
-            "RECEIVED_TIME": self.created_at_formatted_string,
-            "MAILBOX_FROM": "",
-            "LOCAL_ID": "",
-            "MESSAGE_DELIVERY": False,
-        }
-        self.ack_data_validation_failed = {
-            "MESSAGE_HEADER_ID": self.message_id,
-            "HEADER_RESPONSE_CODE": "Failure",
-            "ISSUE_SEVERITY": "Fatal",
-            "ISSUE_CODE": "Fatal Error",
-            "ISSUE_DETAILS_CODE": "10001",
-            "RESPONSE_TYPE": "Technical",
-            "RESPONSE_CODE": "10002",
-            "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
-            "RECEIVED_TIME": self.created_at_formatted_string,
-            "MAILBOX_FROM": "",
-            "LOCAL_ID": "",
-            "MESSAGE_DELIVERY": False,
-        }
 
     def test_make_ack_data(self):
         "Tests make_ack_data makes correct ack data based on the input args"
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
         test_cases = [
-            (False, self.ack_data_validation_failed)
+            (False, {"MESSAGE_HEADER_ID": self.message_id,
+                     "HEADER_RESPONSE_CODE": "Failure",
+                     "ISSUE_SEVERITY": "Fatal",
+                     "ISSUE_CODE": "Fatal Error",
+                     "ISSUE_DETAILS_CODE": "10001",
+                     "RESPONSE_TYPE": "Technical",
+                     "RESPONSE_CODE": "10002",
+                     "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
+                     "RECEIVED_TIME": self.created_at_formatted_string,
+                     "MAILBOX_FROM": "",
+                     "LOCAL_ID": "",
+                     "MESSAGE_DELIVERY": False})
             # No need to test validation failed and message delivery passed as this scenario cannot occur
         ]
 
@@ -87,8 +70,34 @@ class TestMakeAndUploadAckFile(TestCase):
 
         # Test case tuples are stuctured as (ack_data, expected_result)
         test_cases = [
-            self.ack_data_validation_passed_and_message_not_delivered,
-            self.ack_data_validation_failed,
+            {
+                "MESSAGE_HEADER_ID": str(uuid4()),
+                "HEADER_RESPONSE_CODE": "Failure",
+                "ISSUE_SEVERITY": "Information",
+                "ISSUE_CODE": "OK",
+                "ISSUE_DETAILS_CODE": "20013",
+                "RESPONSE_TYPE": "Technical",
+                "RESPONSE_CODE": "10002",
+                "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
+                "RECEIVED_TIME": "20200101T12345600",
+                "MAILBOX_FROM": "",
+                "LOCAL_ID": "",
+                "MESSAGE_DELIVERY": False,
+            },
+            {
+                "MESSAGE_HEADER_ID": str(uuid4()),
+                "HEADER_RESPONSE_CODE": "Failure",
+                "ISSUE_SEVERITY": "Fatal",
+                "ISSUE_CODE": "Fatal Error",
+                "ISSUE_DETAILS_CODE": "10001",
+                "RESPONSE_TYPE": "Technical",
+                "RESPONSE_CODE": "10002",
+                "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
+                "RECEIVED_TIME": "20200101T12345600",
+                "MAILBOX_FROM": "",
+                "LOCAL_ID": "",
+                "MESSAGE_DELIVERY": False,
+            }
         ]
 
         # Call the upload_ack_file function
@@ -117,7 +126,20 @@ class TestMakeAndUploadAckFile(TestCase):
 
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
         test_cases = [
-            (False, self.ack_data_validation_failed)
+            (False, {
+                    "MESSAGE_HEADER_ID": self.message_id,
+                    "HEADER_RESPONSE_CODE": "Failure",
+                    "ISSUE_SEVERITY": "Fatal",
+                    "ISSUE_CODE": "Fatal Error",
+                    "ISSUE_DETAILS_CODE": "10001",
+                    "RESPONSE_TYPE": "Technical",
+                    "RESPONSE_CODE": "10002",
+                    "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
+                    "RECEIVED_TIME": self.created_at_formatted_string,
+                    "MAILBOX_FROM": "",
+                    "LOCAL_ID": "",
+                    "MESSAGE_DELIVERY": False,
+                    })
         ]
 
         # Call the make_and_upload_ack_file function
