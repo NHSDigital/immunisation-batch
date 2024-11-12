@@ -7,8 +7,8 @@ from utils_for_filenameprocessor import get_environment
 from s3_clients import s3_client
 
 
-def make_ack_data(
-    message_id: str,  message_delivered: bool, created_at_formatted_string
+def make_the_ack_data(
+    message_id: str,  message_delivered: bool, created_at_formatted_string: str
 ) -> dict:
     """Returns a dictionary of ack data based on the input values. Dictionary keys are the ack file headers,
     dictionary values are the values for the ack file row"""
@@ -46,9 +46,9 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
     s3_client.upload_fileobj(csv_bytes, ack_bucket_name, ack_filename)
 
 
-def make_and_upload_ack_file(
-    message_id: str, file_key: str, message_delivered: bool, created_at_formatted_string
+def make_and_upload_the_ack_file(
+    message_id: str, file_key: str, message_delivered: bool, created_at_formatted_string: str
 ) -> None:
     """Creates the ack file and uploads it to the S3 ack bucket"""
-    ack_data = make_ack_data(message_id, message_delivered, created_at_formatted_string)
+    ack_data = make_the_ack_data(message_id, message_delivered, created_at_formatted_string)
     upload_ack_file(file_key=file_key, ack_data=ack_data)

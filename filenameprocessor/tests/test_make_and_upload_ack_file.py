@@ -13,7 +13,7 @@ import sys
 maindir = os.path.dirname(__file__)
 srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from make_and_upload_ack_file import make_ack_data, upload_ack_file, make_and_upload_ack_file  # noqa: E402
+from make_and_upload_ack_file import make_the_ack_data, upload_ack_file, make_and_upload_the_ack_file  # noqa: E402
 from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     MOCK_ENVIRONMENT_DICT,
     DESTINATION_BUCKET_NAME,
@@ -53,7 +53,7 @@ class TestMakeAndUploadAckFile(TestCase):
         for message_delivered, expected_result in test_cases:
             with self.subTest():
                 self.assertEqual(
-                    make_ack_data(
+                    make_the_ack_data(
                         self.message_id, message_delivered, self.created_at_formatted_string
                     ),
                     expected_result,
@@ -145,7 +145,7 @@ class TestMakeAndUploadAckFile(TestCase):
         # Call the make_and_upload_ack_file function
         for message_delivered, expected_result in test_cases:
             with self.subTest():
-                make_and_upload_ack_file(
+                make_and_upload_the_ack_file(
                     self.message_id,
                     VALID_FLU_EMIS_FILE_KEY,
                     message_delivered,

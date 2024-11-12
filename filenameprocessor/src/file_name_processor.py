@@ -9,7 +9,7 @@ import logging
 from uuid import uuid4
 from initial_file_validation import initial_file_validation
 from send_sqs_message import make_and_send_sqs_message
-from make_and_upload_ack_file import make_and_upload_ack_file
+from make_and_upload_ack_file import make_and_upload_the_ack_file
 from s3_clients import s3_client
 from elasticcache import upload_to_elasticache
 from log_structure import function_info
@@ -48,7 +48,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                     if validation_passed else False
                 )
                 if not validation_passed:
-                    make_and_upload_ack_file(
+                    make_and_upload_the_ack_file(
                         message_id, file_key, message_delivered, created_at_formatted_string
                     )
                 return {
@@ -76,7 +76,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             logging.error("Error processing file'%s': %s", file_key, str(error))
             error_files.append(file_key)
             if "data-sources" in bucket_name:
-                make_and_upload_ack_file(
+                make_and_upload_the_ack_file(
                     message_id, file_key, message_delivered, created_at_formatted_string
                 )
                 return {
