@@ -30,20 +30,6 @@ class TestMakeAndUploadAckFile(TestCase):
         """Set up test values to be used for the tests"""
         self.message_id = str(uuid4())
         self.created_at_formatted_string = "20200101T12345600"
-        self.ack_data_validation_passed_and_message_delivered = {
-            "MESSAGE_HEADER_ID": self.message_id,
-            "HEADER_RESPONSE_CODE": "Success",
-            "ISSUE_SEVERITY": "Information",
-            "ISSUE_CODE": "OK",
-            "ISSUE_DETAILS_CODE": "20013",
-            "RESPONSE_TYPE": "Technical",
-            "RESPONSE_CODE": "20013",
-            "RESPONSE_DISPLAY": "Success",
-            "RECEIVED_TIME": self.created_at_formatted_string,
-            "MAILBOX_FROM": "",
-            "LOCAL_ID": "",
-            "MESSAGE_DELIVERY": True,
-        }
         self.ack_data_validation_passed_and_message_not_delivered = {
             "MESSAGE_HEADER_ID": self.message_id,
             "HEADER_RESPONSE_CODE": "Failure",
@@ -77,17 +63,15 @@ class TestMakeAndUploadAckFile(TestCase):
         "Tests make_ack_data makes correct ack data based on the input args"
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
         test_cases = [
-            (True, True, self.ack_data_validation_passed_and_message_delivered),
-            (True, False, self.ack_data_validation_passed_and_message_not_delivered),
-            (False, False, self.ack_data_validation_failed),
+            (False, self.ack_data_validation_failed)
             # No need to test validation failed and message delivery passed as this scenario cannot occur
         ]
 
-        for validation_passed, message_delivered, expected_result in test_cases:
+        for message_delivered, expected_result in test_cases:
             with self.subTest():
                 self.assertEqual(
                     make_ack_data(
-                        self.message_id, validation_passed, message_delivered, self.created_at_formatted_string
+                        self.message_id, message_delivered, self.created_at_formatted_string
                     ),
                     expected_result,
                 )
@@ -103,7 +87,6 @@ class TestMakeAndUploadAckFile(TestCase):
 
         # Test case tuples are stuctured as (ack_data, expected_result)
         test_cases = [
-            self.ack_data_validation_passed_and_message_delivered,
             self.ack_data_validation_passed_and_message_not_delivered,
             self.ack_data_validation_failed,
         ]
@@ -134,18 +117,15 @@ class TestMakeAndUploadAckFile(TestCase):
 
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
         test_cases = [
-            (True, True, self.ack_data_validation_passed_and_message_delivered),
-            (True, False, self.ack_data_validation_passed_and_message_not_delivered),
-            (False, False, self.ack_data_validation_failed),
+            (False, self.ack_data_validation_failed)
         ]
 
         # Call the make_and_upload_ack_file function
-        for validation_passed, message_delivered, expected_result in test_cases:
+        for message_delivered, expected_result in test_cases:
             with self.subTest():
                 make_and_upload_ack_file(
                     self.message_id,
                     VALID_FLU_EMIS_FILE_KEY,
-                    validation_passed,
                     message_delivered,
                     self.created_at_formatted_string,
                 )

@@ -44,11 +44,13 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
                 # Process file from batch_data_source_bucket with validation
                 validation_passed, permission = initial_file_validation(file_key)
                 message_delivered = (
-                    make_and_send_sqs_message(file_key, message_id, permission) if validation_passed else False
+                    make_and_send_sqs_message(file_key, message_id, permission, created_at_formatted_string)
+                    if validation_passed else False
                 )
-                make_and_upload_ack_file(
-                    message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
-                )
+                if not validation_passed:
+                    make_and_upload_ack_file(
+                        message_id, file_key, message_delivered, created_at_formatted_string
+                    )
                 return {
                     "statusCode": 200,
                     "body": json_dumps("Successfully sent to SQS queue"),
@@ -75,7 +77,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             error_files.append(file_key)
             if "data-sources" in bucket_name:
                 make_and_upload_ack_file(
-                    message_id, file_key, validation_passed, message_delivered, created_at_formatted_string
+                    message_id, file_key, message_delivered, created_at_formatted_string
                 )
                 return {
                     "statusCode": 400,

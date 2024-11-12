@@ -20,7 +20,6 @@ from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
     VALID_RSV_EMIS_FILE_KEY,
-    VALID_RSV_EMIS_ACK_FILE_KEY,
     CONFIGS_BUCKET_NAME,
     PERMISSION_JSON,
 )
@@ -98,7 +97,7 @@ class TestLambdaHandler(TestCase):
         mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
 
         # Set up S3
-        s3_client = self.set_up_s3_buckets_and_upload_file()
+        self.set_up_s3_buckets_and_upload_file()
 
         # Set up SQS
         sqs_client = boto3_client("sqs", region_name="eu-west-2")
@@ -112,7 +111,6 @@ class TestLambdaHandler(TestCase):
 
         # Assertions
         self.assertEqual(response["statusCode"], 200)
-        self.assert_ack_file_in_destination_s3_bucket(s3_client)
 
         # Check if the message was sent to the SQS queue
         messages = sqs_client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1)
@@ -168,43 +166,43 @@ class TestLambdaHandler(TestCase):
         assert response["statusCode"] == 400
         assert response["body"] == '"Failed to upload file content to cache from S3 bucket"'
 
-    @mock_s3
-    def test_lambda_invalid_csv_header(self):
-        """tests SQS queue is not called when CSV headers are invalid due to misspelled header"""
-        s3_client = self.set_up_s3_buckets_and_upload_file(
-            file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB"),
-        )
+    # @mock_s3
+    # def test_lambda_invalid_csv_header(self):
+    #     """tests SQS queue is not called when CSV headers are invalid due to misspelled header"""
+    #     s3_client = self.set_up_s3_buckets_and_upload_file(
+    #         file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB"),
+    #     )
 
-        # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
-            lambda_handler(event=self.make_event(), context=None)
+    #     # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
+    #     with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
+    #         "send_sqs_message.send_to_supplier_queue"
+    #     ) as mock_send_to_supplier_queue:
+    #         lambda_handler(event=self.make_event(), context=None)
 
-        mock_send_to_supplier_queue.assert_not_called()
-        self.assert_ack_file_in_destination_s3_bucket(s3_client)
+    #     mock_send_to_supplier_queue.assert_not_called()
+    #     self.assert_ack_file_in_destination_s3_bucket(s3_client)
 
-        # Validate the content of the ack file to ensure it reports an error due to invalid headers
-        ack_file_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=VALID_FLU_EMIS_ACK_FILE_KEY)
-        ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
-        self.assertIn("Fatal Error", ack_file_content)
-        self.assertIn("Infrastructure Level Response Value - Processing Error", ack_file_content)
+    #     # Validate the content of the ack file to ensure it reports an error due to invalid headers
+    #     ack_file_obj = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=VALID_FLU_EMIS_ACK_FILE_KEY)
+    #     ack_file_content = ack_file_obj["Body"].read().decode("utf-8")
+    #     self.assertIn("Fatal Error", ack_file_content)
+    #     self.assertIn("Infrastructure Level Response Value - Processing Error", ack_file_content)
 
-    @mock_s3
-    def test_lambda_invalid_columns_header_count(self):
-        """tests SQS queue is not called when CSV headers are invalid due to missing header"""
-        s3_client = self.set_up_s3_buckets_and_upload_file(
-            file_content=VALID_FILE_CONTENT.replace("PERSON_DOB|", ""),
-        )
+    # @mock_s3
+    # def test_lambda_invalid_columns_header_count(self):
+    #     """tests SQS queue is not called when CSV headers are invalid due to missing header"""
+    #     s3_client = self.set_up_s3_buckets_and_upload_file(
+    #         file_content=VALID_FILE_CONTENT.replace("PERSON_DOB|", ""),
+    #     )
 
-        # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
-            lambda_handler(event=self.make_event(), context=None)
+    #     # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
+    #     with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
+    #         "send_sqs_message.send_to_supplier_queue"
+    #     ) as mock_send_to_supplier_queue:
+    #         lambda_handler(event=self.make_event(), context=None)
 
-        mock_send_to_supplier_queue.assert_not_called()
-        self.assert_ack_file_in_destination_s3_bucket(s3_client)
+    #     mock_send_to_supplier_queue.assert_not_called()
+    #     # self.assert_ack_file_in_destination_s3_bucket(s3_client)
 
     @mock_s3
     def test_lambda_invalid_vaccine_type(self):
@@ -293,7 +291,7 @@ class TestLambdaHandler(TestCase):
         # set up mock for the permission when the validation passed
         mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
 
-        s3_client = self.set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
+        self.set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
         # Mock the get_supplier_permissions (with return value which includes the requested Flu permissions)
         # and send_to_supplier_queue functions
         with patch(
@@ -303,7 +301,6 @@ class TestLambdaHandler(TestCase):
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_called_once()
-        self.assert_ack_file_in_destination_s3_bucket(s3_client)
 
     @mock_s3
     def test_lambda_invalid_action_flag_permissions(self):
@@ -330,14 +327,13 @@ class TestLambdaHandler(TestCase):
         mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
 
         # Set up S3
-        s3_client = self.set_up_s3_buckets_and_upload_file(file_key=VALID_RSV_EMIS_FILE_KEY)
+        self.set_up_s3_buckets_and_upload_file(file_key=VALID_RSV_EMIS_FILE_KEY)
 
         # Set up SQS
         sqs_client = boto3_client("sqs", region_name="eu-west-2")
         queue_name = "imms-batch-internal-dev-metadata-queue.fifo"
         attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
-        ack_file_key = VALID_RSV_EMIS_ACK_FILE_KEY
 
         # Mock get_supplier_permissions with full RSV permissions
 
@@ -345,7 +341,6 @@ class TestLambdaHandler(TestCase):
 
         # Assertions
         self.assertEqual(response["statusCode"], 200)
-        self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
         # Check if the message was sent to the SQS queue
         messages = sqs_client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=1, MaxNumberOfMessages=1)

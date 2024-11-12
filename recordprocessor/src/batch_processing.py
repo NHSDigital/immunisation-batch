@@ -14,7 +14,6 @@ from process_row import process_row
 from mappings import Vaccine
 from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
-from s3_clients import s3_client
 
 
 logging.basicConfig(level="INFO")
@@ -38,29 +37,30 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     supplier = incoming_message_body.get("supplier").upper()
     file_key = incoming_message_body.get("filename")
     permission = incoming_message_body.get("permission")
+    created_at_formatted_string = incoming_message_body.get("created_at_formatted_string")
     allowed_operations = get_operation_permissions(vaccine, permission)
 
     # Fetch the data
     bucket_name = os.getenv(
         "SOURCE_BUCKET_NAME", f"immunisation-batch-{get_environment()}-data-sources"
     )
-    csv_reader = get_csv_content_dict_reader(bucket_name, file_key)
+    csv_reader, csv_data = get_csv_content_dict_reader(bucket_name, file_key)
 
     is_valid_headers = validate_content_headers(csv_reader)
     # Validate has permission to perform at least one of the requested actions
     action_flag_check = validate_action_flag_permissions(
-        bucket_name, file_key, supplier, vaccine.value, permission
+       supplier, vaccine.value, permission, csv_data
     )
 
     if not action_flag_check or not is_valid_headers:
-        print("failed")
-        response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
-        created_at_formatted_string = response["LastModified"].strftime(
-            "%Y%m%dT%H%M%S00"
-        )
-        make_and_upload_ack_file(file_id, file_key, created_at_formatted_string)
+        make_and_upload_ack_file(
+                    file_id, file_key, False, False, created_at_formatted_string
+                )
     else:
         # Initialise the accumulated_ack_file_content with the headers
+        make_and_upload_ack_file(
+                    file_id, file_key, True, True, created_at_formatted_string
+                )
         accumulated_ack_file_content = StringIO()
         accumulated_ack_file_content.write("|".join(Constants.ack_headers) + "\n")
 
@@ -107,7 +107,7 @@ def validate_content_headers(csv_content_reader):
 
 
 def validate_action_flag_permissions(
-    bucket_name, key, supplier: str, vaccine_type: str, permission
+    supplier: str, vaccine_type: str, permission, csv_data
 ) -> bool:
     """
     Returns True if the supplier has permission to perform ANY of the requested actions for the given vaccine type,
@@ -120,7 +120,7 @@ def validate_action_flag_permissions(
         return True
 
     # Get unique ACTION_FLAG values from the S3 file
-    operations_requested = get_unique_action_flags_from_s3(bucket_name, key)
+    operations_requested = get_unique_action_flags_from_s3(csv_data)
 
     # Convert action flags into the expected operation names
     operation_requests_set = {
