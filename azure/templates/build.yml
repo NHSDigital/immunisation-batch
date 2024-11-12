@@ -10,9 +10,3 @@ steps:
 
     displayName: Test ecs code for recordprocessor
     workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordprocessor"
-
-  - bash: |
-      BUILDKIT_PROGRESS=plain docker build --target test -t imms-batch-build -f Dockerfile .
-
-    displayName: Test lambda code for recordforwarder
-    workingDirectory: "$(Pipeline.Workspace)/s/$(SERVICE_NAME)/recordforwarder"

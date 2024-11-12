@@ -107,13 +107,12 @@ class TestFunctionInfoDecorator(unittest.TestCase):
     ):
         """Tests the splunk logger is called when file validation is unsuccessful"""
         mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
-        mock_get_permissions.return_value = {"all_permissions": {"EMIS": ["FLU_FULL"]}}
         event = self.event_file
 
-        set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT.replace("PERSON_DOB", "PERON_DOB"))
+        set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
         with patch(
             "initial_file_validation.get_supplier_permissions",
-            return_value=["FLU_CREATE", "FLU_UPDATE"],
+            return_value=["COVID19_CREATE"],
         ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
             lambda_handler(event, context=None)
 

@@ -3,7 +3,6 @@
 import json
 import base64
 import logging
-from update_ack_file import update_ack_file
 from send_request_to_lambda import send_request_to_lambda
 from errors import MessageNotSuccessfulError
 
@@ -13,14 +12,15 @@ logger = logging.getLogger()
 
 def forward_request_to_lambda(message_body):
     """Forwards the request to the Imms API (where possible) and updates the ack file with the outcome"""
-    file_key = message_body.get("file_key")
+    # file_key = message_body.get("file_key")
     row_id = message_body.get("row_id")
     logger.info("BEGINNIING FORWARDING MESSAGE: ID %s", row_id)
     try:
-        imms_id = send_request_to_lambda(message_body)
-        update_ack_file(file_key, row_id, successful_api_response=True, diagnostics=None, imms_id=imms_id)
+        send_request_to_lambda(message_body)
+        # update_ack_file(file_key, row_id, successful_api_response=True, diagnostics=None, imms_id=imms_id)
     except MessageNotSuccessfulError as error:
-        update_ack_file(file_key, row_id, successful_api_response=False, diagnostics=str(error.message), imms_id=None)
+        # update_ack_file(file_key, row_id, successful_api_response=False, diagnostics=str(error.message), imms_id=None)
+        logger.info("Error: %s", error)
     logger.info("FINISHED FORWARDING MESSAGE: ID %s", row_id)
 
 
