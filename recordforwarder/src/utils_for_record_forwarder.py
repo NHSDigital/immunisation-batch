@@ -37,7 +37,7 @@ def invoke_lambda(lambda_name: str, payload: dict) -> Union[tuple[int, dict, str
     Returns the ressponse status code, body (loaded in as a dictionary) and headers.
     """
     # Change InvocationType to 'Event' for asynchronous invocation
-    if "search_imms" in lambda_name or "update" in lambda_name or "delete" in lambda_name:
+    if "search_imms" in lambda_name:
         response = lambda_client.invoke(
             FunctionName=lambda_name, InvocationType="RequestResponse", Payload=json.dumps(payload)
         )
