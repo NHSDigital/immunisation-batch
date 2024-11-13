@@ -170,6 +170,15 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "firehose:PutRecordBatch"
         ],
         "Resource": data.aws_kinesis_firehose_delivery_stream.splunk_stream.arn
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "kms:Decrypt"
+        ],
+        "Resource": ["arn:aws:sqs:${var.aws_region}:${local.local_account_id}:imms-${local.api_env}-ack-metadata-queue.fifo"]
       }
     ]
   })
@@ -206,6 +215,7 @@ resource "aws_lambda_function" "forwarding_lambda" {
       UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
       DELETE_LAMBDA_NAME = data.aws_lambda_function.existing_delete_lambda.function_name
       SEARCH_LAMBDA_NAME = data.aws_lambda_function.existing_search_lambda.function_name
+      SQS_QUEUE_URL      = "https://sqs.eu-west-2.amazonaws.com/${local.local_account_id}/imms-${local.api_env}-ack-metadata-queue.fifo"
     }
   }
   kms_key_arn = data.aws_kms_key.existing_lambda_encryption_key.arn
