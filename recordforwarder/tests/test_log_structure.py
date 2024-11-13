@@ -1,287 +1,122 @@
+# """Tests for Splunk logging"""
+
 # import unittest
 # from unittest.mock import patch
 # import json
+# from copy import deepcopy
 # from datetime import datetime
+# from contextlib import contextmanager, ExitStack
 # from send_request_to_lambda import send_request_to_lambda
-# from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import (
-#     TEST_IMMS_ID,
-#     test_fixed_time_taken,
-# )
+# from constants import Operations
+# from tests.utils_for_recordfowarder_tests.values_for_recordforwarder_tests import Message, Diagnostics
 # from errors import MessageNotSuccessfulError
 
+# FIXED_DATETIME = datetime(2024, 10, 30, 12, 0, 0)
 
-# class Test_Splunk_logging(unittest.TestCase):
-#     def setUp(self):
-#         self.message_body_base = {
-#             "row_id": "6543219",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "EMIS",
-#             "operation_requested": "operation_requested",
-#             "fhir_json": {"resourceType": "Immunization"},
-#         }
 
-#         self.fixed_datetime = datetime(2024, 10, 29, 12, 0, 0)
+# class TestSplunkLogging(unittest.TestCase):
+#     """Tests for Splunk logging"""
 
-#         self.message_body_base_errors = {
-#             "row_id": "6543219",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "EMIS",
-#             "operation_requested": "UPDATE",
-#             "diagnostics": "Unable to obtain IMMS ID",
-#         }
+#     log_json_base = {
+#         "function_name": "send_request_to_lambda",
+#         "date_time": FIXED_DATETIME.strftime("%Y-%m-%d %H:%M:%S"),
+#         "supplier": "EMIS",
+#         "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
+#         "vaccine_type": "FLU",
+#         "message_id": "123456",
+#         "action_flag": "each test replaces this with the relevant action flag",
+#     }
 
-#         self.expected_values = {
-#             "function_name": "send_request_to_lambda",
-#             "date_time": self.fixed_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-#             "status": "success",
-#             "supplier": "EMIS",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "vaccine_type": "FLU",
-#             "message_id": "6543219",
-#             "action_flag": "action_flag",
-#             "time_taken": 1.0,
-#         }
+#     expected_log_json_success = {**log_json_base, "status": "success", "time_taken": "1.0s"}
 
-#         # Expected splunk log values when there is an error
-#         self.expected_values_error = {
-#             "event": {
-#                 "function_name": "send_request_to_lambda",
-#                 "date_time": self.fixed_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-#                 "status": "Fail",
-#                 "supplier": "EMIS",
-#                 "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#                 "vaccine_type": "FLU",
-#                 "message_id": "6543219",
-#                 "action_flag": "UPDATE",
-#                 "time_taken": "1.0s",
-#                 "status_code": 400,
-#                 "error": "Unable to obtain IMMS ID",
-#             }
-#         }
+#     expected_log_json_failure = {**log_json_base, "status": "Fail", "time_taken": "1.0s", "status_code": 400}
 
-#     def extract_log_json(self, log_entry):
+#     def extract_log_json(self, log: str) -> dict:
 #         """Extracts JSON from log entry."""
+#         log_entry = log.output[0]
 #         json_start = log_entry.find("{")
-#         json_str = log_entry[json_start:]
+#         json_end = log_entry.find("}")
+#         json_str = log_entry[json_start : json_end + 1]  # noqa: E203
 #         return json.loads(json_str)
 
-#     @patch("send_request_to_lambda.send_create_request")
-#     @patch("send_request_to_lambda.send_update_request")
-#     @patch("send_request_to_lambda.send_delete_request")
-#     @patch("log_structure.firehose_logger")
-#     @patch("time.time")
-#     @patch("log_structure.datetime")
-#     def test_splunk_logging_successful_rows(
-#         self,
-#         mock_datetime,
-#         mock_time,
-#         mock_firehose_logger,
-#         mock_send_delete_request,
-#         mock_send_update_request,
-#         mock_send_create_request,
-#     ):
+#     def make_log_assertions(self, log, mock_firehose_logger, operation: str, expected_error=None):
+#         """Assert that the log_json is as expected, and that the firehose logger was called with the log_json"""
+#         # Extract log_json
+#         self.assertGreater(len(log.output), 0)
+#         log_json = self.extract_log_json(log)
 
-#         # mocking datetime and time_taken as fixed values
-#         mock_datetime.now.return_value = self.fixed_datetime
-#         mock_time.side_effect = test_fixed_time_taken
+#         # Prepare expected_log_json
+#         expected_log_json = (
+#             deepcopy(self.expected_log_json_success) if not expected_error else
+#               deepcopy(self.expected_log_json_failure)
+#         )
+#         expected_log_json["action_flag"] = operation.upper()
+#         expected_log_json.update({"error": expected_error} if expected_error else {})
 
-#         # Mock return values for each operation
-#         mock_send_create_request.return_value = TEST_IMMS_ID
-#         mock_send_update_request.return_value = TEST_IMMS_ID
-#         mock_send_delete_request.return_value = TEST_IMMS_ID
-#         operations = [
-#             {"operation_requested": "CREATE"},
-#             {"operation_requested": "UPDATE"},
-#             {"operation_requested": "DELETE"},
-#         ]
+#         self.assertEqual(log_json, expected_log_json)
 
-#         for op in operations:
-#             with self.assertLogs(level="INFO") as log:
-#                 message_body = self.message_body_base.copy()
-#                 message_body["operation_requested"] = op["operation_requested"]
+#         mock_firehose_logger.forwarder_send_log.assert_called_once_with({"event": log_json})
+#         mock_firehose_logger.forwarder_send_log.reset_mock()
 
-#                 result = send_request_to_lambda(message_body)
-#                 self.assertEqual(result, "imms_6543219")
-#                 self.assertGreater(len(log.output), 0)
+#     @contextmanager
+#     def common_contexts_for_splunk_logging_tests(self):
+#         """
+#         A context manager which applies common patching for the tests in the TestSplunkLogging class.
+#         Yields mock_firehose_logger and logs (where logs is a list of the captured log entries).
+#         """
+#         with ExitStack() as stack:
+#             stack.enter_context(patch("time.time", side_effect=(1000000.0, 1000001.0, 1000003.0)))# (start, end, ???)
+#             stack.enter_context(patch("log_structure.datetime"))
+#             stack.enter_context(patch("log_structure.datetime.now", return_value=FIXED_DATETIME))
+#             mock_firehose_logger = stack.enter_context(patch("log_structure.firehose_logger"))
+#             logs = stack.enter_context(self.assertLogs(level="INFO"))
+#             yield mock_firehose_logger, logs
 
-#                 log_json = self.extract_log_json(log.output[0])
+#     def test_splunk_logging_success(self):
+#         """Tests successful rows"""
+#         for operation in [Operations.CREATE, Operations.UPDATE, Operations.DELETE]:
+#             with self.subTest(operation):
+#                 with (
+#                     self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
+#                     patch(f"send_request_to_lambda.send_{operation.lower()}_request", return_value=Message.IMMS_ID),
+#                 ):
+#                     message_body = {**Message.base_message_fields, "operation_requested": operation, "fhir_json": {}}
+#                     result = send_request_to_lambda(message_body)
 
-#                 expected_values = self.expected_values
-#                 expected_values["action_flag"] = op["operation_requested"]
+#                 self.assertEqual(result, Message.IMMS_ID)
+#                 self.make_log_assertions(logs, mock_firehose_logger, operation)
 
-#                 # Iterate over the expected values and assert each one
-#                 for key, expected in expected_values.items():
-#                     self.assertEqual(log_json[key], expected)
-
-#                 self.assertIsInstance(log_json["time_taken"], float)
-
-#                 # Check firehose logging call
-#                 mock_firehose_logger.forwarder_send_log.assert_called_once_with({"event": log_json})
-#                 mock_firehose_logger.forwarder_send_log.reset_mock()
-
-#     @patch("log_structure.firehose_logger")
-#     @patch("log_structure.logger")
-#     @patch("time.time")
-#     @patch("log_structure.datetime")
-#     def test_splunk_logging_diagnostics_error(self, mock_datetime, mock_time, mock_logger, mock_firehose_logger):
-#         # Message body with diagnostics to trigger an error, mocking datetime and time_taken as fixed values
-#         mock_datetime.now.return_value = self.fixed_datetime
-#         mock_time.side_effect = test_fixed_time_taken
-#         message_body = self.message_body_base_errors
-
-#         # Exception raised in send_request_to_lambda
-#         with self.assertRaises(MessageNotSuccessfulError) as context:
+#     def test_splunk_logging_failure_during_processing(self):
+#         """Tests a row which failed processing (and therefore has diagnostics in the message recevied from kinesis)"""
+#         diagnostics = Diagnostics.INVALID_ACTION_FLAG
+#         operation = Operations.UPDATE
+#         with (
+#             self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
+#             self.assertRaises(MessageNotSuccessfulError) as context,
+#         ):
+#           message_body = {**Message.base_message_fields, "operation_requested": operation,
+#               "diagnostics": diagnostics}
 #             send_request_to_lambda(message_body)
 
-#         # Ensure the exception message is as expected
-#         self.assertEqual(str(context.exception), "Unable to obtain IMMS ID")
+#         self.assertEqual(str(context.exception), diagnostics)
+#         self.make_log_assertions(logs, mock_firehose_logger, operation, expected_error=diagnostics)
 
-#         log_data = mock_logger.exception.call_args[0][0]
+#     def test_splunk_logging_failure_during_forwarding(self):
+#         """Tests rows which fail during forwarding"""
 
-#         self.assertIn("Unable to obtain IMMS ID", log_data)
+#         for operation in [Operations.CREATE, Operations.UPDATE, Operations.DELETE]:
+#             error_message = f"API Error: Unable to {operation.lower()} resource"
+#             with self.subTest(operation):
+#                 with (
+#                     self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
+#                     self.assertRaises(MessageNotSuccessfulError) as context,
+#                     patch(
+#                         f"send_request_to_lambda.send_{operation.lower()}_request",
+#                         side_effect=MessageNotSuccessfulError(error_message),
+#                     ),
+#                 ):
+#                     message_body = {**Message.base_message_fields, "operation_requested": operation, "fhir_json": {}}
+#                     send_request_to_lambda(message_body)
 
-#         firehose_log_data = self.expected_values_error
-#         mock_firehose_logger.forwarder_send_log.assert_called_once_with(firehose_log_data)
-
-#     @patch("send_request_to_lambda.send_create_request")
-#     @patch("send_request_to_lambda.send_update_request")
-#     @patch("send_request_to_lambda.send_delete_request")
-#     @patch("send_request_to_lambda.forwarder_function_info")  # Mock the decorator to simplify the test
-#     @patch("log_structure.logger")  # Patch the logger to verify error logs
-#     def test_error_logging_in_send_request_to_lambda(
-#         self,
-#         mock_logger,
-#         mock_forwarder_function_info,
-#         mock_send_delete_request,
-#         mock_send_update_request,
-#         mock_send_create_request,
-#     ):
-
-#         # Define message bodies for each operation to trigger errors
-#         create_message_body = {
-#             "operation_requested": "CREATE",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "TestSupplier",
-#             "fhir_json": {},  # Placeholder for any necessary data structure
-#             "row_id": "12345",
-#         }
-
-#         update_message_body = {
-#             "operation_requested": "UPDATE",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "TestSupplier",
-#             "fhir_json": {},  # Placeholder for any necessary data structure
-#             "row_id": "12345",
-#             "imms_id": "67890",
-#             "version": "1",
-#         }
-
-#         delete_message_body = {
-#             "operation_requested": "DELETE",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "TestSupplier",
-#             "fhir_json": {},  # Placeholder for any necessary data structure
-#             "imms_id": "67890",
-#         }
-
-#         # Set up each mock function to raise MessageNotSuccessfulError with custom error messages
-#         mock_send_create_request.side_effect = MessageNotSuccessfulError("API Error: Unable to create resource")
-#         mock_send_update_request.side_effect = MessageNotSuccessfulError("API Error: Unable to update resource")
-#         mock_send_delete_request.side_effect = MessageNotSuccessfulError("API Error: Unable to delete resource")
-
-#         # Test the CREATE operation
-#         with self.assertRaises(MessageNotSuccessfulError):
-#             send_request_to_lambda(create_message_body)
-
-#         # Assert the logger recorded the error message for CREATE
-#         mock_logger.exception.assert_called()  # Check that the log was triggered
-#         self.assertIn("API Error: Unable to create resource", str(mock_logger.exception.call_args))  # Verify message
-
-#         # Reset the mock logger for the next test case
-#         mock_logger.exception.reset_mock()
-
-#         # Test the UPDATE operation
-#         with self.assertRaises(MessageNotSuccessfulError):
-#             send_request_to_lambda(update_message_body)
-
-#         # Assert the logger recorded the error message for UPDATE
-#         mock_logger.exception.assert_called()
-#         self.assertIn("API Error: Unable to update resource", str(mock_logger.exception.call_args))
-
-#         # Reset the mock logger for the next test case
-#         mock_logger.exception.reset_mock()
-
-#         # Test the DELETE operation
-#         with self.assertRaises(MessageNotSuccessfulError):
-#             send_request_to_lambda(delete_message_body)
-
-#         # Assert the logger recorded the error message for DELETE
-#         mock_logger.exception.assert_called()
-#         self.assertIn("API Error: Unable to delete resource", str(mock_logger.exception.call_args))
-
-#     @patch("send_request_to_lambda.send_create_request")
-#     @patch("send_request_to_lambda.send_update_request")
-#     @patch("send_request_to_lambda.send_delete_request")
-#     @patch("log_structure.logger")  # Patch the logger to verify error logs
-#     def test_error_logging_operation(
-#         self,
-#         mock_logger,
-#         mock_send_delete_request,
-#         mock_send_update_request,
-#         mock_send_create_request,
-#     ):
-
-#         create_message_body = {
-#             "row_id": "555555",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "EMIS",
-#             "operation_requested": "CREATE",
-#             "fhir_json": {"resourceType": "Immunization"},
-#         }
-
-#         update_message_body = {
-#             "row_id": "7891011",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "EMIS",
-#             "operation_requested": "UPDATE",
-#             "fhir_json": {"resourceType": "Immunization"},
-#         }
-
-#         delete_message_body = {
-#             "row_id": "12131415",
-#             "file_key": "flu_Vaccinations_v5_8HK48_20210730T12000000.csv",
-#             "supplier": "EMIS",
-#             "operation_requested": "DELETE",
-#             "fhir_json": {"resourceType": "Immunization"},
-#         }
-
-#         # Set up each mock function to raise MessageNotSuccessfulError with custom error messages
-#         mock_send_create_request.side_effect = MessageNotSuccessfulError("API Error: Unable to create resource")
-#         mock_send_update_request.side_effect = MessageNotSuccessfulError("API Error: Unable to update resource")
-#         mock_send_delete_request.side_effect = MessageNotSuccessfulError("API Error: Unable to delete resource")
-
-#         with self.assertRaises(MessageNotSuccessfulError):
-#             send_request_to_lambda(create_message_body)
-
-#         mock_logger.exception.assert_called()
-#         self.assertIn("API Error: Unable to create resource", str(mock_logger.exception.call_args))
-#         mock_logger.exception.reset_mock()
-
-#         # Test the UPDATE operation
-#         with self.assertRaises(MessageNotSuccessfulError):
-#             send_request_to_lambda(update_message_body)
-
-#         mock_logger.exception.assert_called()
-#         self.assertIn("API Error: Unable to update resource", str(mock_logger.exception.call_args))
-#         mock_logger.exception.reset_mock()
-
-#         # Test the DELETE operation
-#         with self.assertRaises(MessageNotSuccessfulError):
-#             send_request_to_lambda(delete_message_body)
-
-#         mock_logger.exception.assert_called()
-#         self.assertIn("API Error: Unable to delete resource", str(mock_logger.exception.call_args))
-
-
-# if __name__ == "__main__":
-#     unittest.main()
+#                 self.assertEqual(str(context.exception), error_message)
+#                 self.make_log_assertions(logs, mock_firehose_logger, operation, expected_error=error_message)

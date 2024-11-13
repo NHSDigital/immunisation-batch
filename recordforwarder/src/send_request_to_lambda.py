@@ -3,9 +3,8 @@
 import os
 from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
-from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda
-from constants import Constants
+from constants import IMMS_BATCH_APP_NAME
 
 CREATE_LAMBDA_NAME = os.getenv("CREATE_LAMBDA_NAME")
 UPDATE_LAMBDA_NAME = os.getenv("UPDATE_LAMBDA_NAME")
@@ -15,10 +14,14 @@ DELETE_LAMBDA_NAME = os.getenv("DELETE_LAMBDA_NAME")
 def send_create_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
     """Sends the create request."""
     # Send create request
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "Filename": file_key,
-               "MessageId": row_id}
+    headers = {
+        "SupplierSystem": IMMS_BATCH_APP_NAME,
+        "BatchSupplierSystem": supplier,
+        "Filename": file_key,
+        "MessageId": row_id,
+    }
     payload = {"headers": headers, "body": fhir_json}
-    invoke_lambda(lambda_client, CREATE_LAMBDA_NAME, payload)
+    invoke_lambda(CREATE_LAMBDA_NAME, payload)
 
 
 def send_update_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
@@ -29,16 +32,21 @@ def send_update_request(fhir_json: dict, supplier: str, file_key: str, row_id: s
     except IdNotFoundError as error:
         raise MessageNotSuccessfulError(error) from error
     if not imms_id:
-        raise MessageNotSuccessfulError("Unable to obtain Imms ID")
+        raise MessageNotSuccessfulError("Unable to obtain Imms id")
     if not version:
         raise MessageNotSuccessfulError("Unable to obtain Imms version")
 
     # Send update request
     fhir_json["id"] = imms_id
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "E-Tag": version,
-               "Filename": file_key, "MessageId": row_id}
+    headers = {
+        "SupplierSystem": IMMS_BATCH_APP_NAME,
+        "BatchSupplierSystem": supplier,
+        "E-Tag": version,
+        "Filename": file_key,
+        "MessageId": row_id,
+    }
     payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
-    invoke_lambda(lambda_client, UPDATE_LAMBDA_NAME, payload)
+    invoke_lambda(UPDATE_LAMBDA_NAME, payload)
 
 
 def send_delete_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
@@ -52,10 +60,14 @@ def send_delete_request(fhir_json: dict, supplier: str, file_key: str, row_id: s
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
 
     # Send delete request
-    headers = {"SupplierSystem": Constants.IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier, "Filename": file_key,
-               "MessageId": row_id}
+    headers = {
+        "SupplierSystem": IMMS_BATCH_APP_NAME,
+        "BatchSupplierSystem": supplier,
+        "Filename": file_key,
+        "MessageId": row_id,
+    }
     payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
-    invoke_lambda(lambda_client, DELETE_LAMBDA_NAME, payload)
+    invoke_lambda(DELETE_LAMBDA_NAME, payload)
 
 
 def send_request_to_lambda(message_body: dict):
