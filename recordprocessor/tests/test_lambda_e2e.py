@@ -125,14 +125,11 @@ class TestRecordProcessor(unittest.TestCase):
             - Kinesis Data is equal to the expected_kinesis_data
             - "{TEST_FILE_ID}#{index+1}|fatal-error" is found in the ack file
         """
-        
         # ack_file_content = self.get_ack_file_content()
         kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         previous_approximate_arrival_time_stamp = yesterday  # Initialise with a time prior to the running of the test
-        #messages = sqs_client.receive_message(QueueUrl='https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-metadata-queue.fifo', WaitTimeSeconds=1, MaxNumberOfMessages=10)
         for test_name, index, expected_kinesis_data, expect_success in test_cases:
             with self.subTest(test_name):
-                
                 if "diagnostics" not in expected_kinesis_data:
                     kinesis_record = kinesis_records[index]
                     self.assertEqual(kinesis_record["PartitionKey"], TEST_SUPPLIER)
@@ -211,8 +208,10 @@ class TestRecordProcessor(unittest.TestCase):
         # Define test cases for assertions
         test_cases = [
             ("CREATE success", 0, {"operation_requested": "CREATE"}, True),
-            ("UPDATE no permissions", 1, {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"}, False),
-            ("DELETE no permissions", 2, {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"}, False),
+            ("UPDATE no permissions", 1,
+             {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"}, False),
+            ("DELETE no permissions", 2,
+             {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"}, False),
         ]
         self.make_assertions(test_cases)
 
