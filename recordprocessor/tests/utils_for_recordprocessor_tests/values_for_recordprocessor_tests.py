@@ -92,7 +92,34 @@ FILE_ROW_DELETE = (
     '"0.3"|"258773002"|"Milliliter (qualifier value)"|"Routine"|'
     '"J82068"|"https://fhir.nhs.uk/Id/ods-organization-code"'
 )
-
+VALID_FILE_CONTENT = (
+    "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
+    "DATE_AND_TIME|SITE_CODE|SITE_CODE_TYPE_URI|UNIQUE_ID|UNIQUE_ID_URI|ACTION_FLAG|"
+    "PERFORMING_PROFESSIONAL_FORENAME|PERFORMING_PROFESSIONAL_SURNAME|RECORDED_DATE|"
+    "PRIMARY_SOURCE|VACCINATION_PROCEDURE_CODE|VACCINATION_PROCEDURE_TERM|DOSE_SEQUENCE|"
+    "VACCINE_PRODUCT_CODE|VACCINE_PRODUCT_TERM|VACCINE_MANUFACTURER|BATCH_NUMBER|EXPIRY_DATE|"
+    "SITE_OF_VACCINATION_CODE|SITE_OF_VACCINATION_TERM|ROUTE_OF_VACCINATION_CODE|"
+    "ROUTE_OF_VACCINATION_TERM|DOSE_AMOUNT|DOSE_UNIT_CODE|DOSE_UNIT_TERM|INDICATION_CODE|"
+    "LOCATION_CODE|LOCATION_CODE_TYPE_URI\n"
+    '9674963871|"SABINA"|"GREIR"|"20190131"|"2"|"GU14 6TU"|"20240610T183325"|"J82067"|'
+    '"https://fhir.nhs.uk/Id/ods-organization-code"|"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"|'
+    '"https://www.ravs.england.nhs.uk/"|"new"|"Ellena"|"O\'Reilly"|"20240609"|"TRUE"|'
+    '"1303503001"|"Administration of vaccine product containing only Human orthopneumovirus antigen (procedure)"|'
+    '1|"42605811000001109"|"Abrysvo vaccine powder and solvent for solution for injection 0.5ml vials (Pfizer Ltd) '
+    '(product)"|"Pfizer"|"RSVTEST"|"20241231"|"368208006"|"Left upper arm structure (body structure)"|'
+    '"78421000"|"Intramuscular route (qualifier value)"|"0.5"|"258773002"|"Milliliter (qualifier value)"|"Test"|'
+    '"J82067"|"https://fhir.nhs.uk/Id/ods-organization-code"\n'
+    '1234567890|"JOHN"|"DOE"|"19801231"|"1"|"AB12 3CD"|"20240611T120000"|"J82068"|'
+    '"https://fhir.nhs.uk/Id/ods-organization-code"|"0002_COVID19_v1_DOSE_1"|"https://www.ravs.england.nhs.uk/"|'
+    '"update"|"Jane"|"Smith"|"20240610"|"FALSE"|"1324657890"|'
+    '"Administration of COVID-19 vaccine product (procedure)"|'
+    '1|"1234567890"|'
+    '"Comirnaty 0.3ml dose concentrate for dispersion for injection multidose vials (Pfizer/BioNTech) '
+    '(product)"|"Pfizer/BioNTech"|"COVIDBATCH"|"20250101"|"368208007"|"Right upper arm structure (body structure)"|'
+    '"385219009"|"Intramuscular route (qualifier value)"|'
+    '"0.3"|"258773002"|"Milliliter (qualifier value)"|"Routine"|'
+    '"J82068"|"https://fhir.nhs.uk/Id/ods-organization-code"'
+)
 VALID_FILE_CONTENT_WITH_NEW = FILE_HEADERS + "\n" + FILE_ROW_NEW
 VALID_FILE_CONTENT_WITH_UPDATE = FILE_HEADERS + "\n" + FILE_ROW_UPDATE
 VALID_FILE_CONTENT_WITH_DELETE = FILE_HEADERS + "\n" + FILE_ROW_DELETE
@@ -195,6 +222,7 @@ TEST_PERMISSION = ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"]
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
+TEST_INF_ACK_FILE_KEY = f"ack/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_InfAck.csv"
 
 TEST_EVENT_DUMPED = json.dumps(
     {
@@ -203,6 +231,7 @@ TEST_EVENT_DUMPED = json.dumps(
         "supplier": TEST_SUPPLIER,
         "filename": TEST_FILE_KEY,
         "permission": TEST_PERMISSION,
+        "created_at_formatted_string": "2020-01-01"
     }
 )
 
@@ -211,6 +240,15 @@ TEST_EVENT = {
     "vaccine_type": TEST_VACCINE_TYPE,
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,
+    "permission": TEST_PERMISSION
+}
+
+TEST_EVENT_PERMISSION = {
+    "message_id": TEST_FILE_ID,
+    "vaccine_type": TEST_VACCINE_TYPE,
+    "supplier": TEST_SUPPLIER,
+    "filename": TEST_FILE_KEY,
+    "permission": ["RSV_DELETE"]
 }
 
 MOCK_ENVIRONMENT_DICT = {
@@ -272,6 +310,7 @@ TEST_PERMISSIONS_CONFIG = {
 # ---------------------------------------------------------------------------------------------------------------------
 # Prepare mock requests
 
+# Given dictionaries
 mandatory_fields = {
     "PERSON_FORENAME": "PHYLIS",
     "PERSON_SURNAME": "PEEL",
@@ -314,9 +353,21 @@ non_mandatory_fields = {
 
 critical_fields = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_URI": "a_unique_id_uri"}
 
-all_fields = {**mandatory_fields, **non_mandatory_fields}
-mandatory_fields_only = {**mandatory_fields, **{key: "" for key in non_mandatory_fields}}
-critical_fields_only = {key: critical_fields.get(key, "") for key in all_fields}
+# Required field order
+field_order = [
+ "NHS_NUMBER", "PERSON_FORENAME", "PERSON_SURNAME", "PERSON_DOB", "PERSON_GENDER_CODE", "PERSON_POSTCODE",
+ "DATE_AND_TIME", "SITE_CODE", "SITE_CODE_TYPE_URI", "UNIQUE_ID", "UNIQUE_ID_URI", "ACTION_FLAG",
+ "PERFORMING_PROFESSIONAL_FORENAME", "PERFORMING_PROFESSIONAL_SURNAME", "RECORDED_DATE", "PRIMARY_SOURCE",
+ "VACCINATION_PROCEDURE_CODE", "VACCINATION_PROCEDURE_TERM", "DOSE_SEQUENCE", "VACCINE_PRODUCT_CODE",
+ "VACCINE_PRODUCT_TERM", "VACCINE_MANUFACTURER", "BATCH_NUMBER", "EXPIRY_DATE", "SITE_OF_VACCINATION_CODE",
+ "SITE_OF_VACCINATION_TERM", "ROUTE_OF_VACCINATION_CODE", "ROUTE_OF_VACCINATION_TERM", "DOSE_AMOUNT",
+ "DOSE_UNIT_CODE", "DOSE_UNIT_TERM", "INDICATION_CODE", "LOCATION_CODE", "LOCATION_CODE_TYPE_URI"
+ ]
+
+# Creating the required dictionaries in the specified order
+all_fields = {key: (mandatory_fields.get(key) or non_mandatory_fields.get(key) or "") for key in field_order}
+mandatory_fields_only = {key: (mandatory_fields.get(key) or "") for key in field_order}
+critical_fields_only = {key: (critical_fields.get(key) or "") for key in field_order}
 
 # Requests (format is dictionary)
 update_request = deepcopy(all_fields)

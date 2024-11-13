@@ -4,32 +4,28 @@ import os
 from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 from utils_for_record_forwarder import invoke_lambda
-from constants import IMMS_BATCH_APP_NAME, Operations
-from log_structure import forwarder_function_info
+from constants import IMMS_BATCH_APP_NAME
+
+CREATE_LAMBDA_NAME = os.getenv("CREATE_LAMBDA_NAME")
+UPDATE_LAMBDA_NAME = os.getenv("UPDATE_LAMBDA_NAME")
+DELETE_LAMBDA_NAME = os.getenv("DELETE_LAMBDA_NAME")
 
 
-def generate_base_request_headers(supplier: str) -> dict:
-    """Generate request headers with SupplierSystem and BatchSupplierSystem populated."""
-    return {"SupplierSystem": IMMS_BATCH_APP_NAME, "BatchSupplierSystem": supplier}
-
-
-def send_create_request(fhir_json: dict, supplier: str) -> str:
-    """Sends the create request and handles the response. Returns the imms_id."""
+def send_create_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
+    """Sends the create request."""
     # Send create request
-    request_headers = generate_base_request_headers(supplier)
-    request_payload = {"headers": request_headers, "body": fhir_json}
-    response_status_code, response_body, response_headers = invoke_lambda(
-        os.getenv("CREATE_LAMBDA_NAME"), request_payload
-    )
-    if response_status_code != 201:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_body))
-
-    # Return imms id (default to None if unable to find the id)
-    return response_headers.get("Location", "").split("/")[-1] or None
+    headers = {
+        "SupplierSystem": IMMS_BATCH_APP_NAME,
+        "BatchSupplierSystem": supplier,
+        "Filename": file_key,
+        "MessageId": row_id,
+    }
+    payload = {"headers": headers, "body": fhir_json}
+    invoke_lambda(CREATE_LAMBDA_NAME, payload)
 
 
-def send_update_request(fhir_json: dict, supplier: str) -> str:
-    """Obtains the imms_id, sends the update request and handles the response. Returns the imms_id."""
+def send_update_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
+    """Obtains the imms_id, sends the update request."""
     # Obtain imms_id and version
     try:
         imms_id, version = get_imms_id_and_version(fhir_json)
@@ -42,17 +38,19 @@ def send_update_request(fhir_json: dict, supplier: str) -> str:
 
     # Send update request
     fhir_json["id"] = imms_id
-    request_headers = {**generate_base_request_headers(supplier), "E-Tag": version}
-    request_payload = {"headers": request_headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
-    response_status_code, response_body, _ = invoke_lambda(os.getenv("UPDATE_LAMBDA_NAME"), request_payload)
-    if response_status_code != 200:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_body))
+    headers = {
+        "SupplierSystem": IMMS_BATCH_APP_NAME,
+        "BatchSupplierSystem": supplier,
+        "E-Tag": version,
+        "Filename": file_key,
+        "MessageId": row_id,
+    }
+    payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
+    invoke_lambda(UPDATE_LAMBDA_NAME, payload)
 
-    return imms_id
 
-
-def send_delete_request(fhir_json: dict, supplier: str) -> str:
-    """Sends the delete request and handles the response. Returns the imms_id."""
+def send_delete_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
+    """Obtains the imms_id, sends the delete request."""
     # Obtain imms_id
     try:
         imms_id, _ = get_imms_id_and_version(fhir_json)
@@ -62,28 +60,17 @@ def send_delete_request(fhir_json: dict, supplier: str) -> str:
         raise MessageNotSuccessfulError("Unable to obtain Imms ID")
 
     # Send delete request
-    request_headers = generate_base_request_headers(supplier)
-    request_payload = {"headers": request_headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
-    response_status_code, response_body, _ = invoke_lambda(os.getenv("DELETE_LAMBDA_NAME"), request_payload)
-    if response_status_code != 204:
-        raise MessageNotSuccessfulError(get_operation_outcome_diagnostics(response_body))
-
-    return imms_id
-
-
-def get_operation_outcome_diagnostics(response_body: dict) -> str:
-    """
-    Returns the diagnostics from the API response. If the diagnostics can't be found in the API response,
-    returns a default diagnostics string.
-    """
-    try:
-        return response_body.get("issue")[0].get("diagnostics")
-    except (AttributeError, IndexError):
-        return "Unable to obtain diagnostics from API response"
+    headers = {
+        "SupplierSystem": IMMS_BATCH_APP_NAME,
+        "BatchSupplierSystem": supplier,
+        "Filename": file_key,
+        "MessageId": row_id,
+    }
+    payload = {"headers": headers, "body": fhir_json, "pathParameters": {"id": imms_id}}
+    invoke_lambda(DELETE_LAMBDA_NAME, payload)
 
 
-@forwarder_function_info
-def send_request_to_lambda(message_body: dict) -> str:
+def send_request_to_lambda(message_body: dict):
     """
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
     If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
@@ -93,12 +80,10 @@ def send_request_to_lambda(message_body: dict) -> str:
 
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
+    file_key = message_body.get("file_key")
+    row_id = message_body.get("row_id")
     operation_requested = message_body.get("operation_requested")
 
     # Send request to Imms FHIR API and return the imms_id
-    function_map = {
-        Operations.CREATE: send_create_request,
-        Operations.UPDATE: send_update_request,
-        Operations.DELETE: send_delete_request,
-    }
-    return function_map[operation_requested](fhir_json=fhir_json, supplier=supplier)
+    function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
+    function_map[operation_requested](fhir_json=fhir_json, supplier=supplier, file_key=file_key, row_id=row_id)

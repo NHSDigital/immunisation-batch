@@ -12,15 +12,10 @@ srcdir = '../src'
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from initial_file_validation import (   # noqa: E402
     is_valid_datetime,
-    validate_content_headers,
     get_supplier_permissions,
     validate_vaccine_type_permissions,
-    validate_action_flag_permissions,
     initial_file_validation,
 )  # noqa: E402
-from tests.utils_for_tests.utils_for_filenameprocessor_tests import (  # noqa: E402
-    convert_string_to_dict_reader,
-)
 from tests.utils_for_tests.values_for_tests import MOCK_ENVIRONMENT_DICT, VALID_FILE_CONTENT  # noqa: E402
 
 
@@ -48,22 +43,6 @@ class TestInitialFileValidation(TestCase):
         for date_time_string, expected_result in test_cases:
             with self.subTest():
                 self.assertEqual(is_valid_datetime(date_time_string), expected_result)
-
-    def test_validate_content_headers(self):
-        "Tests that validate_content_headers returns True for an exact header match and False otherwise"
-        # Test case tuples are stuctured as (file_content, expected_result)
-        test_cases = [
-            (VALID_FILE_CONTENT, True),  # Valid file content
-            (VALID_FILE_CONTENT.replace("SITE_CODE", "SITE_COVE"), False),  # Misspelled header
-            (VALID_FILE_CONTENT.replace("SITE_CODE|", ""), False),  # Missing header
-            (VALID_FILE_CONTENT.replace("PERSON_DOB|", "PERSON_DOB|EXTRA_HEADER|"), False),  # Extra header
-        ]
-
-        for file_content, expected_result in test_cases:
-            with self.subTest():
-                # validate_content_headers takes a csv dict reader as it's input
-                test_data = convert_string_to_dict_reader(file_content)
-                self.assertEqual(validate_content_headers(test_data), expected_result)
 
     @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
     @patch("fetch_permissions.redis_client")
@@ -123,63 +102,6 @@ class TestInitialFileValidation(TestCase):
                 with patch("initial_file_validation.get_supplier_permissions", return_value=vaccine_permissions):
                     self.assertEqual(validate_vaccine_type_permissions("TEST_SUPPLIER", vaccine_type), expected_result)
 
-    def test_validate_action_flag_permissions(self):
-        """
-        Tests that validate_action_flag_permissions returns True if supplier has permissions to perform at least one
-        of the requested CRUD operations for the given vaccine type, and False otherwise
-        """
-        # Set up test file content. Note that VALID_FILE_CONTENT contains one "new" and one "update" ACTION_FLAG.
-        valid_file_content = VALID_FILE_CONTENT
-        valid_content_new_and_update_lowercase = valid_file_content
-        valid_content_new_and_update_uppercase = valid_file_content.replace("new", "NEW").replace("update", "UPDATE")
-        valid_content_new_and_update_mixedcase = valid_file_content.replace("new", "New").replace("update", "uPdAte")
-        valid_content_new_and_delete_lowercase = valid_file_content.replace("update", "delete")
-        valid_content_update_and_delete_lowercase = valid_file_content.replace("new", "delete").replace(
-            "update", "UPDATE"
-        )
-
-        # Test case tuples are stuctured as (vaccine_type, vaccine_permissions, file_content, expected_result)
-        test_cases = [
-            # FLU, full permissions, lowercase action flags
-            ("FLU", ["FLU_FULL"], valid_content_new_and_update_lowercase, True),
-            # FLU, partial permissions, uppercase action flags
-            ("FLU", ["FLU_CREATE"], valid_content_new_and_update_uppercase, True),
-            # FLU, full permissions, mixed case action flags
-            ("FLU", ["FLU_FULL"], valid_content_new_and_update_mixedcase, True),
-            # FLU, partial permissions (create)
-            ("FLU", ["FLU_DELETE", "FLU_CREATE"], valid_content_new_and_update_lowercase, True),
-            # FLU, partial permissions (update)
-            ("FLU", ["FLU_UPDATE"], valid_content_new_and_update_lowercase, True),
-            # FLU, partial permissions (delete)
-            ("FLU", ["FLU_DELETE"], valid_content_new_and_delete_lowercase, True),
-            # FLU, no permissions
-            ("FLU", ["FLU_UPDATE", "COVID19_FULL"], valid_content_new_and_delete_lowercase, False),
-            # COVID19, full permissions
-            ("COVID19", ["COVID19_FULL"], valid_content_new_and_delete_lowercase, True),
-            # COVID19, partial permissions
-            ("COVID19", ["COVID19_UPDATE"], valid_content_update_and_delete_lowercase, True),
-            # COVID19, no permissions
-            ("COVID19", ["FLU_CREATE", "FLU_UPDATE"], valid_content_update_and_delete_lowercase, False),
-            # RSV, full permissions
-            ("RSV", ["RSV_FULL"], valid_content_new_and_delete_lowercase, True),
-            # RSV, partial permissions
-            ("RSV", ["RSV_UPDATE"], valid_content_update_and_delete_lowercase, True),
-            # RSV, no permissions
-            ("RSV", ["FLU_CREATE", "FLU_UPDATE"], valid_content_update_and_delete_lowercase, False),
-            # RSV, full permissions, mixed case action flags
-            ("RSV", ["RSV_FULL"], valid_content_new_and_update_mixedcase, True),
-        ]
-
-        for vaccine_type, vaccine_permissions, file_content, expected_result in test_cases:
-            with self.subTest():
-                with patch("initial_file_validation.get_supplier_permissions", return_value=vaccine_permissions):
-                    # validate_action_flag_permissions takes a csv dict reader as one of it's args
-                    csv_content_dict_reader = convert_string_to_dict_reader(file_content)
-                    self.assertEqual(
-                        validate_action_flag_permissions(csv_content_dict_reader, "TEST_SUPPLIER", vaccine_type),
-                        expected_result,
-                    )
-
     @mock_s3
     def test_initial_file_validation(self):
         """Tests that initial_file_validation returns True if all elements pass validation, and False otherwise"""
@@ -233,8 +155,6 @@ class TestInitialFileValidation(TestCase):
             (valid_file_key.replace("20200101T12345600", "20200132T12345600"), valid_file_content, False),
             # File key with missing timestamp
             (valid_file_key.replace("20200101T12345600", ""), valid_file_content, False),
-            # File with invalid content header
-            (valid_file_key, valid_file_content.replace("PERSON_DOB", "PATIENT_DOB"), False),
         ]
 
         for file_key, file_content, expected_result in test_cases_for_full_permissions:
@@ -245,16 +165,14 @@ class TestInitialFileValidation(TestCase):
                     return_value={"all_permissions": {"TPP": ["COVID19_FULL", "FLU_FULL"]}},
                 ):
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
-                    self.assertEqual(initial_file_validation(file_key, bucket_name), expected_result)
+                    self.assertEqual(initial_file_validation(file_key), expected_result)
 
         # Test case tuples are structured as (file_key, file_content, expected_result)
         test_cases_for_partial_permissions = [
             # Has vaccine type and action flag permission
             (valid_file_key, valid_file_content, (True, ["FLU_CREATE"])),
             # Does not have vaccine type permission
-            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False),
-            # Has vaccine type permission, but not action flag permission
-            (valid_file_key, valid_file_content.replace("new", "delete"), False),
+            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False)
         ]
 
         for file_key, file_content, expected_result in test_cases_for_partial_permissions:
@@ -265,4 +183,4 @@ class TestInitialFileValidation(TestCase):
                     return_value={"all_permissions": {"TPP": ["FLU_CREATE"]}},
                 ):
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
-                    self.assertEqual(initial_file_validation(file_key, bucket_name), expected_result)
+                    self.assertEqual(initial_file_validation(file_key), expected_result)

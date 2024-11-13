@@ -39,12 +39,17 @@ def generate_payload(status_code: int, headers: Union[dict, None] = None, body: 
     return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
 
 
-def generate_lambda_payload(status_code: int, headers: Union[dict, None] = None, body: dict = None) -> dict:
+def generate_lambda_payload(
+    status_code: int, headers: Union[dict, None] = None, body: dict = None, invocation_status_code: int = 202
+) -> dict:
     """
     Generates a mocked lambda return value, with the given status code, headers and body.
     The body key-value pair is omitted if there is no body argument is given.
     """
-    return {"Payload": StringIO(json.dumps(generate_payload(status_code, headers, body)))}
+    return {
+        "Payload": StringIO(json.dumps(generate_payload(status_code, headers, body))),
+        "StatusCode": invocation_status_code,
+    }
 
 
 def generate_lambda_invocation_side_effect(mock_lambda_payloads):

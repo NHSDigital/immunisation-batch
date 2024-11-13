@@ -12,10 +12,10 @@ MOCK_ENVIRONMENT_DICT = {
     "ENVIRONMENT": "internal-dev",
     "LOCAL_ACCOUNT_ID": "123456789012",
     "SHORT_QUEUE_PREFIX": "imms-batch-internal-dev",
-    "CREATE_LAMBDA_NAME": "mock_create_lambda_name",
-    "UPDATE_LAMBDA_NAME": "mock_update_lambda_name",
-    "DELETE_LAMBDA_NAME": "mock_delete_lambda_name",
-    "SEARCH_LAMBDA_NAME": "mock_search_lambda_name",
+    "CREATE_LAMBDA_NAME": "mock_create_imms_lambda_name",
+    "UPDATE_LAMBDA_NAME": "mock_update_imms_lambda_name",
+    "DELETE_LAMBDA_NAME": "mock_delete_imms_lambda_name",
+    "SEARCH_LAMBDA_NAME": "mock_search_imms_lambda_name",
 }
 
 SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
@@ -190,7 +190,7 @@ class LambdaPayloads:
     class CREATE:
         """LambdaPayloads for the CREATE lambda"""
 
-        SUCCESS = {Operations.CREATE: generate_lambda_payload(status_code=201, headers=lambda_success_headers)}
+        SUCCESS = {Operations.CREATE: generate_lambda_payload(status_code=200, headers=lambda_success_headers)}
 
         DUPLICATE = {
             Operations.CREATE: generate_lambda_payload(
