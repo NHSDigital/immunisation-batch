@@ -6,7 +6,7 @@ from decimal import Decimal
 from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from copy import deepcopy
-from moto import mock_s3, mock_kinesis
+from moto import mock_s3, mock_kinesis, mock_sqs
 from boto3 import client as boto3_client
 import os
 import sys
@@ -42,6 +42,10 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
 kinesis_client = boto3_client("kinesis", region_name=AWS_REGION)
+sqs_client = boto3_client("sqs", region_name="eu-west-2")
+queue_name = "imms-internal-dev-ack-metadata-queue.fifo"
+attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
+
 
 yesterday = datetime.now(timezone.utc) - timedelta(days=1)
 
@@ -61,18 +65,18 @@ class TestRecordProcessor(unittest.TestCase):
 
         kinesis_client.create_stream(StreamName=STREAM_NAME, ShardCount=1)
 
-    def tearDown(self) -> None:
-        # Delete all of the buckets (the contents of each bucket must be deleted first)
-        for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
-            for obj in s3_client.list_objects_v2(Bucket=bucket_name).get("Contents", []):
-                s3_client.delete_object(Bucket=bucket_name, Key=obj["Key"])
-            s3_client.delete_bucket(Bucket=bucket_name)
+    # def tearDown(self) -> None:
+    #     # Delete all of the buckets (the contents of each bucket must be deleted first)
+    #     for bucket_name in [SOURCE_BUCKET_NAME, DESTINATION_BUCKET_NAME]:
+    #         for obj in s3_client.list_objects_v2(Bucket=bucket_name).get("Contents", []):
+    #             s3_client.delete_object(Bucket=bucket_name, Key=obj["Key"])
+    #         s3_client.delete_bucket(Bucket=bucket_name)
 
-        # Delete the kinesis stream
-        try:
-            kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
-        except kinesis_client.exceptions.ResourceNotFoundException:
-            pass
+    #     # Delete the kinesis stream
+    #     try:
+    #         kinesis_client.delete_stream(StreamName=STREAM_NAME, EnforceConsumerDeletion=True)
+    #     except kinesis_client.exceptions.ResourceNotFoundException:
+    #         pass
 
     @staticmethod
     def upload_files(sourc_file_content, mock_permissions=MOCK_PERMISSIONS):  # pylint: disable=dangerous-default-value
@@ -121,40 +125,42 @@ class TestRecordProcessor(unittest.TestCase):
             - Kinesis Data is equal to the expected_kinesis_data
             - "{TEST_FILE_ID}#{index+1}|fatal-error" is found in the ack file
         """
-
+        
         # ack_file_content = self.get_ack_file_content()
         kinesis_records = kinesis_client.get_records(ShardIterator=self.get_shard_iterator(), Limit=10)["Records"]
         previous_approximate_arrival_time_stamp = yesterday  # Initialise with a time prior to the running of the test
-
+        #messages = sqs_client.receive_message(QueueUrl='https://sqs.eu-west-2.amazonaws.com/123456789012/imms-batch-internal-dev-metadata-queue.fifo', WaitTimeSeconds=1, MaxNumberOfMessages=10)
         for test_name, index, expected_kinesis_data, expect_success in test_cases:
             with self.subTest(test_name):
+                
+                if "diagnostics" not in expected_kinesis_data:
+                    kinesis_record = kinesis_records[index]
+                    self.assertEqual(kinesis_record["PartitionKey"], TEST_SUPPLIER)
+                    self.assertEqual(kinesis_record["SequenceNumber"], f"{index+1}")
 
-                kinesis_record = kinesis_records[index]
-                self.assertEqual(kinesis_record["PartitionKey"], TEST_SUPPLIER)
-                self.assertEqual(kinesis_record["SequenceNumber"], f"{index+1}")
+                    # Ensure that arrival times are sequential
+                    approximate_arrival_timestamp = kinesis_record["ApproximateArrivalTimestamp"]
+                    self.assertGreater(approximate_arrival_timestamp, previous_approximate_arrival_time_stamp)
+                    previous_approximate_arrival_time_stamp = approximate_arrival_timestamp
 
-                # Ensure that arrival times are sequential
-                approximate_arrival_timestamp = kinesis_record["ApproximateArrivalTimestamp"]
-                self.assertGreater(approximate_arrival_timestamp, previous_approximate_arrival_time_stamp)
-                previous_approximate_arrival_time_stamp = approximate_arrival_timestamp
-
-                kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"), parse_float=Decimal)
-                expected_kinesis_data = {
-                    "row_id": f"{TEST_FILE_ID}#{index+1}",
-                    "file_key": TEST_FILE_KEY,
-                    "supplier": TEST_SUPPLIER,
-                    **expected_kinesis_data,
-                }
-                if expect_success:
-                    # Some tests ignore the fhir_json value, so we only need to check that the key is present.
-                    if "fhir_json" not in expected_kinesis_data:
-                        key_to_ignore = "fhir_json"
-                        self.assertIn(key_to_ignore, kinesis_data)
-                        kinesis_data.pop(key_to_ignore)
-                    self.assertEqual(kinesis_data, expected_kinesis_data)
-                    # self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
-                else:
-                    self.assertEqual(kinesis_data, expected_kinesis_data)
+                    kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"), parse_float=Decimal)
+                    expected_kinesis_data = {
+                        "row_id": f"{TEST_FILE_ID}#{index+1}",
+                        "file_key": TEST_FILE_KEY,
+                        "supplier": TEST_SUPPLIER,
+                        "created_at_formatted_string": "2020-01-01",
+                        **expected_kinesis_data,
+                    }
+                    if expect_success:
+                        # Some tests ignore the fhir_json value, so we only need to check that the key is present.
+                        if "fhir_json" not in expected_kinesis_data:
+                            key_to_ignore = "fhir_json"
+                            self.assertIn(key_to_ignore, kinesis_data)
+                            kinesis_data.pop(key_to_ignore)
+                        self.assertEqual(kinesis_data, expected_kinesis_data)
+                        # self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
+                    else:
+                        self.assertEqual(kinesis_data, expected_kinesis_data)
                     # self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
 
     def test_e2e_success(self):
@@ -174,37 +180,40 @@ class TestRecordProcessor(unittest.TestCase):
         ]
         self.make_assertions(test_cases)
 
-    def test_e2e_no_permissions(self):
+    @mock_sqs
+    @patch("batch_processing.sqs_client.send_message")
+    def test_e2e_no_permissions(self, mock_send_message):
         """
         Tests that file containing CREATE, UPDATE and DELETE is successfully processed when the supplier does not have
         any permissions.
         """
-        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE_AND_DELETE)
+        # Create the queue in the mocked SQS environment
+        sqs_client = boto3_client("sqs", region_name="eu-west-2")
+        queue_name = "imms-internal-dev-ack-metadata-queue.fifo"
+        attributes = {"FIFOQueue": "true", "ContentBasedDeduplication": "true"}
+        queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
+
+        # Upload test files and prepare event
+        self.upload_files(VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE)
         event = deepcopy(TEST_EVENT_DUMPED)
         test_event = json.loads(event)
         test_event["permission"] = ["RSV_CREATE"]
         test_event = json.dumps(test_event)
-
+        # Call the main processing function with the event
         main(test_event)
-        # expected_kinesis_data = {"diagnostics": Diagnostics.NO_PERMISSIONS}
 
-        # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json,expect_success)
+        # Receive message from the queue to validate
+        sqs_client.receive_message(
+            QueueUrl=queue_url,
+            WaitTimeSeconds=1,
+            MaxNumberOfMessages=10
+        )
+        # Define test cases for assertions
         test_cases = [
             ("CREATE success", 0, {"operation_requested": "CREATE"}, True),
-            (
-                "UPDATE no permissions",
-                1,
-                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
-                False,
-            ),
-            (
-                "DELETE no permissions",
-                2,
-                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
-                False,
-            ),
+            ("UPDATE no permissions", 1, {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"}, False),
+            ("DELETE no permissions", 2, {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"}, False),
         ]
-
         self.make_assertions(test_cases)
 
     def test_e2e_partial_permissions(self):

@@ -229,8 +229,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         # self.assert_value_in_ack_file("Success")
         mock_send_to_kinesis.assert_called()
 
-    @patch("batch_processing.send_to_kinesis")
-    def test_process_csv_to_fhir_paramter_missing(self, mock_send_to_kinesis):
+    @patch("batch_processing.sqs_client.send_message")
+    def test_process_csv_to_fhir_paramter_missing(self, mock_sqs):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY,
                              Body=VALID_FILE_CONTENT_WITH_NEW_AND_UPDATE.replace("new", ""))
 
@@ -240,7 +240,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             process_csv_to_fhir(TEST_EVENT)
 
         # self.assert_value_in_ack_file("Fatal")
-        mock_send_to_kinesis.assert_called()
+        mock_sqs.assert_called()
 
     @patch("batch_processing.send_to_kinesis")
     def test_process_csv_to_fhir_invalid_headers(self, mock_send_to_kinesis):
@@ -343,8 +343,8 @@ class TestProcessLambdaFunction(unittest.TestCase):
         # self.assert_value_in_ack_file("Success")
         mock_send_to_kinesis.assert_called()
 
-    @patch("batch_processing.send_to_kinesis")
-    def test_process_csv_to_fhir_incorrect_permissions(self, mock_send_to_kinesis):
+    @patch("batch_processing.sqs_client.send_message")
+    def test_process_csv_to_fhir_incorrect_permissions(self, mock_send_to_sqs):
         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body=VALID_FILE_CONTENT_WITH_UPDATE)
 
         with patch("batch_processing.get_operation_permissions", return_value={"DELETE"}):
@@ -353,7 +353,7 @@ class TestProcessLambdaFunction(unittest.TestCase):
             process_csv_to_fhir(TEST_EVENT)
 
         # self.assert_value_in_ack_file("No permissions for requested operation")
-        mock_send_to_kinesis.assert_called()
+        mock_send_to_sqs.assert_called()
 
     def test_get_environment(self):
         with patch("batch_processing.os.getenv", return_value="internal-dev"):

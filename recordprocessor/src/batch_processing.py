@@ -14,8 +14,7 @@ from process_row import process_row
 from mappings import Vaccine
 # from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
-
-
+from s3_clients import sqs_client
 logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 
@@ -82,7 +81,18 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
             }
 
             # Send to kinesis. Add diagnostics if send fails.
-            send_to_kinesis(supplier, outgoing_message_body)
+            if "diagnostics" in outgoing_message_body:
+                env = get_environment()
+                if env in ["ref", "prod", "int"]:
+                    return env
+                else:
+                    env = "internal-dev"
+                account_id = os.getenv("LOCAL_ACCOUNT_ID")
+                queue_url = f"https://sqs.eu-west-2.amazonaws.com/{account_id}/imms-{env}-ack-metadata-queue.fifo"
+                sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(outgoing_message_body),
+                                        MessageGroupId=outgoing_message_body["file_key"])
+            else:
+                send_to_kinesis(supplier, outgoing_message_body)
             # if (
             #     diagnostics := details_from_processing.get("diagnostics")
             # ) is None and message_delivered is False:

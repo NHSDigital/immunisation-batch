@@ -7,7 +7,6 @@ from clients import lambda_client
 from utils_for_record_forwarder import invoke_lambda
 from constants import Constants
 from clients import boto3_client
-import json
 
 CREATE_LAMBDA_NAME = os.getenv("CREATE_LAMBDA_NAME")
 UPDATE_LAMBDA_NAME = os.getenv("UPDATE_LAMBDA_NAME")
@@ -68,18 +67,12 @@ def send_request_to_lambda(message_body: dict):
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
     If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
     """
-    if message_body.get("diagnostics"):
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body),
-                                MessageGroupId=message_body["file_key"])
+    supplier = message_body.get("supplier")
+    fhir_json = message_body.get("fhir_json")
+    file_key = message_body.get("file_key")
+    row_id = message_body.get("row_id")
+    operation_requested = message_body.get("operation_requested")
 
-    else:
-        print("failed")
-        supplier = message_body.get("supplier")
-        fhir_json = message_body.get("fhir_json")
-        file_key = message_body.get("file_key")
-        row_id = message_body.get("row_id")
-        operation_requested = message_body.get("operation_requested")
-
-        # Send request to Imms FHIR API and return the imms_id
-        function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
-        function_map[operation_requested](fhir_json=fhir_json, supplier=supplier, file_key=file_key, row_id=row_id)
+    # Send request to Imms FHIR API and return the imms_id
+    function_map = {"CREATE": send_create_request, "UPDATE": send_update_request, "DELETE": send_delete_request}
+    function_map[operation_requested](fhir_json=fhir_json, supplier=supplier, file_key=file_key, row_id=row_id)
