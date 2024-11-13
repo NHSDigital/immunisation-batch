@@ -219,8 +219,8 @@ resource "aws_ecs_task_definition" "ecs_task" {
         value = data.aws_lambda_function.existing_search_lambda.function_name
       },
       {
-       name="SQS_QUEUE_URL"     
-       value= "https://sqs.eu-west-2.amazonaws.com/${local.local_account_id}/imms-${local.api_env}-ack-metadata-queue.fifo"
+        name="LOCAL_ACCOUNT_ID"   
+        value ="${tostring(local.local_account_id)}"
       }
 
     ]
