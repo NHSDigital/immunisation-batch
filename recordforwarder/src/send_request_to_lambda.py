@@ -15,6 +15,8 @@ DELETE_LAMBDA_NAME = os.getenv("DELETE_LAMBDA_NAME")
 
 sqs_client = boto3_client("sqs", region_name="eu-west-2")
 queue_url = os.getenv("SQS_QUEUE_URL", "Queue_url")
+
+
 def send_create_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
     """Sends the create request."""
     # Send create request
@@ -67,9 +69,11 @@ def send_request_to_lambda(message_body: dict):
     If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
     """
     if message_body.get("diagnostics"):
-        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body), MessageGroupId=message_body["file_key"])
-    
+        sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_body),
+                                MessageGroupId=message_body["file_key"])
+
     else:
+        print("failed")
         supplier = message_body.get("supplier")
         fhir_json = message_body.get("fhir_json")
         file_key = message_body.get("file_key")
