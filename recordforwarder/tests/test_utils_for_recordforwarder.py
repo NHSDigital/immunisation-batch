@@ -3,7 +3,8 @@
 from unittest import TestCase
 from unittest.mock import patch
 from utils_for_record_forwarder import get_environment
-from constants import ACK_HEADERS
+
+# from constants import ACK_HEADERS
 
 # from update_ack_file import create_ack_data
 

@@ -47,7 +47,8 @@
 
 #         # Prepare expected_log_json
 #         expected_log_json = (
-#             deepcopy(self.expected_log_json_success) if not expected_error else deepcopy(self.expected_log_json_failure)
+#             deepcopy(self.expected_log_json_success) if not expected_error else
+#               deepcopy(self.expected_log_json_failure)
 #         )
 #         expected_log_json["action_flag"] = operation.upper()
 #         expected_log_json.update({"error": expected_error} if expected_error else {})
@@ -64,7 +65,7 @@
 #         Yields mock_firehose_logger and logs (where logs is a list of the captured log entries).
 #         """
 #         with ExitStack() as stack:
-#             stack.enter_context(patch("time.time", side_effect=(1000000.0, 1000001.0, 1000003.0)))  # (start, end, ???)
+#             stack.enter_context(patch("time.time", side_effect=(1000000.0, 1000001.0, 1000003.0)))# (start, end, ???)
 #             stack.enter_context(patch("log_structure.datetime"))
 #             stack.enter_context(patch("log_structure.datetime.now", return_value=FIXED_DATETIME))
 #             mock_firehose_logger = stack.enter_context(patch("log_structure.firehose_logger"))
@@ -93,7 +94,8 @@
 #             self.common_contexts_for_splunk_logging_tests() as (mock_firehose_logger, logs),  # noqa: E999
 #             self.assertRaises(MessageNotSuccessfulError) as context,
 #         ):
-#             message_body = {**Message.base_message_fields, "operation_requested": operation, "diagnostics": diagnostics}
+#           message_body = {**Message.base_message_fields, "operation_requested": operation,
+#               "diagnostics": diagnostics}
 #             send_request_to_lambda(message_body)
 
 #         self.assertEqual(str(context.exception), diagnostics)
