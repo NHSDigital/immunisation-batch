@@ -34,7 +34,7 @@
 #     def setup_s3(self):
 #         """Helper to setup mock S3 buckets and upload test file"""
 #       s3_client.create_bucket(Bucket=SOURCE_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": AWS_REGION})
-#         s3_client.create_bucket(
+#        s3_client.create_bucket(
 #             Bucket=DESTINATION_BUCKET_NAME, CreateBucketConfiguration={"LocationConstraint": AWS_REGION}
 #         )
 #         s3_client.put_object(Bucket=SOURCE_BUCKET_NAME, Key=TEST_FILE_KEY, Body="test_data")
