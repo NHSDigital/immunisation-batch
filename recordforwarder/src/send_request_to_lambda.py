@@ -4,17 +4,12 @@ import os
 from errors import MessageNotSuccessfulError, IdNotFoundError
 from get_imms_id_and_version import get_imms_id_and_version
 from utils_for_record_forwarder import invoke_lambda
-from constants import Constants
-from clients import boto3_client
 from constants import IMMS_BATCH_APP_NAME
 
 
 CREATE_LAMBDA_NAME = os.getenv("CREATE_LAMBDA_NAME")
 UPDATE_LAMBDA_NAME = os.getenv("UPDATE_LAMBDA_NAME")
 DELETE_LAMBDA_NAME = os.getenv("DELETE_LAMBDA_NAME")
-
-sqs_client = boto3_client("sqs", region_name="eu-west-2")
-queue_url = os.getenv("SQS_QUEUE_URL", "Queue_url")
 
 
 def send_create_request(fhir_json: dict, supplier: str, file_key: str, row_id: str):
@@ -81,6 +76,9 @@ def send_request_to_lambda(message_body: dict):
     Sends request to the Imms API (unless there was a failure at the recordprocessor level). Returns the imms id.
     If message is not successfully received and accepted by the Imms API raises a MessageNotSuccessful Error.
     """
+    if incoming_diagnostics := message_body.get("diagnostics"):
+        raise MessageNotSuccessfulError(incoming_diagnostics)
+
     supplier = message_body.get("supplier")
     fhir_json = message_body.get("fhir_json")
     file_key = message_body.get("file_key")

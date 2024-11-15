@@ -170,6 +170,15 @@ resource "aws_iam_policy" "forwarding_lambda_exec_policy" {
           "firehose:PutRecordBatch"
         ],
         "Resource": data.aws_kinesis_firehose_delivery_stream.splunk_stream.arn
+      },
+      {
+        Effect= "Allow",
+        Action= [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "kms:Decrypt"
+        ],
+        Resource= ["arn:aws:sqs:${var.aws_region}:${local.local_account_id}:imms-${local.api_env}-ack-metadata-queue.fifo"]
       }
     ]
   })
@@ -201,6 +210,7 @@ resource "aws_lambda_function" "forwarding_lambda" {
       ENVIRONMENT        = local.environment
       LOCAL_ACCOUNT_ID   = local.local_account_id
       SHORT_QUEUE_PREFIX = local.short_queue_prefix
+      SQS_QUEUE_URL      = "https://sqs.eu-west-2.amazonaws.com/${local.local_account_id}/imms-${local.api_env}-ack-metadata-queue.fifo"
       SPLUNK_FIREHOSE_NAME = data.aws_kinesis_firehose_delivery_stream.splunk_stream.name
       CREATE_LAMBDA_NAME = data.aws_lambda_function.existing_create_lambda.function_name
       UPDATE_LAMBDA_NAME = data.aws_lambda_function.existing_update_lambda.function_name
