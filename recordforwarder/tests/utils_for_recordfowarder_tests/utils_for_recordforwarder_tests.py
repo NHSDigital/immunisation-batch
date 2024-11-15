@@ -1,19 +1,29 @@
-from unittest.mock import MagicMock
-import requests
+"""Utils for recordfowarder tests"""
+
 import json
+import base64
+from io import StringIO
+from typing import Union
 
 
-def create_mock_operation_outcome(diagnostics: str) -> dict:
+def generate_kinesis_message(message: dict) -> str:
+    """Convert a dictionary to a kinesis message"""
+    kinesis_encoded_data = base64.b64encode(json.dumps(message).encode("utf-8")).decode("utf-8")
+    return {"Records": [{"kinesis": {"data": kinesis_encoded_data}}]}
+
+
+def generate_operation_outcome(diagnostics: str, code: str = "duplicate") -> dict:
+    """Generates an Operation Outcome, with the given diagnostics and code"""
     return {
         "resourceType": "OperationOutcome",
-        "id": "45b552ca-755a-473f-84df-c7e7767bd2ac",
+        "id": "an_imms_id",
         "meta": {"profile": ["https://simplifier.net/guide/UKCoreDevelopment2/ProfileUKCore-OperationOutcome"]},
         "issue": [
             {
                 "severity": "error",
-                "code": "duplicate",
+                "code": code,
                 "details": {
-                    "coding": [{"system": "https://fhir.nhs.uk/Codesystem/http-error-codes", "code": "DUPLICATE"}]
+                    "coding": [{"system": "https://fhir.nhs.uk/Codesystem/http-error-codes", "code": code.upper()}]
                 },
                 "diagnostics": diagnostics,
             }
@@ -21,46 +31,36 @@ def create_mock_operation_outcome(diagnostics: str) -> dict:
     }
 
 
-response_body_id_and_version_not_found = {
-    "resourceType": "Bundle",
-    "type": "searchset",
-    "link": [
-        {
-            "relation": "self",
-            "url": "https://internal-dev.api.service.nhs.uk/immunisation-fhir-api/Immunization?"
-            + "immunization.identifier=None&_elements=None",
-        }
-    ],
-    "entry": [],
-    "total": 0,
-}
-
-response_body_id_and_version_found = {
-    "resourceType": "Bundle",
-    "type": "searchset",
-    "entry": [{"resource": {"id": "277befd9-574e-47fe-a6ee-189858af3bb0", "meta": {"versionId": 2}}}],
-    "total": 1,
-}
+def generate_payload(status_code: int, headers: Union[dict, None] = None, body: dict = None) -> dict:
+    """
+    Generates a payload with the given status code, headers and body
+    (body is converted to json string, and the key-value pair is omitted if there is no body).
+    """
+    return {"statusCode": status_code, **({"body": json.dumps(body)} if body is not None else {}), "headers": headers}
 
 
-def create_mock_search_lambda_response(
-    status_code: int, diagnostics: str = None, id_and_version_found: bool = True
-) -> requests.Response:
-    """Creates a mock response for a request sent to the search lambda for imms_id and version."""
+def generate_lambda_payload(
+    status_code: int, headers: Union[dict, None] = None, body: dict = None, invocation_status_code: int = 202
+) -> dict:
+    """
+    Generates a mocked lambda return value, with the given status code, headers and body.
+    The body key-value pair is omitted if there is no body argument is given.
+    """
+    return {
+        "Payload": StringIO(json.dumps(generate_payload(status_code, headers, body))),
+        "StatusCode": invocation_status_code,
+    }
 
-    body = (
-        create_mock_operation_outcome(diagnostics)
-        if diagnostics
-        else response_body_id_and_version_found if id_and_version_found else response_body_id_and_version_not_found
-    )
 
-    mock_response = MagicMock()
-    mock_response["Payload"].read.return_value = json.dumps(
-        {
-            "statusCode": status_code,
-            "headers": {"Location": "https://example.com/immunization/test_id"},
-            **({"body": json.dumps(body)} if body is not None else {}),
-        }
-    )
+def generate_lambda_invocation_side_effect(mock_lambda_payloads):
+    """
+    Takes a dictionary as input with key-value pairs in the format LAMBDA_TYPE: mock_response_payload, where
+    LAMBDA_TYPEs are CREATE, UPDATE, DELETE and SEARCH.
+    Returns a function which mocks the side effect of calling lambda_client.invoke on the relevant Imms FHIR API lambda.
+    """
 
-    return mock_response
+    def lambda_invocation_side_effect(FunctionName, *_args, **_kwargs):  # pylint: disable=invalid-name
+        lambda_type = FunctionName.split("_")[1].upper()  # Tests mock FunctionNames as mock_lambdatype_lambda_name
+        return mock_lambda_payloads[lambda_type]
+
+    return lambda_invocation_side_effect

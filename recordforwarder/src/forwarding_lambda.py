@@ -14,7 +14,7 @@ def forward_request_to_lambda(message_body):
     """Forwards the request to the Imms API (where possible) and updates the ack file with the outcome"""
     # file_key = message_body.get("file_key")
     row_id = message_body.get("row_id")
-    logger.info("BEGINNIING FORWARDING MESSAGE: ID %s", row_id)
+    logger.info("BEGINNING FORWARDING MESSAGE: ID %s", row_id)
     try:
         send_request_to_lambda(message_body)
         # update_ack_file(file_key, row_id, successful_api_response=True, diagnostics=None, imms_id=imms_id)
