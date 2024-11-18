@@ -10,8 +10,9 @@ from moto import mock_s3, mock_kinesis
 from boto3 import client as boto3_client
 import os
 import sys
+
 maindir = os.path.dirname(__file__)
-srcdir = '../src'
+srcdir = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from batch_processing import main  # noqa: E402
 from constants import Diagnostics  # noqa: E402
@@ -106,7 +107,7 @@ class TestRecordProcessor(unittest.TestCase):
         The input is a list of test_case tuples where each tuple is structured as
         (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success).
         The standard key-value pairs
-        {row_id: {TEST_FILE_ID}#{index+1}, file_key: TEST_FILE_KEY, supplier: TEST_SUPPLIER} are added to the
+        {row_id: {TEST_FILE_ID}^{index+1}, file_key: TEST_FILE_KEY, supplier: TEST_SUPPLIER} are added to the
         expected_kinesis_data dictionary before assertions are made.
         For each index, assertions will be made on the record found at the given index in the kinesis response.
         Assertions made:
@@ -116,10 +117,10 @@ class TestRecordProcessor(unittest.TestCase):
         * Where expected_success is True:
             - "fhir_json" key is found in the Kinesis data
             - Kinesis Data is equal to the expected_kinesis_data when ignoring the "fhir_json"
-            - "{TEST_FILE_ID}#{index+1}|ok" is found in the ack file
+            - "{TEST_FILE_ID}^{index+1}|ok" is found in the ack file
         * Where expected_success is False:
             - Kinesis Data is equal to the expected_kinesis_data
-            - "{TEST_FILE_ID}#{index+1}|fatal-error" is found in the ack file
+            - "{TEST_FILE_ID}^{index+1}|fatal-error" is found in the ack file
         """
 
         # ack_file_content = self.get_ack_file_content()
@@ -140,7 +141,7 @@ class TestRecordProcessor(unittest.TestCase):
 
                 kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"), parse_float=Decimal)
                 expected_kinesis_data = {
-                    "row_id": f"{TEST_FILE_ID}#{index+1}",
+                    "row_id": f"{TEST_FILE_ID}^{index+1}",
                     "file_key": TEST_FILE_KEY,
                     "supplier": TEST_SUPPLIER,
                     **expected_kinesis_data,
@@ -152,10 +153,10 @@ class TestRecordProcessor(unittest.TestCase):
                         self.assertIn(key_to_ignore, kinesis_data)
                         kinesis_data.pop(key_to_ignore)
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    # self.assertIn(f"{TEST_FILE_ID}#{index+1}|OK", ack_file_content)
+                    # self.assertIn(f"{TEST_FILE_ID}^{index+1}|OK", ack_file_content)
                 else:
                     self.assertEqual(kinesis_data, expected_kinesis_data)
-                    # self.assertIn(f"{TEST_FILE_ID}#{index+1}|Fatal", ack_file_content)
+                    # self.assertIn(f"{TEST_FILE_ID}^{index+1}|Fatal", ack_file_content)
 
     def test_e2e_success(self):
         """
