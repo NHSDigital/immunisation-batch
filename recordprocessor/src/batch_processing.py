@@ -45,7 +45,7 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
     row_count = 0  # Initialize a counter for rows
     for row in csv_reader:
         row_count += 1
-        row_id = f"{file_id}#{row_count}"
+        row_id = f"{file_id}^{row_count}"
         logger.info("MESSAGE ID : %s", row_id)
         # Process the row to obtain the details needed for the message_body and ack file
         details_from_processing = process_row(vaccine, allowed_operations, row)

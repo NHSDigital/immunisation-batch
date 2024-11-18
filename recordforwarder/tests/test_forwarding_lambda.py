@@ -35,7 +35,7 @@ class TestForwardingLambda(unittest.TestCase):
 
     def test_create_ack_data(self):
         created_at_formatted_string = "20241015T18504900"
-        row_id = "test_file_id#1"
+        row_id = "test_file_id^1"
 
         success_ack_data = {
             "MESSAGE_HEADER_ID": row_id,
@@ -90,12 +90,9 @@ class TestForwardingLambda(unittest.TestCase):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         mock_response = MagicMock()
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 201,
-                "headers": {
-                    "Location": "https://example.com/immunization/test_id"
-                }
-            })
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 201, "headers": {"Location": "https://example.com/immunization/test_id"}}
+        )
         mock_lambda_client.invoke.return_value = mock_response
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
@@ -121,13 +118,10 @@ class TestForwardingLambda(unittest.TestCase):
         # Mock LastModified as a datetime object
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         mock_response = MagicMock()
-        diagnostics = (
-            "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
+        diagnostics = "The provided identifier: https://supplierABC/identifiers/vacc#test-identifier1 is duplicated"
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 422, "body": create_mock_operation_outcome(diagnostics)}
         )
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 422,
-                "body": create_mock_operation_outcome(diagnostics)
-            })
         mock_lambda_client.invoke.return_value = mock_response
         # Simulate the case where the ack file does not exist
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
@@ -152,10 +146,9 @@ class TestForwardingLambda(unittest.TestCase):
         diagnostics = (
             "Validation errors: The provided immunization id:test_id doesn't match with the content of the request body"
         )
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 422,
-                "body": create_mock_operation_outcome(diagnostics)
-            })
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 422, "body": create_mock_operation_outcome(diagnostics)}
+        )
         mock_lambda_client.invoke.return_value = mock_response
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
 
@@ -198,12 +191,9 @@ class TestForwardingLambda(unittest.TestCase):
         mock_s3_client.head_object.return_value = {"LastModified": datetime(2024, 8, 21, 10, 15, 30)}
         mock_s3_client.get_object.side_effect = ClientError({"Error": {"Code": "404"}}, "HeadObject")
         mock_response = MagicMock()
-        mock_response['Payload'].read.return_value = json.dumps({
-                "statusCode": 204,
-                "headers": {
-                    "Location": "https://example.com/immunization/test_id"
-                }
-            })
+        mock_response["Payload"].read.return_value = json.dumps(
+            {"statusCode": 204, "headers": {"Location": "https://example.com/immunization/test_id"}}
+        )
         mock_lambda_client.invoke.return_value = mock_response
         with patch("update_ack_file.create_ack_data") as mock_create_ack_data:
             message_body = {

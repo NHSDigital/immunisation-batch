@@ -107,7 +107,7 @@ class TestRecordProcessor(unittest.TestCase):
         The input is a list of test_case tuples where each tuple is structured as
         (test_name, index, expected_kinesis_data_ignoring_fhir_json, expect_success).
         The standard key-value pairs
-        {row_id: {TEST_FILE_ID}#{index+1}, file_key: TEST_FILE_KEY, supplier: TEST_SUPPLIER} are added to the
+        {row_id: {TEST_FILE_ID}^{index+1}, file_key: TEST_FILE_KEY, supplier: TEST_SUPPLIER} are added to the
         expected_kinesis_data dictionary before assertions are made.
         For each index, assertions will be made on the record found at the given index in the kinesis response.
         Assertions made:
@@ -141,7 +141,7 @@ class TestRecordProcessor(unittest.TestCase):
 
                 kinesis_data = json.loads(kinesis_record["Data"].decode("utf-8"), parse_float=Decimal)
                 expected_kinesis_data = {
-                    "row_id": f"{TEST_FILE_ID}#{index+1}",
+                    "row_id": f"{TEST_FILE_ID}^{index+1}",
                     "file_key": TEST_FILE_KEY,
                     "supplier": TEST_SUPPLIER,
                     **expected_kinesis_data,
