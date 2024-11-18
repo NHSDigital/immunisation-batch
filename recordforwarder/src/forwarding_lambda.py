@@ -26,6 +26,7 @@ def forward_request_to_lambda(message_body):
             "supplier": message_body.get("supplier"),
             "file_key": message_body.get("file_key"),
             "row_id": message_body.get("row_id"),
+            "created_at_formatted_string":  message_body.get("created_at_formatted_string"),
         }
         sqs_client.send_message(
             QueueUrl=queue_url,
