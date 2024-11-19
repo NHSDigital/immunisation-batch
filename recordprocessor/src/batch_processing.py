@@ -16,8 +16,6 @@ from mappings import Vaccine
 
 # from update_ack_file import update_ack_file
 from send_to_kinesis import send_to_kinesis
-
-
 logging.basicConfig(level="INFO")
 logger = logging.getLogger()
 
@@ -69,26 +67,11 @@ def process_csv_to_fhir(incoming_message_body: dict) -> None:
                 "row_id": row_id,
                 "file_key": file_key,
                 "supplier": supplier,
+                "created_at_formatted_string": created_at_formatted_string,
                 **details_from_processing,
             }
 
-            # Send to kinesis. Add diagnostics if send fails.
             send_to_kinesis(supplier, outgoing_message_body)
-            # if (
-            #     diagnostics := details_from_processing.get("diagnostics")
-            # ) is None and message_delivered is False:
-            #     diagnostics = "Unsupported file type received as an attachment"
-
-            # Update the ack file
-            # accumulated_ack_file_content = update_ack_file(
-            #     file_key,
-            #     bucket_name,
-            #     accumulated_ack_file_content,
-            #     row_id,
-            #     message_delivered,
-            #     diagnostics,
-            #     outgoing_message_body.get("imms_id"),
-            # )
 
         logger.info("Total rows processed: %s", row_count)
 

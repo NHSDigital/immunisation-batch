@@ -46,5 +46,6 @@ def invoke_lambda(lambda_name: str, payload: dict) -> Union[tuple[int, dict, str
         return response_payload.get("statusCode"), body, response_payload.get("headers")
     else:
         response = lambda_client.invoke(FunctionName=lambda_name, InvocationType="Event", Payload=json.dumps(payload))
-        if response["StatusCode"] != "202":
+        print(f"response:{response}")
+        if response["StatusCode"] != 202:
             raise MessageNotSuccessfulError("Failed to send request to API")

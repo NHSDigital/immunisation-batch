@@ -146,6 +146,15 @@ resource "aws_iam_policy" "ecs_task_exec_policy" {
         Effect   = "Allow"
         Action   = "lambda:InvokeFunction"
         Resource = data.aws_lambda_function.existing_search_lambda.arn       
+      },
+      {
+        Effect= "Allow",
+        Action= [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "kms:Decrypt"
+        ],
+        Resource= ["arn:aws:sqs:${var.aws_region}:${local.local_account_id}:imms-${local.api_env}-ack-metadata-queue.fifo"]
       }
     ]
   })
@@ -209,6 +218,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
         name  = "SEARCH_IMMS_LAMBDA"
         value = data.aws_lambda_function.existing_search_lambda.function_name
       },
+      {
+        name="LOCAL_ACCOUNT_ID"   
+        value ="${tostring(local.local_account_id)}"
+      }
 
     ]
     logConfiguration = {
