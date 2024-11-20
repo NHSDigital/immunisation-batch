@@ -67,7 +67,7 @@ class TestMakeAndUploadAckFile(TestCase):
 
     @mock_s3
     @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
-    def test_upload_ack_file(self):
+    def test_upload_ack_file(self, mock_now):
         """Test that upload_ack_file successfully uploads the ack file"""
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")
@@ -124,7 +124,7 @@ class TestMakeAndUploadAckFile(TestCase):
 
     @mock_s3
     @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
-    def test_make_and_upload_ack_file(self):
+    def test_make_and_upload_ack_file(self, mock_now):
         """Test that make_and_upload_ack_file uploads an ack file containing the correct values"""
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")
