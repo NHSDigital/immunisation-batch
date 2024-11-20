@@ -6,11 +6,13 @@ from json import loads as json_loads
 from typing import Optional
 from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
+from dattime import datetime
 import json
 import os
 import sys
+
 maindir = os.path.dirname(__file__)
-srcdir = '../src'
+srcdir = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from file_name_processor import lambda_handler  # noqa: E402
 from tests.utils_for_tests.values_for_tests import (  # noqa: E402
@@ -22,6 +24,8 @@ from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     VALID_RSV_EMIS_FILE_KEY,
     CONFIGS_BUCKET_NAME,
     PERMISSION_JSON,
+    STATIC_DATETIME,
+    STATIC_ISO_DATETIME,
 )
 
 
@@ -80,6 +84,7 @@ class TestLambdaHandler(TestCase):
             ]
         }
 
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def assert_ack_file_in_destination_s3_bucket(self, s3_client, ack_file_key: Optional[str] = None):
         """Assert that the ack file if given, else the VALID_FLU_EMIS_ACK_FILE_KEY, is in the destination S3 bucket"""
         ack_file_key = ack_file_key or VALID_FLU_EMIS_ACK_FILE_KEY
@@ -167,10 +172,13 @@ class TestLambdaHandler(TestCase):
         assert response["body"] == '"Failed to upload file content to cache from S3 bucket"'
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_lambda_invalid_vaccine_type(self):
         """tests SQS queue is not called when file key includes invalid vaccine type"""
         test_file_key = "InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv"
+        ack_file_key = (
+            f"ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
+        )
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -183,10 +191,11 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_lambda_invalid_vaccination(self):
         """tests SQS queue is not called when file key does not include 'Vaccinations'"""
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck.csv"
+        ack_file_key = f"ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -199,10 +208,11 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_lambda_invalid_version(self):
         """tests SQS queue is not called when file key includes invalid version"""
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_InfAck.csv"
+        ack_file_key = f"ack/Flu_Vaccinations_v4_YGM41_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -215,10 +225,11 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_lambda_invalid_odscode(self):
         """tests SQS queue is not called when file key includes invalid ods code"""
         test_file_key = "Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_InfAck.csv"
+        ack_file_key = f"ack/Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
@@ -231,10 +242,11 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_lambda_invalid_datetime(self):
         """tests SQS queue is not called when file key includes invalid dateTime"""
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240732T12130100.csv"
-        ack_file_key = "ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_InfAck.csv"
+        ack_file_key = f"ack/Flu_Vaccinations_v5_YGM41_20240732T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.

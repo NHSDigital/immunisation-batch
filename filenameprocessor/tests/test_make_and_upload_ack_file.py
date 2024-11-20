@@ -8,10 +8,12 @@ from copy import deepcopy
 from csv import DictReader
 from boto3 import client as boto3_client
 from moto import mock_s3
+from datetime import datetime
 import os
 import sys
+
 maindir = os.path.dirname(__file__)
-srcdir = '../src'
+srcdir = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from make_and_upload_ack_file import make_the_ack_data, upload_ack_file, make_and_upload_the_ack_file  # noqa: E402
 from tests.utils_for_tests.values_for_tests import (  # noqa: E402
@@ -19,6 +21,7 @@ from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
+    STATIC_DATETIME,
 )
 
 
@@ -35,31 +38,35 @@ class TestMakeAndUploadAckFile(TestCase):
         "Tests make_ack_data makes correct ack data based on the input args"
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
         test_cases = [
-            (False, {"MESSAGE_HEADER_ID": self.message_id,
-                     "HEADER_RESPONSE_CODE": "Failure",
-                     "ISSUE_SEVERITY": "Fatal",
-                     "ISSUE_CODE": "Fatal Error",
-                     "ISSUE_DETAILS_CODE": "10001",
-                     "RESPONSE_TYPE": "Technical",
-                     "RESPONSE_CODE": "10002",
-                     "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
-                     "RECEIVED_TIME": self.created_at_formatted_string,
-                     "MAILBOX_FROM": "",
-                     "LOCAL_ID": "",
-                     "MESSAGE_DELIVERY": False})
+            (
+                False,
+                {
+                    "MESSAGE_HEADER_ID": self.message_id,
+                    "HEADER_RESPONSE_CODE": "Failure",
+                    "ISSUE_SEVERITY": "Fatal",
+                    "ISSUE_CODE": "Fatal Error",
+                    "ISSUE_DETAILS_CODE": "10001",
+                    "RESPONSE_TYPE": "Technical",
+                    "RESPONSE_CODE": "10002",
+                    "RESPONSE_DISPLAY": "Infrastructure Level Response Value - Processing Error",
+                    "RECEIVED_TIME": self.created_at_formatted_string,
+                    "MAILBOX_FROM": "",
+                    "LOCAL_ID": "",
+                    "MESSAGE_DELIVERY": False,
+                },
+            )
             # No need to test validation failed and message delivery passed as this scenario cannot occur
         ]
 
         for message_delivered, expected_result in test_cases:
             with self.subTest():
                 self.assertEqual(
-                    make_the_ack_data(
-                        self.message_id, message_delivered, self.created_at_formatted_string
-                    ),
+                    make_the_ack_data(self.message_id, message_delivered, self.created_at_formatted_string),
                     expected_result,
                 )
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_upload_ack_file(self):
         """Test that upload_ack_file successfully uploads the ack file"""
         # Set up up the ack bucket
@@ -97,7 +104,7 @@ class TestMakeAndUploadAckFile(TestCase):
                 "MAILBOX_FROM": "",
                 "LOCAL_ID": "",
                 "MESSAGE_DELIVERY": False,
-            }
+            },
         ]
 
         # Call the upload_ack_file function
@@ -116,6 +123,7 @@ class TestMakeAndUploadAckFile(TestCase):
             self.assertEqual(list(csv_data)[0], expected_result)
 
     @mock_s3
+    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
     def test_make_and_upload_ack_file(self):
         """Test that make_and_upload_ack_file uploads an ack file containing the correct values"""
         # Set up up the ack bucket
@@ -126,7 +134,9 @@ class TestMakeAndUploadAckFile(TestCase):
 
         # Test case tuples are stuctured as (validation_passed, message_delivered, expected_result)
         test_cases = [
-            (False, {
+            (
+                False,
+                {
                     "MESSAGE_HEADER_ID": self.message_id,
                     "HEADER_RESPONSE_CODE": "Failure",
                     "ISSUE_SEVERITY": "Fatal",
@@ -139,7 +149,8 @@ class TestMakeAndUploadAckFile(TestCase):
                     "MAILBOX_FROM": "",
                     "LOCAL_ID": "",
                     "MESSAGE_DELIVERY": False,
-                    })
+                },
+            )
         ]
 
         # Call the make_and_upload_ack_file function
