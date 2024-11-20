@@ -146,11 +146,31 @@ class Message:
     ROW_ID = "123456"
     IMMS_ID = "277befd9-574e-47fe-a6ee-189858af3bb0"
     DIAGNOSTICS = Diagnostics.MISSING_UNIQUE_ID
-    base_message_fields = {"row_id": ROW_ID, "file_key": TestFile.FILE_KEY, "supplier": TestFile.SUPPLIER}
-    create_message = {**base_message_fields, "fhir_json": test_imms_fhir_json, "operation_requested": Operations.CREATE}
-    update_message = {**base_message_fields, "fhir_json": test_imms_fhir_json, "operation_requested": Operations.UPDATE}
-    delete_message = {**base_message_fields, "fhir_json": test_imms_fhir_json, "operation_requested": Operations.DELETE}
-    diagnostics_message = {**base_message_fields, "diagnostics": DIAGNOSTICS}
+    LOCAL_ID = "111^222"
+    base_message_fields = {
+        "row_id": ROW_ID,
+        "file_key": TestFile.FILE_KEY,
+        "supplier": TestFile.SUPPLIER,
+    }
+    create_message = {
+        **base_message_fields,
+        "fhir_json": test_imms_fhir_json,
+        "operation_requested": Operations.CREATE,
+        "local_id": LOCAL_ID,
+    }
+    update_message = {
+        **base_message_fields,
+        "fhir_json": test_imms_fhir_json,
+        "operation_requested": Operations.UPDATE,
+        "local_id": LOCAL_ID,
+    }
+    delete_message = {
+        **base_message_fields,
+        "fhir_json": test_imms_fhir_json,
+        "operation_requested": Operations.DELETE,
+        "local_id": LOCAL_ID,
+    }
+    diagnostics_message = {**base_message_fields, "diagnostics": DIAGNOSTICS, "local_id": LOCAL_ID}
 
 
 lambda_success_headers = {"Location": "https://example.com/immunization/test_id"}

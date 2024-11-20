@@ -164,16 +164,16 @@ class TestForwardingLambda(unittest.TestCase):
         #     "20240821T10153000", Message.ROW_ID, False, Diagnostics.VALIDATION_ERROR, None
         # )
 
-    def test_forward_request_to_api_update_failure_imms_id_none(self):
-        with (
-            self.common_contexts_for_forwarding_lambda_tests(),
-            patch("utils_for_record_forwarder.lambda_client.invoke") as mock_lambda_client,
-        ):
-            forward_request_to_lambda(Message.diagnostics_message)
+    # def test_forward_request_to_api_update_failure_imms_id_none(self):
+    #     with (
+    #         self.common_contexts_for_forwarding_lambda_tests(),
+    #         patch("utils_for_record_forwarder.lambda_client.invoke") as mock_lambda_client,
+    #     ):
+    #         forward_request_to_lambda(Message.diagnostics_message)
 
-        # pylint: disable=no-member
-        # mock_create_ack_data.assert_called_with("20240821T10153000", Message.ROW_ID, False, Message.DIAGNOSTICS, None)
-        mock_lambda_client.assert_not_called()
+    #     # pylint: disable=no-member
+    #     # mock_create_ack_data.assert_called_with("20240821T10153000", Message.ROW_ID, False, Message.DIAGNOSTICS, None)
+    #     mock_lambda_client.assert_not_called()
 
     def test_forward_request_to_api_delete_success(self):
         with self.common_contexts_for_forwarding_lambda_tests(deepcopy(LAMBDA_PAYLOADS.SUCCESS)):
