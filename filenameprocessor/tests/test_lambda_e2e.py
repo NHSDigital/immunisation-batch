@@ -24,7 +24,6 @@ from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     VALID_RSV_EMIS_FILE_KEY,
     CONFIGS_BUCKET_NAME,
     PERMISSION_JSON,
-    STATIC_DATETIME,
     STATIC_ISO_DATETIME,
 )
 

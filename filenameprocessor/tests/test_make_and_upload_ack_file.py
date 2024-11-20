@@ -21,7 +21,6 @@ from tests.utils_for_tests.values_for_tests import (  # noqa: E402
     DESTINATION_BUCKET_NAME,
     VALID_FLU_EMIS_FILE_KEY,
     VALID_FLU_EMIS_ACK_FILE_KEY,
-    STATIC_DATETIME,
 )
 
 
@@ -66,9 +65,10 @@ class TestMakeAndUploadAckFile(TestCase):
                 )
 
     @mock_s3
-    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
-    def test_upload_ack_file(self, mock_now):
+    @patch("datetime.datetime")
+    def test_upload_ack_file(self, mock_datetime):
         """Test that upload_ack_file successfully uploads the ack file"""
+        mock_datetime.now.return_value = datetime(2021, 11, 20, 12, 0, 0)
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")
         s3_client.create_bucket(
