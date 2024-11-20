@@ -6,7 +6,6 @@ from json import loads as json_loads
 from typing import Optional
 from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
-from dattime import datetime
 import json
 import os
 import sys

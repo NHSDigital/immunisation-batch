@@ -8,7 +8,6 @@ from copy import deepcopy
 from csv import DictReader
 from boto3 import client as boto3_client
 from moto import mock_s3
-from datetime import datetime
 import os
 import sys
 
