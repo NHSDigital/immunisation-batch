@@ -30,7 +30,9 @@ def make_the_ack_data(message_id: str, message_delivered: bool, created_at_forma
 
 def upload_ack_file(file_key: str, ack_data: dict) -> None:
     """Formats the ack data into a csv file and uploads it to the ack bucket"""
-    ack_file_timestamp = datetime.now().isoformat()
+    ack_file_timestamp = ack_file_timestamp = (
+        datetime.now().replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
+    )
     ack_filename = "ack/" + file_key.replace(".csv", f"_InfAck_{ack_file_timestamp}.csv")
     print(ack_filename)
     # Create CSV file with | delimiter, filetype .csv

@@ -5,6 +5,7 @@ from unittest import TestCase
 from json import loads as json_loads
 from typing import Optional
 from datetime import datetime
+from freezegun import freeze_time
 from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
 import json
@@ -83,13 +84,12 @@ class TestLambdaHandler(TestCase):
             ]
         }
 
+    @freeze_time("2021-11-20, 12:00:00")
     def assert_ack_file_in_destination_s3_bucket(self, s3_client, ack_file_key: Optional[str] = None):
         """Assert that the ack file if given, else the VALID_FLU_EMIS_ACK_FILE_KEY, is in the destination S3 bucket"""
         ack_file_key = ack_file_key or VALID_FLU_EMIS_ACK_FILE_KEY
         ack_files = s3_client.list_objects_v2(Bucket=DESTINATION_BUCKET_NAME)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
-        print(ack_file_keys)
-        print(ack_files)
         self.assertIn(ack_file_key, ack_file_keys)
 
     @mock_s3

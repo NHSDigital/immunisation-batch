@@ -19,7 +19,6 @@ def process_row(vaccine: Vaccine, allowed_operations: set, row: dict) -> dict:
     unique_id_uri = row.get("UNIQUE_ID_URI")
     unique_id = row.get("UNIQUE_ID")
     local_id = f"{unique_id}^{unique_id_uri}"
-    print(f"LOCAL_ID: {local_id}")
 
     # Handle invalid action_flag
     if action_flag not in ("NEW", "UPDATE", "DELETE"):

@@ -14,7 +14,7 @@ CONFIGS_BUCKET_NAME = "immunisation-batch-internal-dev-data-configs"
 SOURCE_BUCKET_NAME = "immunisation-batch-internal-dev-data-sources"
 DESTINATION_BUCKET_NAME = "immunisation-batch-internal-dev-data-destinations"
 STATIC_DATETIME = datetime(2021, 11, 20, 12, 0, 0)
-STATIC_ISO_DATETIME = STATIC_DATETIME.isoformat()
+STATIC_ISO_DATETIME = STATIC_DATETIME.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
 
 VALID_FLU_EMIS_FILE_KEY = "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv"
 VALID_FLU_EMIS_ACK_FILE_KEY = f"ack/Flu_Vaccinations_v5_YGM41_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
