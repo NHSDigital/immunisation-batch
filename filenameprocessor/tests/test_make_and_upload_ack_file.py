@@ -7,6 +7,7 @@ from io import StringIO
 from copy import deepcopy
 from csv import DictReader
 from datetime import datetime
+from freezegun import freeze_time
 from boto3 import client as boto3_client
 from moto import mock_s3
 import os
@@ -66,7 +67,7 @@ class TestMakeAndUploadAckFile(TestCase):
                 )
 
     @mock_s3
-    @patch("make_and_upload_ack_file.datetime.now", return_value=datetime(2021, 11, 20, 12, 0, 0))
+    @freeze_time("2021-11-20")
     def test_upload_ack_file(self):
         """Test that upload_ack_file successfully uploads the ack file"""
         # Set up up the ack bucket
@@ -123,7 +124,7 @@ class TestMakeAndUploadAckFile(TestCase):
             self.assertEqual(list(csv_data)[0], expected_result)
 
     @mock_s3
-    @patch("make_and_upload_ack_file.datetime.now", return_value=STATIC_DATETIME)
+    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
     def test_make_and_upload_ack_file(self):
         """Test that make_and_upload_ack_file uploads an ack file containing the correct values"""
         # Set up up the ack bucket
