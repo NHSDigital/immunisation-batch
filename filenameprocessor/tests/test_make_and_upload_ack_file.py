@@ -6,6 +6,7 @@ from uuid import uuid4
 from io import StringIO
 from copy import deepcopy
 from csv import DictReader
+from datetime import datetime
 from boto3 import client as boto3_client
 from moto import mock_s3
 import os
@@ -65,7 +66,7 @@ class TestMakeAndUploadAckFile(TestCase):
                 )
 
     @mock_s3
-    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
+    @patch("datetime.datetime.now", return_value=datetime(2021, 11, 20, 12, 0, 0))
     def test_upload_ack_file(self):
         """Test that upload_ack_file successfully uploads the ack file"""
         # Set up up the ack bucket
