@@ -66,7 +66,7 @@ class TestMakeAndUploadAckFile(TestCase):
                 )
 
     @mock_s3
-    @patch("datetime.datetime.now", return_value=datetime(2021, 11, 20, 12, 0, 0))
+    @patch("make_and_upload_ack.datetime.now", return_value=datetime(2021, 11, 20, 12, 0, 0))
     def test_upload_ack_file(self):
         """Test that upload_ack_file successfully uploads the ack file"""
         # Set up up the ack bucket
@@ -123,7 +123,7 @@ class TestMakeAndUploadAckFile(TestCase):
             self.assertEqual(list(csv_data)[0], expected_result)
 
     @mock_s3
-    @patch("datetime.datetime.now", return_value=STATIC_DATETIME)
+    @patch("make_and_upload_ack.datetime.now", return_value=STATIC_DATETIME)
     def test_make_and_upload_ack_file(self):
         """Test that make_and_upload_ack_file uploads an ack file containing the correct values"""
         # Set up up the ack bucket
