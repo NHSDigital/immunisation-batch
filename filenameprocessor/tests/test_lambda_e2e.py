@@ -83,12 +83,13 @@ class TestLambdaHandler(TestCase):
             ]
         }
 
-    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
     def assert_ack_file_in_destination_s3_bucket(self, s3_client, ack_file_key: Optional[str] = None):
         """Assert that the ack file if given, else the VALID_FLU_EMIS_ACK_FILE_KEY, is in the destination S3 bucket"""
         ack_file_key = ack_file_key or VALID_FLU_EMIS_ACK_FILE_KEY
         ack_files = s3_client.list_objects_v2(Bucket=DESTINATION_BUCKET_NAME)
         ack_file_keys = [obj["Key"] for obj in ack_files.get("Contents", [])]
+        print(ack_file_keys)
+        print(ack_files)
         self.assertIn(ack_file_key, ack_file_keys)
 
     @mock_s3
@@ -189,7 +190,8 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    def test_lambda_invalid_vaccination(self):
+    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
+    def test_lambda_invalid_vaccination(self, make_now):
         """tests SQS queue is not called when file key does not include 'Vaccinations'"""
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
         ack_file_key = f"ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
@@ -205,6 +207,7 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
     def test_lambda_invalid_version(self):
         """tests SQS queue is not called when file key includes invalid version"""
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"

@@ -32,7 +32,7 @@ def upload_ack_file(file_key: str, ack_data: dict) -> None:
     """Formats the ack data into a csv file and uploads it to the ack bucket"""
     ack_file_timestamp = datetime.now().isoformat()
     ack_filename = "ack/" + file_key.replace(".csv", f"_InfAck_{ack_file_timestamp}.csv")
-
+    print(ack_filename)
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
     csv_writer = writer(csv_buffer, delimiter="|")
