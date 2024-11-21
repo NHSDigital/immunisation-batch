@@ -39,6 +39,9 @@ from tests.utils_for_recordprocessor_tests.values_for_recordprocessor_tests impo
     all_fields_fhir_imms_resource,
     mandatory_fields_only_fhir_imms_resource,
     critical_fields_only_fhir_imms_resource,
+    TEST_LOCAL_ID_001RSV,
+    TEST_LOCAL_ID_002COVID,
+    TEST_LOCAL_ID_mandatory,
 )
 
 s3_client = boto3_client("s3", region_name=AWS_REGION)
@@ -170,9 +173,9 @@ class TestRecordProcessor(unittest.TestCase):
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json,expect_success)
         test_cases = [
-            ("CREATE success", 0, {"operation_requested": "CREATE"}, True),
-            ("UPDATE success", 1, {"operation_requested": "UPDATE"}, True),
-            ("DELETE success", 2, {"operation_requested": "DELETE"}, True),
+            ("CREATE success", 0, {"operation_requested": "CREATE", "local_id": TEST_LOCAL_ID_001RSV}, True),
+            ("UPDATE success", 1, {"operation_requested": "UPDATE", "local_id": TEST_LOCAL_ID_002COVID}, True),
+            ("DELETE success", 2, {"operation_requested": "DELETE", "local_id": TEST_LOCAL_ID_002COVID}, True),
         ]
         self.make_assertions(test_cases)
 
@@ -192,17 +195,25 @@ class TestRecordProcessor(unittest.TestCase):
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json,expect_success)
         test_cases = [
-            ("CREATE success", 0, {"operation_requested": "CREATE"}, True),
+            ("CREATE success", 0, {"operation_requested": "CREATE", "local_id": TEST_LOCAL_ID_001RSV}, True),
             (
                 "UPDATE no permissions",
                 1,
-                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
+                {
+                    "diagnostics": Diagnostics.NO_PERMISSIONS,
+                    "operation_requested": "UPDATE",
+                    "local_id": TEST_LOCAL_ID_002COVID,
+                },
                 False,
             ),
             (
                 "DELETE no permissions",
                 2,
-                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
+                {
+                    "diagnostics": Diagnostics.NO_PERMISSIONS,
+                    "operation_requested": "DELETE",
+                    "local_id": TEST_LOCAL_ID_002COVID,
+                },
                 False,
             ),
         ]
@@ -223,17 +234,30 @@ class TestRecordProcessor(unittest.TestCase):
         main(test_event)
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json,expect_success)
         test_cases = [
-            ("CREATE create permission only", 0, {"operation_requested": "CREATE"}, True),
+            (
+                "CREATE create permission only",
+                0,
+                {"operation_requested": "CREATE", "local_id": TEST_LOCAL_ID_001RSV},
+                True,
+            ),
             (
                 "UPDATE create permission only",
                 1,
-                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "UPDATE"},
+                {
+                    "diagnostics": Diagnostics.NO_PERMISSIONS,
+                    "operation_requested": "UPDATE",
+                    "local_id": TEST_LOCAL_ID_002COVID,
+                },
                 False,
             ),
             (
                 "DELETE create permission only",
                 2,
-                {"diagnostics": Diagnostics.NO_PERMISSIONS, "operation_requested": "DELETE"},
+                {
+                    "diagnostics": Diagnostics.NO_PERMISSIONS,
+                    "operation_requested": "DELETE",
+                    "local_id": TEST_LOCAL_ID_002COVID,
+                },
                 False,
             ),
         ]
@@ -246,7 +270,11 @@ class TestRecordProcessor(unittest.TestCase):
 
         main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG, "operation_requested": ""}
+        expected_kinesis_data = {
+            "diagnostics": Diagnostics.INVALID_ACTION_FLAG,
+            "operation_requested": "",
+            "local_id": TEST_LOCAL_ID_001RSV,
+        }
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json,expect_success)
         self.make_assertions([("CREATE no action_flag", 0, expected_kinesis_data, False)])
 
@@ -256,7 +284,11 @@ class TestRecordProcessor(unittest.TestCase):
 
         main(TEST_EVENT_DUMPED)
 
-        expected_kinesis_data = {"diagnostics": Diagnostics.INVALID_ACTION_FLAG, "operation_requested": "INVALID"}
+        expected_kinesis_data = {
+            "diagnostics": Diagnostics.INVALID_ACTION_FLAG,
+            "operation_requested": "INVALID",
+            "local_id": TEST_LOCAL_ID_001RSV,
+        }
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data_ignoring_fhir_json,expect_success)
         self.make_assertions([("CREATE invalid action_flag", 0, expected_kinesis_data, False)])
 
@@ -269,22 +301,26 @@ class TestRecordProcessor(unittest.TestCase):
         critical_fields_only_values = "|".join(f'"{v}"' for v in critical_fields_only.values())
         file_content = f"{headers}\n{all_fields_values}\n{mandatory_fields_only_values}\n{critical_fields_only_values}"
         self.upload_files(file_content)
+        print(f"FILE CINTENT: {file_content}")
 
         main(TEST_EVENT_DUMPED)
 
         all_fields_row_expected_kinesis_data = {
             "operation_requested": "UPDATE",
             "fhir_json": all_fields_fhir_imms_resource,
+            "local_id": TEST_LOCAL_ID_mandatory,
         }
 
         mandatory_fields_only_row_expected_kinesis_data = {
             "operation_requested": "UPDATE",
             "fhir_json": mandatory_fields_only_fhir_imms_resource,
+            "local_id": TEST_LOCAL_ID_mandatory,
         }
 
         critical_fields_only_row_expected_kinesis_data = {
             "operation_requested": "CREATE",
             "fhir_json": critical_fields_only_fhir_imms_resource,
+            "local_id": "a_unique_id^a_unique_id_uri",
         }
 
         # Test case tuples are stuctured as (test_name, index, expected_kinesis_data, expect_success)
