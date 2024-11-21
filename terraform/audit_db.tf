@@ -26,7 +26,11 @@ resource "aws_dynamodb_table" "audit-table" {
     global_secondary_index {
         name            = "filename_index"
         hash_key        = "filename"
-        projection_type = "KEYS_ONLY"
+        projection_type = "ALL"
+    }
+
+    point_in_time_recovery {
+        enabled = local.environment == "prod" ? true : false
     }
 
 }
