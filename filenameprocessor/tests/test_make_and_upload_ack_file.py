@@ -6,7 +6,6 @@ from uuid import uuid4
 from io import StringIO
 from copy import deepcopy
 from csv import DictReader
-from datetime import datetime
 from freezegun import freeze_time
 from boto3 import client as boto3_client
 from moto import mock_s3

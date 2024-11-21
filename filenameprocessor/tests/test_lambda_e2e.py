@@ -4,7 +4,6 @@ from unittest.mock import patch, MagicMock
 from unittest import TestCase
 from json import loads as json_loads
 from typing import Optional
-from datetime import datetime
 from freezegun import freeze_time
 from boto3 import client as boto3_client
 from moto import mock_s3, mock_sqs
