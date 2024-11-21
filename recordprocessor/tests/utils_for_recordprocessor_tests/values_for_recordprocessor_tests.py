@@ -7,7 +7,7 @@ from decimal import Decimal
 import requests
 from src.constants import Urls
 from src.mappings import Vaccine
-
+from datetime import datetime
 
 # TARGET_DISEASE_ELEMENTS values are intentionally hard-coded for testing purposes.
 TARGET_DISEASE_ELEMENTS = {
@@ -224,11 +224,18 @@ TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
 TEST_FILE_ID = "123456"
 TEST_PERMISSION = ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"]
-# TEST_TIME_STAMP =
+STATIC_DATETIME = datetime(2021, 11, 20, 12, 0, 0)
+# For test purposes static time with no seconds
+STATIC_ISO_DATETIME = STATIC_DATETIME.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
-TEST_INF_ACK_FILE_KEY = f"ack/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_InfAck.csv"
+TEST_INF_ACK_FILE_KEY = (
+    f"ack/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_InfAck_{STATIC_ISO_DATETIME}.csv"
+)
+TEST_UNIQUE_ID_URI = "https://www.ravs.england.nhs.uk/"
+TEST_LOCAL_ID = f"0002_COVID19_v1_DOSE_1^{TEST_UNIQUE_ID_URI}"
+
 
 TEST_EVENT_DUMPED = json.dumps(
     {
@@ -238,7 +245,7 @@ TEST_EVENT_DUMPED = json.dumps(
         "filename": TEST_FILE_KEY,
         "permission": TEST_PERMISSION,
         "created_at_formatted_string": "2020-01-01",
-        "local_id": "1112^2223",
+        "local_id": TEST_LOCAL_ID,
     }
 )
 
@@ -248,6 +255,7 @@ TEST_EVENT = {
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,
     "permission": TEST_PERMISSION,
+    "local_id": TEST_LOCAL_ID,
 }
 
 TEST_EVENT_PERMISSION = {

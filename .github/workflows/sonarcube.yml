@@ -34,6 +34,7 @@ jobs:
       
       - name: Run unittest with recordprocessor-coverage
         run: |
+          pip install poetry freezegun
           poetry run coverage run --source=recordprocessor -m unittest discover -s recordprocessor
           poetry run coverage xml -o recordprocessor-coverage.xml
 
