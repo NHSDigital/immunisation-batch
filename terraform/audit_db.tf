@@ -13,20 +13,10 @@ resource "aws_dynamodb_table" "audit-table" {
         type = "S"
     }
 
-    attribute {
-        name = "created_at"
-        type = "S"
-    }
-
-    attribute {
-        name = "status"
-        type = "S"
-    }
-
     global_secondary_index {
         name            = "filename_index"
         hash_key        = "filename"
-        projection_type = "ALL"
+        projection_type = "KEYS_ONLY"
     }
 
     point_in_time_recovery {
