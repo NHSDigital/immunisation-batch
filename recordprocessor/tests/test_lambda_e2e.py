@@ -301,7 +301,6 @@ class TestRecordProcessor(unittest.TestCase):
         critical_fields_only_values = "|".join(f'"{v}"' for v in critical_fields_only.values())
         file_content = f"{headers}\n{all_fields_values}\n{mandatory_fields_only_values}\n{critical_fields_only_values}"
         self.upload_files(file_content)
-        print(f"FILE CINTENT: {file_content}")
 
         main(TEST_EVENT_DUMPED)
 
