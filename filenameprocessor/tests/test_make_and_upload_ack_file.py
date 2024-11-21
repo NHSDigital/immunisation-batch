@@ -67,9 +67,8 @@ class TestMakeAndUploadAckFile(TestCase):
 
     @mock_s3
     @freeze_time("2021-11-20, 12:00:00")
-    def test_upload_ack_file(self, mock_datetime):
+    def test_upload_ack_file(self):
         """Test that upload_ack_file successfully uploads the ack file"""
-        mock_datetime.now.return_value = datetime(2021, 11, 20, 12, 0, 0)
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")
         s3_client.create_bucket(
@@ -125,7 +124,7 @@ class TestMakeAndUploadAckFile(TestCase):
 
     @mock_s3
     @freeze_time("2021-11-20, 12:00:00")
-    def test_make_and_upload_ack_file(self, mock_now):
+    def test_make_and_upload_ack_file(self):
         """Test that make_and_upload_ack_file uploads an ack file containing the correct values"""
         # Set up up the ack bucket
         s3_client = boto3_client("s3", region_name="eu-west-2")

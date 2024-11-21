@@ -172,6 +172,7 @@ class TestLambdaHandler(TestCase):
         assert response["body"] == '"Failed to upload file content to cache from S3 bucket"'
 
     @mock_s3
+    @freeze_time("2021-11-20, 12:00:00")
     def test_lambda_invalid_vaccine_type(self):
         """tests SQS queue is not called when file key includes invalid vaccine type"""
         test_file_key = "InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100.csv"
@@ -190,8 +191,8 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
-    def test_lambda_invalid_vaccination(self, make_now):
+    @freeze_time("2021-11-20, 12:00:00")
+    def test_lambda_invalid_vaccination(self):
         """tests SQS queue is not called when file key does not include 'Vaccinations'"""
         test_file_key = "Flu_Vaccination_v5_YGM41_20240708T12130100.csv"
         ack_file_key = f"ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck_{STATIC_ISO_DATETIME}.csv"
@@ -207,7 +208,7 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
-    @patch.object(datetime, "now", return_value=datetime(2021, 11, 20, 12, 0, 0))
+    @freeze_time("2021-11-20, 12:00:00")
     def test_lambda_invalid_version(self):
         """tests SQS queue is not called when file key includes invalid version"""
         test_file_key = "Flu_Vaccinations_v4_YGM41_20240708T12130100.csv"
@@ -224,6 +225,7 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @freeze_time("2021-11-20, 12:00:00")
     def test_lambda_invalid_odscode(self):
         """tests SQS queue is not called when file key includes invalid ods code"""
         test_file_key = "Flu_Vaccinations_v5_InvalidOdsCode_20240708T12130100.csv"
@@ -240,6 +242,7 @@ class TestLambdaHandler(TestCase):
         self.assert_ack_file_in_destination_s3_bucket(s3_client, ack_file_key)
 
     @mock_s3
+    @freeze_time("2021-11-20, 12:00:00")
     def test_lambda_invalid_datetime(self):
         """tests SQS queue is not called when file key includes invalid dateTime"""
         test_file_key = "Flu_Vaccinations_v5_YGM41_20240732T12130100.csv"
@@ -274,6 +277,7 @@ class TestLambdaHandler(TestCase):
         mock_send_to_supplier_queue.assert_called_once()
 
     @mock_s3
+    @freeze_time("2021-11-20, 12:00:00")
     def test_lambda_invalid_action_flag_permissions(self):
         """tests SQS queue is called when has action flag permissions"""
         s3_client = self.set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
