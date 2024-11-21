@@ -165,7 +165,6 @@ class TestProcessLambdaFunction(unittest.TestCase):
         """Downloads the ack file, decodes its content and returns the content"""
         response = s3_client.get_object(Bucket=DESTINATION_BUCKET_NAME, Key=TEST_INF_ACK_FILE_KEY)
         content = response["Body"].read().decode("utf-8")
-        content_1 = str(content)
         self.assertIn(value, content)
 
     @patch("batch_processing.process_csv_to_fhir")
