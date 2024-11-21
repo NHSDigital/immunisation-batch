@@ -143,6 +143,7 @@ class TestRecordProcessor(unittest.TestCase):
                     "row_id": f"{TEST_FILE_ID}#{index+1}",
                     "file_key": TEST_FILE_KEY,
                     "supplier": TEST_SUPPLIER,
+                    "created_at_formatted_string": "2020-01-01",
                     **expected_kinesis_data,
                 }
                 if expect_success:
