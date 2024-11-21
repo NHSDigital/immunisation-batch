@@ -206,6 +206,29 @@ resource "aws_iam_policy" "lambda_kms_access_policy" {
   })
 }
 
+resource "aws_iam_policy" "dynamo_access_policy" {
+  name        = "dynamo-access-policy"
+  description = "Policy to allow access to DynamoDB audit table"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action    = [
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem"
+        ]
+        Effect    = "Allow"
+        Resource  = [
+          "arn:aws:dynamodb:${var.aws_region}:${local.local_account_id}:table/${local.short_prefix}-imms-batch-audit-table",
+          "arn:aws:dynamodb:${var.aws_region}:${local.local_account_id}:table/${local.short_prefix}-imms-batch-audit-table/index/filename_index",
+        ]
+      }
+    ]
+  })
+}
+
 # Attach the execution policy to the Lambda role
 resource "aws_iam_role_policy_attachment" "lambda_exec_policy_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
@@ -223,6 +246,13 @@ resource "aws_iam_role_policy_attachment" "lambda_kms_policy_attachment" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = aws_iam_policy.lambda_kms_access_policy.arn
 }
+
+# Attach the dynamo db policy to the Lambda role
+resource "aws_iam_role_policy_attachment" "lambda_dynamo_access_attachment" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = aws_iam_policy.dynamo_access_policy.arn
+}
+
 # Lambda Function with Security Group and VPC.
 resource "aws_lambda_function" "file_processor_lambda" {
   function_name   = "${local.prefix}-filenameproc_lambda"
