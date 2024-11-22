@@ -175,9 +175,9 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         with (  # noqa: E999
-            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-        ):
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -191,9 +191,9 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         with (  # noqa: E999
-            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-        ):
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -208,9 +208,9 @@ class TestLambdaHandler(TestCase):
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
         with (  # noqa: E999
-            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-        ):
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -225,9 +225,9 @@ class TestLambdaHandler(TestCase):
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
         with (  # noqa: E999
-            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-        ):
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -242,9 +242,9 @@ class TestLambdaHandler(TestCase):
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
         with (  # noqa: E999
-            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-        ):
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -262,12 +262,12 @@ class TestLambdaHandler(TestCase):
         # and send_to_supplier_queue functions
         with (  # noqa: E999
             patch(
-                "initial_file_validation.get_supplier_permissions",
-                return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
-            ),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-            patch("initial_file_validation.add_to_audit_table", return_value=True),
-        ):
+                "initial_file_validation.get_supplier_permissions",  # noqa: E999
+                return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],  # noqa: E999
+            ),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+            patch("initial_file_validation.add_to_audit_table", return_value=True),  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_called_once()
@@ -280,9 +280,9 @@ class TestLambdaHandler(TestCase):
         # Mock the get_supplier_permissions (with return value which doesn't include the requested Flu permissions)
         # and send_to_supplier_queue functions
         with (  # noqa: E999
-            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_DELETE"]),
-            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
-        ):
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_DELETE"]),  # noqa: E999
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
+        ):  # noqa: E999
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
