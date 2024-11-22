@@ -27,18 +27,19 @@ def timeout_handler(signum, frame):
 def add_to_audit_table(file_key: str) -> bool:
     signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(30)  # Set the timeout for the task
+    message_id = str(uuid4())
 
     try:
-        response = dynamodb_client.put_item(
+        dynamodb_client.put_item(
             TableName=os.environ["AUDIT_TABLE_NAME"],
             Item={
-                "unique_id": {"S": str(uuid4())},
+                "message_id": {"S": message_id},
                 "filename": {"S": file_key},
                 "status": {"S": "testing"},
-                "createdAt": {"S": "TBC"},
+                "timestamp": {"S": "TBC"},
             },
         )
-        print(f"dynamo response: {response}")
+        logger.info("%s file, with message id %s, successfully added to audit table", file_key, message_id)
         signal.alarm(0)
 
     except TimeoutError as error:
