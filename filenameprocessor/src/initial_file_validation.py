@@ -14,16 +14,15 @@ logger = logging.getLogger()
 
 
 def add_to_audit_table(file_key: str) -> bool:
-    table_name = os.environ["AUDIT_TABLE_NAME"]  # Use environment variable for table name
-    item = {
-        "unique_id": {"S": str(uuid4())},
-        "filename": {"S": file_key},
-        "status": {"S": "testing"},
-        "createdAt": {"S": "TBC"},
-    }
-
-    # Put item into the DynamoDB table
-    dynamodb_client.put_item(TableName=table_name, Item=item)
+    dynamodb_client.put_item(
+        TableName=os.environ["AUDIT_TABLE_NAME"],
+        Item={
+            "unique_id": {"S": str(uuid4())},
+            "filename": {"S": file_key},
+            "status": {"S": "testing"},
+            "createdAt": {"S": "TBC"},
+        },
+    )
 
     return True
 
