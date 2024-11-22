@@ -174,8 +174,7 @@ class TestLambdaHandler(TestCase):
         ack_file_key = "ack/InvalidVaccineType_Vaccinations_v5_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
-        # noqa: E999
-        with (
+        with (  # noqa: E999
             patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -191,7 +190,7 @@ class TestLambdaHandler(TestCase):
         ack_file_key = "ack/Flu_Vaccination_v5_YGM41_20240708T12130100_InfAck.csv"
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
-        with (
+        with (  # noqa: E999
             patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -208,7 +207,7 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with (
+        with (  # noqa: E999
             patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -225,7 +224,7 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with (
+        with (  # noqa: E999
             patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -242,7 +241,7 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with (
+        with (  # noqa: E999
             patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
@@ -261,7 +260,7 @@ class TestLambdaHandler(TestCase):
         self.set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
         # Mock the get_supplier_permissions (with return value which includes the requested Flu permissions)
         # and send_to_supplier_queue functions
-        with (
+        with (  # noqa: E999
             patch(
                 "initial_file_validation.get_supplier_permissions",
                 return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
@@ -280,7 +279,7 @@ class TestLambdaHandler(TestCase):
 
         # Mock the get_supplier_permissions (with return value which doesn't include the requested Flu permissions)
         # and send_to_supplier_queue functions
-        with (
+        with (  # noqa: E999
             patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_DELETE"]),
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
         ):
