@@ -1,13 +1,31 @@
 """Functions for initial file validation"""
 
 import logging
+import os
 from re import match
 from datetime import datetime
 from constants import Constants
 from fetch_permissions import get_permissions_config_json_from_cache
 from utils_for_filenameprocessor import extract_file_key_elements
+from s3_clients import dynamodb_client
+from uuid import uuid4
 
 logger = logging.getLogger()
+
+
+def add_to_audit_table(file_key: str) -> bool:
+    table_name = os.environ["AUDIT_TABLE_NAME"]  # Use environment variable for table name
+    item = {
+        "unique_id": {"S": str(uuid4())},
+        "filename": {"S": file_key},
+        "status": {"S": "testing"},
+        "createdAt": {"S": "TBC"},
+    }
+
+    # Put item into the DynamoDB table
+    dynamodb_client.put_item(TableName=table_name, Item=item)
+
+    return True
 
 
 def is_valid_datetime(timestamp: str) -> bool:
@@ -48,6 +66,9 @@ def initial_file_validation(file_key: str):
     Returns True if all elements of file key are valid, content headers are valid and the supplier has the
     appropriate permissions. Else returns False.
     """
+    # Add file to audit table and confirm it is not a duplicate
+    add_to_audit_table(file_key)
+
     # Validate file name format (must contain four '_' a single '.' which occurs after the four '_'
     if not match(r"^[^_.]*_[^_.]*_[^_.]*_[^_.]*_[^_.]*\.[^_.]*$", file_key):
         logger.error("Initial file validation failed: invalid file key format")

@@ -9,8 +9,9 @@ from moto import mock_s3, mock_sqs
 import json
 import os
 import sys
+
 maindir = os.path.dirname(__file__)
-srcdir = '../src'
+srcdir = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
 from file_name_processor import lambda_handler  # noqa: E402
 from tests.utils_for_tests.values_for_tests import (  # noqa: E402
@@ -106,8 +107,8 @@ class TestLambdaHandler(TestCase):
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full FLU permissions
-
-        response = lambda_handler(self.make_event(), None)
+        with patch("initial_file_validation.add_to_audit_table", return_value=True):
+            response = lambda_handler(self.make_event(), None)
 
         # Assertions
         self.assertEqual(response["statusCode"], 200)
@@ -174,9 +175,10 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+        with (
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -190,9 +192,10 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+        with (
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -206,9 +209,10 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+        with (
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -222,9 +226,10 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+        with (
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -238,9 +243,10 @@ class TestLambdaHandler(TestCase):
         s3_client = self.set_up_s3_buckets_and_upload_file(file_key=test_file_key)
 
         # Mock the get_supplier_permissions with full FLU permissions. Mock send_to_supplier_queue function.
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+        with (
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_FULL"]),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
             lambda_handler(event=self.make_event(test_file_key), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -256,10 +262,14 @@ class TestLambdaHandler(TestCase):
         self.set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
         # Mock the get_supplier_permissions (with return value which includes the requested Flu permissions)
         # and send_to_supplier_queue functions
-        with patch(
-            "initial_file_validation.get_supplier_permissions",
-            return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
-        ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
+        with (
+            patch(
+                "initial_file_validation.get_supplier_permissions",
+                return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],
+            ),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+            patch("initial_file_validation.add_to_audit_table", return_value=True),
+        ):
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_called_once()
@@ -271,9 +281,10 @@ class TestLambdaHandler(TestCase):
 
         # Mock the get_supplier_permissions (with return value which doesn't include the requested Flu permissions)
         # and send_to_supplier_queue functions
-        with patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_DELETE"]), patch(
-            "send_sqs_message.send_to_supplier_queue"
-        ) as mock_send_to_supplier_queue:
+        with (
+            patch("initial_file_validation.get_supplier_permissions", return_value=["FLU_DELETE"]),
+            patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,
+        ):
             lambda_handler(event=self.make_event(), context=None)
 
         mock_send_to_supplier_queue.assert_not_called()
@@ -298,8 +309,8 @@ class TestLambdaHandler(TestCase):
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full RSV permissions
-
-        response = lambda_handler(self.make_event(VALID_RSV_EMIS_FILE_KEY), None)
+        with patch("initial_file_validation.add_to_audit_table", return_value=True):
+            response = lambda_handler(self.make_event(VALID_RSV_EMIS_FILE_KEY), None)
 
         # Assertions
         self.assertEqual(response["statusCode"], 200)

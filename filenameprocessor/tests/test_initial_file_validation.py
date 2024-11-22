@@ -7,10 +7,11 @@ import json
 import sys
 from boto3 import client as boto3_client
 from moto import mock_s3
+
 maindir = os.path.dirname(__file__)
-srcdir = '../src'
+srcdir = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from initial_file_validation import (   # noqa: E402
+from initial_file_validation import (  # noqa: E402
     is_valid_datetime,
     get_supplier_permissions,
     validate_vaccine_type_permissions,
@@ -160,9 +161,12 @@ class TestInitialFileValidation(TestCase):
         for file_key, file_content, expected_result in test_cases_for_full_permissions:
             with self.subTest(f"SubTest for file key: {file_key}"):
                 # Mock full permissions for the supplier (Note that YGA ODS code maps to the supplier 'TPP')
-                with patch(
-                    "initial_file_validation.get_permissions_config_json_from_cache",
-                    return_value={"all_permissions": {"TPP": ["COVID19_FULL", "FLU_FULL"]}},
+                with (
+                    patch(
+                        "initial_file_validation.get_permissions_config_json_from_cache",
+                        return_value={"all_permissions": {"TPP": ["COVID19_FULL", "FLU_FULL"]}},
+                    ),
+                    patch("initial_file_validation.add_to_audit_table", return_value=True),
                 ):
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
                     self.assertEqual(initial_file_validation(file_key), expected_result)
@@ -172,15 +176,18 @@ class TestInitialFileValidation(TestCase):
             # Has vaccine type and action flag permission
             (valid_file_key, valid_file_content, (True, ["FLU_CREATE"])),
             # Does not have vaccine type permission
-            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False)
+            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False),
         ]
 
         for file_key, file_content, expected_result in test_cases_for_partial_permissions:
             with self.subTest(f"SubTest for file key: {file_key}"):
                 # Mock permissions for the supplier (Note that YGA ODS code maps to the supplier 'TPP')
-                with patch(
-                    "initial_file_validation.get_permissions_config_json_from_cache",
-                    return_value={"all_permissions": {"TPP": ["FLU_CREATE"]}},
+                with (
+                    patch(
+                        "initial_file_validation.get_permissions_config_json_from_cache",
+                        return_value={"all_permissions": {"TPP": ["FLU_CREATE"]}},
+                    ),
+                    patch("initial_file_validation.add_to_audit_table", return_value=True),
                 ):
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
                     self.assertEqual(initial_file_validation(file_key), expected_result)

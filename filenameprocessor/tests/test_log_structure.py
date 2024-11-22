@@ -65,13 +65,15 @@ class TestFunctionInfoDecorator(unittest.TestCase):
         event = self.event_file
 
         set_up_s3_buckets_and_upload_file()
-        with patch(
-            "initial_file_validation.get_supplier_permissions",
-            return_value=["FLU_CREATE", "FLU_UPDATE"],
-        ), patch("send_sqs_message.send_to_supplier_queue"):
-            lambda_handler(event, context=None)
-
-        result = lambda_handler(event, None)
+        with (
+            patch(
+                "initial_file_validation.get_supplier_permissions",
+                return_value=["FLU_CREATE", "FLU_UPDATE"],
+            ),
+            patch("send_sqs_message.send_to_supplier_queue"),
+            patch("initial_file_validation.add_to_audit_table", return_value=True),
+        ):
+            result = lambda_handler(event, context=None)
 
         self.assertEqual(result["statusCode"], 200)
         self.assertIn("Successfully sent to SQS queue", result["body"])
