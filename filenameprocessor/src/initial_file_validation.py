@@ -2,6 +2,7 @@
 
 import logging
 import os
+import signal
 from re import match
 from datetime import datetime
 from constants import Constants
@@ -13,7 +14,20 @@ from uuid import uuid4
 logger = logging.getLogger()
 
 
+# Define a timeout exception
+class TimeoutError(Exception):
+    pass
+
+
+# Function to handle timeout
+def timeout_handler(signum, frame):
+    raise TimeoutError("Task timed out")
+
+
 def add_to_audit_table(file_key: str) -> bool:
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(30)  # Set the timeout for the task
+
     try:
         dynamodb_client.put_item(
             TableName=os.environ["AUDIT_TABLE_NAME"],
@@ -24,8 +38,11 @@ def add_to_audit_table(file_key: str) -> bool:
                 "createdAt": {"S": "TBC"},
             },
         )
-    except Exception as error:
+        signal.alarm(0)
+
+    except TimeoutError as error:
         logger.error("Unable to add to audit table. Error: %s", error)
+        signal.alarm(0)
         return False
 
     return True
