@@ -222,7 +222,7 @@ resource "aws_iam_policy" "dynamo_access_policy" {
         Effect    = "Allow"
         Resource  = [
           "arn:aws:dynamodb:${var.aws_region}:${local.local_account_id}:table/${local.short_prefix}-imms-batch-audit-table",
-          "arn:aws:dynamodb:${var.aws_region}:${local.local_account_id}:table/${local.short_prefix}-imms-batch-audit-table/index/filename_index",
+          "arn:aws:dynamodb:${var.aws_region}:${local.local_account_id}:table/${local.short_prefix}-imms-batch-audit-table/index/*",
         ]
       }
     ]

@@ -29,7 +29,7 @@ def add_to_audit_table(file_key: str) -> bool:
     signal.alarm(30)  # Set the timeout for the task
 
     try:
-        dynamodb_client.put_item(
+        response = dynamodb_client.put_item(
             TableName=os.environ["AUDIT_TABLE_NAME"],
             Item={
                 "unique_id": {"S": str(uuid4())},
@@ -38,6 +38,7 @@ def add_to_audit_table(file_key: str) -> bool:
                 "createdAt": {"S": "TBC"},
             },
         )
+        print(f"dynamo response: {response}")
         signal.alarm(0)
 
     except TimeoutError as error:
