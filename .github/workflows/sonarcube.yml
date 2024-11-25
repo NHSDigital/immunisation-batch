@@ -28,12 +28,13 @@ jobs:
 
       - name: Run unittest with filenameprocessor-coverage
         run: |
-          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson pandas
+          pip install poetry moto==4.2.11 coverage redis botocore==1.35.49 simplejson pandas freezegun
           poetry run coverage run --source=filenameprocessor -m unittest discover -s filenameprocessor
           poetry run coverage xml -o filenameprocessor-coverage.xml
       
       - name: Run unittest with recordprocessor-coverage
         run: |
+          pip install poetry freezegun
           poetry run coverage run --source=recordprocessor -m unittest discover -s recordprocessor
           poetry run coverage xml -o recordprocessor-coverage.xml
 

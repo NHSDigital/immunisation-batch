@@ -7,7 +7,7 @@ from decimal import Decimal
 import requests
 from src.constants import Urls
 from src.mappings import Vaccine
-
+from datetime import datetime
 
 # TARGET_DISEASE_ELEMENTS values are intentionally hard-coded for testing purposes.
 TARGET_DISEASE_ELEMENTS = {
@@ -44,6 +44,11 @@ TARGET_DISEASE_ELEMENTS = {
 
 TEST_UNIQUE_ID = "0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1"
 TEST_DATE = "20240609"
+TEST_UNIQUE_ID_URI = "https://www.ravs.england.nhs.uk/"
+TEST_LOCAL_ID_002COVID = f"0002_COVID19_v1_DOSE_1^{TEST_UNIQUE_ID_URI}"
+TEST_LOCAL_ID_001RSV = f"0001_RSV_v5_RUN_2_CDFDPS-742_valid_dose_1^{TEST_UNIQUE_ID_URI}"
+TEST_LOCAL_ID_mandatory = f"0001_RSV_v5_Run3_valid_dose_1_new_upd_del_20240905130057^{TEST_UNIQUE_ID_URI}"
+
 
 FILE_HEADERS = (
     "NHS_NUMBER|PERSON_FORENAME|PERSON_SURNAME|PERSON_DOB|PERSON_GENDER_CODE|PERSON_POSTCODE|"
@@ -219,10 +224,18 @@ TEST_SUPPLIER = "EMIS"
 TEST_ODS_CODE = "8HK48"
 TEST_FILE_ID = "123456"
 TEST_PERMISSION = ["COVID19_FULL", "FLU_FULL", "MMR_FULL", "RSV_FULL"]
+STATIC_DATETIME = datetime(2021, 11, 20, 12, 0, 0)
+# For test purposes static time with no seconds
+STATIC_ISO_DATETIME = STATIC_DATETIME.replace(second=0, microsecond=0).isoformat(timespec="milliseconds")
 
 TEST_FILE_KEY = f"{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000.csv"
 TEST_ACK_FILE_KEY = f"processedFile/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_response.csv"
-TEST_INF_ACK_FILE_KEY = f"ack/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_InfAck.csv"
+TEST_INF_ACK_FILE_KEY = (
+    f"ack/{TEST_VACCINE_TYPE}_Vaccinations_v5_{TEST_ODS_CODE}_20210730T12000000_InfAck_{STATIC_ISO_DATETIME}.csv"
+)
+TEST_UNIQUE_ID_URI = "https://www.ravs.england.nhs.uk/"
+TEST_LOCAL_ID = f"0002_COVID19_v1_DOSE_1^{TEST_UNIQUE_ID_URI}"
+
 
 TEST_EVENT_DUMPED = json.dumps(
     {
@@ -231,7 +244,8 @@ TEST_EVENT_DUMPED = json.dumps(
         "supplier": TEST_SUPPLIER,
         "filename": TEST_FILE_KEY,
         "permission": TEST_PERMISSION,
-        "created_at_formatted_string": "2020-01-01"
+        "created_at_formatted_string": "2020-01-01",
+        "local_id": TEST_LOCAL_ID,
     }
 )
 
@@ -240,7 +254,8 @@ TEST_EVENT = {
     "vaccine_type": TEST_VACCINE_TYPE,
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,
-    "permission": TEST_PERMISSION
+    "permission": TEST_PERMISSION,
+    "local_id": TEST_LOCAL_ID,
 }
 
 TEST_EVENT_PERMISSION = {
@@ -248,7 +263,7 @@ TEST_EVENT_PERMISSION = {
     "vaccine_type": TEST_VACCINE_TYPE,
     "supplier": TEST_SUPPLIER,
     "filename": TEST_FILE_KEY,
-    "permission": ["RSV_DELETE"]
+    "permission": ["RSV_DELETE"],
 }
 
 MOCK_ENVIRONMENT_DICT = {
@@ -355,14 +370,41 @@ critical_fields = {"ACTION_FLAG": "NEW", "UNIQUE_ID": "a_unique_id", "UNIQUE_ID_
 
 # Required field order
 field_order = [
- "NHS_NUMBER", "PERSON_FORENAME", "PERSON_SURNAME", "PERSON_DOB", "PERSON_GENDER_CODE", "PERSON_POSTCODE",
- "DATE_AND_TIME", "SITE_CODE", "SITE_CODE_TYPE_URI", "UNIQUE_ID", "UNIQUE_ID_URI", "ACTION_FLAG",
- "PERFORMING_PROFESSIONAL_FORENAME", "PERFORMING_PROFESSIONAL_SURNAME", "RECORDED_DATE", "PRIMARY_SOURCE",
- "VACCINATION_PROCEDURE_CODE", "VACCINATION_PROCEDURE_TERM", "DOSE_SEQUENCE", "VACCINE_PRODUCT_CODE",
- "VACCINE_PRODUCT_TERM", "VACCINE_MANUFACTURER", "BATCH_NUMBER", "EXPIRY_DATE", "SITE_OF_VACCINATION_CODE",
- "SITE_OF_VACCINATION_TERM", "ROUTE_OF_VACCINATION_CODE", "ROUTE_OF_VACCINATION_TERM", "DOSE_AMOUNT",
- "DOSE_UNIT_CODE", "DOSE_UNIT_TERM", "INDICATION_CODE", "LOCATION_CODE", "LOCATION_CODE_TYPE_URI"
- ]
+    "NHS_NUMBER",
+    "PERSON_FORENAME",
+    "PERSON_SURNAME",
+    "PERSON_DOB",
+    "PERSON_GENDER_CODE",
+    "PERSON_POSTCODE",
+    "DATE_AND_TIME",
+    "SITE_CODE",
+    "SITE_CODE_TYPE_URI",
+    "UNIQUE_ID",
+    "UNIQUE_ID_URI",
+    "ACTION_FLAG",
+    "PERFORMING_PROFESSIONAL_FORENAME",
+    "PERFORMING_PROFESSIONAL_SURNAME",
+    "RECORDED_DATE",
+    "PRIMARY_SOURCE",
+    "VACCINATION_PROCEDURE_CODE",
+    "VACCINATION_PROCEDURE_TERM",
+    "DOSE_SEQUENCE",
+    "VACCINE_PRODUCT_CODE",
+    "VACCINE_PRODUCT_TERM",
+    "VACCINE_MANUFACTURER",
+    "BATCH_NUMBER",
+    "EXPIRY_DATE",
+    "SITE_OF_VACCINATION_CODE",
+    "SITE_OF_VACCINATION_TERM",
+    "ROUTE_OF_VACCINATION_CODE",
+    "ROUTE_OF_VACCINATION_TERM",
+    "DOSE_AMOUNT",
+    "DOSE_UNIT_CODE",
+    "DOSE_UNIT_TERM",
+    "INDICATION_CODE",
+    "LOCATION_CODE",
+    "LOCATION_CODE_TYPE_URI",
+]
 
 # Creating the required dictionaries in the specified order
 all_fields = {key: (mandatory_fields.get(key) or non_mandatory_fields.get(key) or "") for key in field_order}

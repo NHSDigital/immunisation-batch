@@ -3,19 +3,18 @@
 from csv import writer
 import os
 from io import StringIO, BytesIO
+from datetime import datetime
 from utils_for_filenameprocessor import get_environment
 from s3_clients import s3_client
 
 
-def make_the_ack_data(
-    message_id: str,  message_delivered: bool, created_at_formatted_string: str
-) -> dict:
+def make_the_ack_data(message_id: str, message_delivered: bool, created_at_formatted_string: str) -> dict:
     """Returns a dictionary of ack data based on the input values. Dictionary keys are the ack file headers,
     dictionary values are the values for the ack file row"""
     failure_display = "Infrastructure Level Response Value - Processing Error"
     return {
         "MESSAGE_HEADER_ID": message_id,
-        "HEADER_RESPONSE_CODE":  "Failure",
+        "HEADER_RESPONSE_CODE": "Failure",
         "ISSUE_SEVERITY": "Fatal",
         "ISSUE_CODE": "Fatal Error",
         "ISSUE_DETAILS_CODE": "10001",
@@ -31,8 +30,9 @@ def make_the_ack_data(
 
 def upload_ack_file(file_key: str, ack_data: dict) -> None:
     """Formats the ack data into a csv file and uploads it to the ack bucket"""
-    ack_filename = "ack/" + file_key.replace(".csv", "_InfAck.csv")
-
+    ack_file_timestamp = ack_file_timestamp = datetime.now().isoformat(timespec="milliseconds")
+    print(ack_file_timestamp)
+    ack_filename = "ack/" + file_key.replace(".csv", f"_InfAck_{ack_file_timestamp}.csv")
     # Create CSV file with | delimiter, filetype .csv
     csv_buffer = StringIO()
     csv_writer = writer(csv_buffer, delimiter="|")

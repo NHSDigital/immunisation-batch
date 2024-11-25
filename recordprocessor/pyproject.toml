@@ -23,6 +23,7 @@ jsonpath-ng             = "^1.6.0"
 simplejson              = "^3.19.2"
 structlog               = "^24.1.0"
 pandas                  = "^2.2.3"
+freezegun               = "^1.5.1"
 
 [build-system]
 requires      = ["poetry-core ~= 1.5.0"]

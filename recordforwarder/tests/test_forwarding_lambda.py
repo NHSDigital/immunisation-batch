@@ -88,7 +88,7 @@ class TestForwardingLambda(unittest.TestCase):
 
     #     def test_create_ack_data(self):
     #         created_at_formatted_string = "20241015T18504900"
-    #         row_id = "test_file_id#1"
+    #         row_id = "test_file_id^1"
 
     #         success_ack_data = {
     #             "MESSAGE_HEADER_ID": row_id,
