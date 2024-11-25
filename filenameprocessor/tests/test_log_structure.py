@@ -71,7 +71,7 @@ class TestFunctionInfoDecorator(unittest.TestCase):
                 return_value=["FLU_CREATE", "FLU_UPDATE"],
             ),
             patch("send_sqs_message.send_to_supplier_queue"),
-            patch("initial_file_validation.add_to_audit_table", return_value=True),
+            patch("file_name_processor.add_to_audit_table", return_value=True),
         ):
             result = lambda_handler(event, context=None)
 
@@ -112,13 +112,12 @@ class TestFunctionInfoDecorator(unittest.TestCase):
         event = self.event_file
 
         set_up_s3_buckets_and_upload_file(file_content=VALID_FILE_CONTENT)
-        with patch(
+        with patch("file_name_processor.add_to_audit_table", return_value=True), patch(
             "initial_file_validation.get_supplier_permissions",
             return_value=["COVID19_CREATE"],
         ), patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue:
-            lambda_handler(event, context=None)
+            result = lambda_handler(event, context=None)
 
-        result = lambda_handler(event, None)
         mock_send_to_supplier_queue.assert_not_called()
         self.assertEqual(result["statusCode"], 400)
         self.assertIn("Infrastructure Level Response Value - Processing Error", result["body"])

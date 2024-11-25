@@ -107,7 +107,7 @@ class TestLambdaHandler(TestCase):
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full FLU permissions
-        with patch("initial_file_validation.add_to_audit_table", return_value=True):
+        with patch("file_name_processor.add_to_audit_table", return_value=True):
             response = lambda_handler(self.make_event(), None)
 
         # Assertions
@@ -266,7 +266,7 @@ class TestLambdaHandler(TestCase):
                 return_value=["FLU_CREATE", "FLU_UPDATE", "COVID19_FULL"],  # noqa: E999
             ),  # noqa: E999
             patch("send_sqs_message.send_to_supplier_queue") as mock_send_to_supplier_queue,  # noqa: E999
-            patch("initial_file_validation.add_to_audit_table", return_value=True),  # noqa: E999
+            patch("file_name_processor.add_to_audit_table", return_value=True),  # noqa: E999
         ):  # noqa: E999
             lambda_handler(event=self.make_event(), context=None)
 
@@ -307,7 +307,7 @@ class TestLambdaHandler(TestCase):
         queue_url = sqs_client.create_queue(QueueName=queue_name, Attributes=attributes)["QueueUrl"]
 
         # Mock get_supplier_permissions with full RSV permissions
-        with patch("initial_file_validation.add_to_audit_table", return_value=True):
+        with patch("file_name_processor.add_to_audit_table", return_value=True):
             response = lambda_handler(self.make_event(VALID_RSV_EMIS_FILE_KEY), None)
 
         # Assertions

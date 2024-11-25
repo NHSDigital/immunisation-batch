@@ -161,12 +161,9 @@ class TestInitialFileValidation(TestCase):
         for file_key, file_content, expected_result in test_cases_for_full_permissions:
             with self.subTest(f"SubTest for file key: {file_key}"):
                 # Mock full permissions for the supplier (Note that YGA ODS code maps to the supplier 'TPP')
-                with (
-                    patch(
-                        "initial_file_validation.get_permissions_config_json_from_cache",
-                        return_value={"all_permissions": {"TPP": ["COVID19_FULL", "FLU_FULL"]}},
-                    ),
-                    patch("initial_file_validation.add_to_audit_table", return_value=True),
+                with patch(
+                    "initial_file_validation.get_permissions_config_json_from_cache",
+                    return_value={"all_permissions": {"TPP": ["COVID19_FULL", "FLU_FULL"]}},
                 ):
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
                     self.assertEqual(initial_file_validation(file_key), expected_result)
@@ -182,12 +179,9 @@ class TestInitialFileValidation(TestCase):
         for file_key, file_content, expected_result in test_cases_for_partial_permissions:
             with self.subTest(f"SubTest for file key: {file_key}"):
                 # Mock permissions for the supplier (Note that YGA ODS code maps to the supplier 'TPP')
-                with (
-                    patch(
-                        "initial_file_validation.get_permissions_config_json_from_cache",
-                        return_value={"all_permissions": {"TPP": ["FLU_CREATE"]}},
-                    ),
-                    patch("initial_file_validation.add_to_audit_table", return_value=True),
+                with patch(
+                    "initial_file_validation.get_permissions_config_json_from_cache",
+                    return_value={"all_permissions": {"TPP": ["FLU_CREATE"]}},
                 ):
                     s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content)
                     self.assertEqual(initial_file_validation(file_key), expected_result)
