@@ -7,10 +7,11 @@ import json
 import sys
 from boto3 import client as boto3_client
 from moto import mock_s3
+
 maindir = os.path.dirname(__file__)
-srcdir = '../src'
+srcdir = "../src"
 sys.path.insert(0, os.path.abspath(os.path.join(maindir, srcdir)))
-from initial_file_validation import (   # noqa: E402
+from initial_file_validation import (  # noqa: E402
     is_valid_datetime,
     get_supplier_permissions,
     validate_vaccine_type_permissions,
@@ -172,7 +173,7 @@ class TestInitialFileValidation(TestCase):
             # Has vaccine type and action flag permission
             (valid_file_key, valid_file_content, (True, ["FLU_CREATE"])),
             # Does not have vaccine type permission
-            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False)
+            (valid_file_key.replace("Flu", "Covid19"), valid_file_content, False),
         ]
 
         for file_key, file_content, expected_result in test_cases_for_partial_permissions:
