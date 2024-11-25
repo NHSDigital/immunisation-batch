@@ -124,6 +124,24 @@ class TestLambdaHandler(TestCase):
         self.assertEqual(received_message["timestamp"], "20240708T12130100")
         self.assertEqual(received_message["filename"], "Flu_Vaccinations_v5_YGM41_20240708T12130100.csv")
 
+    @mock_s3
+    @mock_sqs
+    @patch.dict(os.environ, {"REDIS_HOST": "localhost", "REDIS_PORT": "6379"})
+    @patch("file_name_processor.s3_client.get_object")
+    @patch("file_name_processor.add_to_audit_table", return_value=True)
+    @patch("fetch_permissions.redis_client")
+    def test_add_to_audit_table_called(self, mock_redis_client, mock_add_to_audit_table, mock_s3_get_object):
+        """Tests that add_to_audit_table is called with the correct input args"""
+        # Mock full permissions
+        mock_redis_client.get.return_value = json.dumps(PERMISSION_JSON)
+        self.set_up_s3_buckets_and_upload_file()
+        mock_s3_get_object.return_value = {"LastModified": MagicMock(strftime=lambda fmt: "20240101T000000")}
+
+        with patch("file_name_processor.uuid4", return_value="test_id"):
+            lambda_handler(self.make_event(), None)
+
+        mock_add_to_audit_table.assert_called_with("test_id", VALID_FLU_EMIS_FILE_KEY, "20240101T000000")
+
     @patch("elasticcache.s3_client.get_object")
     @patch("elasticcache.redis_client.set")
     @patch("s3_clients.s3_client.get_object")
